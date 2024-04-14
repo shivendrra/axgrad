@@ -16,7 +16,7 @@ def tanh(x):
   return (math.exp(x) - math.exp(-x)) / (math.exp(x) + math.exp(-x))
 
 def tanh_derivative(x):
-  return 1 - (tanh.tanh(x)**2)
+  return 1 - (tanh(x)**2)
 
 def sigmoid(x):
   return 1 / (1 + math.exp(-x))
