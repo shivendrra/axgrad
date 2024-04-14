@@ -1,5 +1,5 @@
 import numpy as np
-from arrays import zeros, array
+from axgrad import zeros, array
 import math
 
 class PositionalEmbeddings:
