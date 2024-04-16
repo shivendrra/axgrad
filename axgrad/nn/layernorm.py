@@ -1,4 +1,4 @@
-class LayerNormalization:
+class LayerNorm:
   def __init__(self, epsilon=1e-5):
     self.epsilon = epsilon
     self.mean = None

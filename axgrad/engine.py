@@ -6,6 +6,9 @@ class Value:
     self._prev = set(children)
     self._op = _op
 
+  def __repr__(self):
+    return f"Value(data={self.data}, grad={self.grad})" if self.grad != '0' else f"Value(data={self.data})"
+
   def __add__(self, other):
     other = other if isinstance(other, Value) else Value(other)
     out = Value(self.data + other.data, (self, other), '+')
@@ -61,19 +64,34 @@ class Value:
     return self + other
 
   def __sub__(self, other):
-    return self + (-other)
+    other = other if isinstance(other, Value) else Value(other)
+    out = Value(self.data - other.data, (self, other), '-')
+    def _backward():
+      self.grad += out.grad
+      other.grad += out.grad
+    out._backward = _backward
+    return out
 
   def __rsub__(self, other):
-    return other + (-self)
+    other = other if isinstance(other, Value) else Value(other)
+    out = Value(other.data - self.data, (self, other), '-')
+    def _backward():
+      self.grad += out.grad
+      other.grad += out.grad
+    out._backward = _backward
+    return out
 
   def __rmul__(self, other):
     return self * other
 
   def __truediv__(self, other):
-    return self * other**-1
+    other = other if isinstance(other, Value) else Value(other)
+    out = Value(self.data * other.data**-1, (self, other), '/')
+    def _backward():
+      self.grad += (-other.data**-2) * out.grad
+      other.grad += (-self.data**-2) * out.grad
+    out._backward = _backward
+    return out
 
   def __rtruediv__(self, other):
     return other * self**-1
-
-  def __repr__(self):
-    return f"Value(data={self.data}, grad={self.grad})"
