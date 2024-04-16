@@ -1,4 +1,5 @@
 from axgrad import nn_mods as nn
+from axgrad.optimizer import Loss, Optim
 
 n = nn.MLP(3, [4, 4, 1])
 
@@ -19,5 +20,18 @@ for k in range(10):
 
   for p in n.parameters():
     p.data += -0.05 * p.grad
+  
+  print(k, loss.data)
+
+optimizer = Optim.sgd(n.parameters(), learn_rate=0.05)
+loss_f = Loss()
+
+for k in range(10):
+  ypred = [n(x) for x in xs]
+  loss = loss_f.mean_square_error(ys, ypred)
+  print(loss)
+  n.zero_grad()
+  loss.backward()
+  optimizer.step()
   
   print(k, loss.data)
