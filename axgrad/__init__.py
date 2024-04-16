@@ -1,5 +1,5 @@
 from .arrays import array
-# from .modules.matrices import zeros, ones, randint, ns
-# from .modules.activations import sigmoid, sigmoid_derivative, tanh, tanh_derivative, softmax, relu, LeakyRELU, LeakyRELU_derivative, relu_derivative
+from .modules.activations import LeakyRELU, LeakyRELU_derivative, relu, relu_derivative, tanh, tanh_derivative, softmax, sigmoid, sigmoid_derivative
+from .modules.matrices import ns, ones, randint, zeros
 from .nn.linear import Linear
 from .nn.layernorm import LayerNorm
