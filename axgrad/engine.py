@@ -2,7 +2,7 @@ class Value:
   def __init__(self, data, children=(), _op=''):
     self.data = data
     self.grad = 0.0
-    self.backward = lambda: None
+    self._backward = lambda: None
     self._prev = set(children)
     self._op = _op
 
