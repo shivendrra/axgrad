@@ -1,7 +1,4 @@
-from typing import Any
 from ..engine import Value
-from .loss import Loss
-from ..nn_mods import Module
 
 class Optim:
   class sgd:
@@ -14,8 +11,6 @@ class Optim:
     
     def step(self):
       for p, v in zip(self.params, self.velo):
-        p.grad.backward()
-        v.data = v.data * self.moment + p.grad.data
-        p.data = p.data - v.data * self.lr
-
+        v.data = v.data * self.moment + p.grad
+        p.data += self.lr * v.data
       return self.step

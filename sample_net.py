@@ -1,6 +1,6 @@
 from axgrad import nn_mods as nn
 from axgrad.optimizer import Loss, Optim
-
+from axgrad.engine import Value
 n = nn.MLP(3, [4, 4, 1])
 
 xs = [
@@ -12,26 +12,39 @@ xs = [
 
 ys = [-1.0, 1.0, -1.0, 1.0]
 
-for k in range(10):
-  ypred = [n(x) for x in xs]
-  loss = sum((yout - ygt)**2 for ygt, yout in zip(ys, ypred))
-  n.zero_grad()
-  loss.backward()
+def absolute(val: list):
+  return [abs(v) for v in val]
 
-  for p in n.parameters():
-    p.data += -0.05 * p.grad
+l_arr = []
+# for k in range(100):
+#   ypred = [n(x) for x in xs]
+#   loss = Value(sum(absolute((yout - ygt).data) for ygt, yout in zip(ys, ypred))/len(ys))
+#   l_arr.append(loss.data)
+#   n.zero_grad()
+#   loss.backward()
+
+#   for p in n.parameters():
+#     p.data += -0.05 * p.grad
   
-  print(k, loss.data)
+#   print(k, loss.data)
+  
+# print(ypred, loss.data)
 
 optimizer = Optim.sgd(n.parameters(), learn_rate=0.05)
 loss_f = Loss()
 
-for k in range(10):
+for k in range(150):
   ypred = [n(x) for x in xs]
-  loss = loss_f.mean_square_error(ys, ypred)
-  print(loss)
+  loss = loss_f.mse_loss(ys, ypred)
+  l_arr.append(loss.data)
   n.zero_grad()
   loss.backward()
   optimizer.step()
-  
-  print(k, loss.data)
+
+import matplotlib.pyplot as plt
+
+plt.plot(range(150), l_arr)
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Training Loss over Epochs')
+plt.show()
