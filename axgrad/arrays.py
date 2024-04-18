@@ -1,52 +1,73 @@
-from .modules.matrices import zeros
+from .modules.matrices import zeros, ones
+from .modules.statics import get_shape, _operate
 
 class tensor:
-  def __init__(self, *args):
+  def __init__(self, *args, children=(), _op=''):
     self.data = args[0] if len(args) == 1 and isinstance(args[0], list) else list(args)
     self.shape = self.shape()
+    self.grad = zeros(self.shape, dtype=float)
+    self._backward = lambda: None
+    self._prev = set(children)
+    self._op = _op
 
   def __repr__(self):
-    return f"axon.tensor({self.data})"
-
-  def __getitem__(self, index):
-    return self.data[index]
-
-  def __setitem__(self, index, value):
-    self.data[index] = value
+    return f"axon.tensor(data={self.data}, grad={self.grad})"
 
   def __add__(self, other):
     """
       matrix addition of each element
     
       args:
-      - self: first tensor
-      - other: second tensor
+      - self (tensor): first tensor
+      - other (tensor): second tensor
     
       returns:
       - matrix with added corresponding values
     """
-    return tensor(self._operate(arr1=self.data, arr2=other.data, _op='+'))
+    other = other if isinstance(other, tensor) else tensor(other)
+    out = tensor(_operate(arr1=self.data, arr2=other.data, op='+'), children=(self, other), _op='+')
+    def _backward():
+      def change(arr):
+        for i in range(len(arr.data)):
+          for j in range(len(arr.data[i])):
+            arr.data[i][j] += out.grad[i][j]
+          return arr
+      self.grad = change(self)
+      other.grad = change(other)
+    out._backward = _backward
+    return out
 
   def __sub__(self, other):
     """
       matrix subtraction of each element
     
       args:
-      - self: first tensor
-      - other: second tensor
+      - self (tensor): first tensor
+      - other (tensor): second tensor
     
       returns:
       - matrix with subtracted corresponding values
     """
-    return tensor(self._operate(arr1=self.data, arr2=other.data, _op='-'))
+    other = other if isinstance(other, tensor) else tensor(other)
+    out = tensor(_operate(arr1=self.data, arr2=other.data, _op='-'), children=(self, other), _op='-')
+    def _backward():
+      def change(arr):
+        for i in range(len(arr.data)):
+          for j in range(len(arr.data[i])):
+            arr.data[i][j] += out.grad[i][j]
+        return arr
+      self.grad = change(self)
+      other.grad = change(other)
+    out._backward = _backward
+    return out
 
   def __mul__(self, other):
     """
       matrix multiplication for self, and other as a & b
     
       args:
-      - self: first tensor
-      - other: second tensor
+      - self (tensor): first tensor
+      - other (tensor): second tensor
     
       returns:
       - multiplied matrix with shape (len(a[0]), len(b(1)))
@@ -54,60 +75,66 @@ class tensor:
     if len(self.data[0]) != len(other.data):
       raise ValueError(f"invalid shape for matrix multiplication: {self.shape} != {other.shape}")
     else:
-      return tensor([[sum(self.data[i][k] * other.data[k][j] for k in range(len(other.data))) for j in range(len(other.data[0]))] for i in range(len(self.data))])
+      out = tensor([[sum(self.data[i][k] * other.data[k][j] for k in range(len(other.data))) for j in range(len(other.data[0]))] for i in range(len(self.data))], children=(self, other), _op='*')
+      def _backward():
+        def change(arr, trg):
+          for i in range(len(arr.data)):
+            for j in range(len(arr.data[i])):
+              arr.data[i][j] += out.grad[i][j] * trg.data[i][j]
+          return arr
+        self.grad = change(self, other)
+        other.grad = change(other, self)
+        out._backward = _backward
+      return out
 
   def __truediv__(self, other):
-    """
-      matrix multiplication for matrix1 with matrix2's transpose
-    
-      args:
-      - self: first tensor
-      - other: second tensor
-    
-      returns:
-      - multiplied matrix
-    """
-    if isinstance(other, tensor):
-      if len(self.data[0]) != len(other.data):
-        raise ValueError(f"invalid shape for matrix multiplication: {self.shape} != {other.shape}")
-    else:
-      trans_mat = other.data.transpose()
-      return tensor([[sum(self.data[i][k] * other.data[k][j] for k in range(len(other.data))) for j in range(len(other.data[0]))] for i in range(len(self.data))])
+    raise ArithmeticError(f"can't do a matrix division")
   
+  def relu(self):
+    out = tensor([[max(0, self.data[i][j]) for j in range(len(self.data[i]))] for i in range(len(self.data))])
+    def _backward():
+      def change(arr):
+        for i in range(len(arr.data)):
+          for j in range(len(arr.data[i])):
+            arr.data[i][j] += out.grad[i][j] * (out.data[i][j] > 0)
+        return arr
+      self.grad = change(self)
+    out._backward = _backward
+    return out
+
+  def backward(self):
+    """
+      calculates the gradient for all the items in _prev w.r.t final matrix
+
+      args:
+      - self (tensor): final tensor that contains all the operated features
+
+      returns:
+      - self.grad (tensor): updated gradients on the matrix
+    """
+    topo = []
+    visited = set()
+    def build_topo(v):
+      if v not in visited:
+        visited.add(v)
+        for child in v._prev:
+          build_topo(child)
+        topo.append(v)
+    build_topo(self)
+
+    self.grad = ones(self.shape, dtype=float)
+    for v in reversed(topo):
+      v._backward()
+
   def shape(self):
-    return tuple(self.get_shape(self.data))
-  
-  @staticmethod
-  def _operate(arr1, arr2, _op=''):
     """
-      staticmethod to carry addition or subtraction for __add__ & __sub__
+      computes the shape of a tensor
 
-      args:
-      - arr1: first tensor
-      - arr2: second tensor
-      - _op: '+' or '-'
-    
       returns:
-      - matrix with performed operation
+        tuple: tuple that contains the shape of the tensor
     """
-    if len(arr1) != len(arr2):
-      raise ValueError("Arrays must be of same shape & size")
-    result = []
-    for i in range(len(arr1)):
-      result.append(tensor._operate(arr1[i], arr2[i], _op=_op)) if isinstance(arr1[i], list) and isinstance(arr2[i], list) else result.append(arr1[i] + arr2[i]) if _op=='+' else result.append(arr1[i] - arr2[i])
-    return result
+    return tuple(get_shape(self.data))
 
-  @staticmethod
-  def get_shape(arr):
-    """
-      args:
-      - arr: array for determining the shape
-  
-      returns:
-      - tuple with the shape
-    """
-    return [] if not isinstance(arr, list) else [len(arr)] + tensor.get_shape(arr[0])
-  
   def transpose(self):
     """
       args:
