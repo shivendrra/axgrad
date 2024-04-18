@@ -19,36 +19,39 @@ l_arr = []
 
 ypred = [n(x) for x in xs]
 
-for k in range(10):
-  ypred = [n(x) for x in xs]
-  loss = Value(sum(abs((yout - ygt).data)for ygt, yout in zip(ys, ypred)))
-  l_arr.append(loss.data)
-  n.zero_grad()
-  loss.backward()
+# for k in range(10):
+#   ypred = [n(x) for x in xs]
+#   loss = Value(sum(abs((yout - ygt).data)for ygt, yout in zip(ys, ypred)))
+#   l_arr.append(loss.data)
+#   n.zero_grad()
+#   loss.backward()
 
-  for p in n.parameters():
-    p.data += -0.05 * p.grad
+#   for p in n.parameters():
+#     p.data += -0.05 * p.grad
   
-  # print(k, loss.data)
+#   # print(k, loss.data)
   
 print(ypred)
 print(l_arr)
 
-# optimizer = Optim.sgd(n.parameters(), learn_rate=0.05)
-# loss_f = Loss()
+optimizer = Optim.sgd(n.parameters(), learn_rate=0.05)
+loss_f = Loss()
 
-# for k in range(150):
-#   ypred = [n(x) for x in xs]
-#   loss = loss_f.mse_loss(ys, ypred)
-#   l_arr.append(loss.data)
-#   n.zero_grad()
-#   loss.backward()
-#   optimizer.step()
+for k in range(10):
+  ypred = [n(x) for x in xs]
+  loss = loss_f.mse_loss(ys, ypred)
+  l_arr.append(loss.data)
+  n.zero_grad()
+  loss.backward()
+  optimizer.step()
 
-# import matplotlib.pyplot as plt
+print(ypred)
+print(l_arr)
 
-# plt.plot(range(150), l_arr)
-# plt.xlabel('Epoch')
-# plt.ylabel('Loss')
-# plt.title('Training Loss over Epochs')
-# plt.show()
+import matplotlib.pyplot as plt
+
+plt.plot(range(10), l_arr)
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Training Loss over Epochs')
+plt.show()

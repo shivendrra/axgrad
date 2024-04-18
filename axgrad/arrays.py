@@ -1,5 +1,4 @@
-from .modules.matrices import zeros, ones
-from .modules.statics import get_shape, _operate
+from .modules.statics import get_shape, _operate, zeros, ones
 
 class tensor:
   def __init__(self, *args, children=(), _op=''):
@@ -72,7 +71,7 @@ class tensor:
       returns:
       - multiplied matrix with shape (len(a[0]), len(b(1)))
     """
-    if len(self.data[0]) != len(other.data):
+    if self.shape[1] != other.shape[0]:
       raise ValueError(f"invalid shape for matrix multiplication: {self.shape} != {other.shape}")
     else:
       out = tensor([[sum(self.data[i][k] * other.data[k][j] for k in range(len(other.data))) for j in range(len(other.data[0]))] for i in range(len(self.data))], children=(self, other), _op='*')
