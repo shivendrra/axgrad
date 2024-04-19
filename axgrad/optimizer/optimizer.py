@@ -1,10 +1,9 @@
 from ..engine import Value
-from ..modules import zeros_like
 
 class Optim:
   class sgd:
     """
-      simple gradient descent algorithm
+      stochastic gradient descent algorithm
       args:
         params: model parameters
         learn_rate: learning rate for descent

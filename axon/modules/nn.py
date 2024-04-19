@@ -1,6 +1,6 @@
 import random
 from ..arrays import tensor
-from .statics import ones, zeros
+from ..statics.statics import ones, zeros
 
 class Module:
   def zero_grad(self):

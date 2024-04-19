@@ -1,4 +1,5 @@
 # axgrad
+![axon.jpg](https://github.com/shivendrra/axgrad/blob/main/axon.jpg)
 A gradient engine along with it's own matrix operation library like PyTorch. It's supposed to be a good and lightweight C and Python based deep learning framework, which it's not, as of now.
 
 ## Overview

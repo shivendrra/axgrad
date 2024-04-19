@@ -1,4 +1,4 @@
-from axgrad import nn_mods as nn
+from axgrad import nn as nn
 from axgrad.optimizer import Loss, Optim
 from axgrad.engine import Value
 n = nn.MLP(3, [4, 4, 1])
