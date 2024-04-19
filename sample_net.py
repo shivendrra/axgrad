@@ -1,6 +1,6 @@
 from axgrad import nn as nn
 from axgrad.optimizer import Loss, Optim
-from axgrad.engine import Value
+
 n = nn.MLP(3, [4, 4, 1])
 
 xs = [
@@ -30,9 +30,6 @@ ypred = [n(x) for x in xs]
 #     p.data += -0.05 * p.grad
   
 #   # print(k, loss.data)
-  
-print(ypred)
-print(l_arr)
 
 optimizer = Optim.sgd(n.parameters(), learn_rate=0.05)
 loss_f = Loss()

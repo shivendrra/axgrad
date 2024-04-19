@@ -12,6 +12,7 @@ class Value:
   def __add__(self, other):
     other = other if isinstance(other, Value) else Value(other)
     out = Value(self.data + other.data, (self, other), '+')
+    
     def _backward():
       self.grad += out.grad
       other.grad += out.grad
@@ -21,6 +22,7 @@ class Value:
   def __mul__(self, other):
     other = other if isinstance(other, Value) else Value(other)
     out = Value(self.data * other.data, (self, other), '*')
+    
     def _backward():
       self.grad += other.data * out.grad
       other.grad += self.data * out.grad
@@ -30,6 +32,7 @@ class Value:
   def __pow__(self, other):
     assert isinstance(other, (int, float))
     out = Value(self.data**other, (self,), f'**{other}')
+    
     def _backward():
       self.grad += (other * self.data**(other-1)) * out.grad
     out._backward = _backward
@@ -37,12 +40,17 @@ class Value:
 
   def relu(self):
     out = Value(0 if self.data < 0 else self.data, (self,), 'ReLU')
+    
     def _backward():
       self.grad += (out.data > 0) * out.grad
     out._backward = _backward
     return out
 
   def backward(self):
+    """
+      topoplogical order of all the children in graph
+      and then apply chain rule for gradients, one at a time
+    """
     topo = []
     visited = set()
     def build_topo(v):
@@ -58,40 +66,22 @@ class Value:
       v._backward()
   
   def __neg__(self):
-    return self * -1
+    return self * -1  # -self
 
   def __radd__(self, other):
-    return self + other
+    return self + other  # other + self
 
   def __sub__(self, other):
-    other = other if isinstance(other, Value) else Value(other)
-    out = Value(self.data - other.data, (self, other), '-')
-    def _backward():
-      self.grad += out.grad
-      other.grad += out.grad
-    out._backward = _backward
-    return out
+    return self + (-other) # self - other
 
   def __rsub__(self, other):
-    other = other if isinstance(other, Value) else Value(other)
-    out = Value(other.data - self.data, (self, other), '-')
-    def _backward():
-      self.grad += out.grad
-      other.grad += out.grad
-    out._backward = _backward
-    return out
+    return other + (-self) # other - self
 
   def __rmul__(self, other):
-    return self * other
+    return self * other  # other * self
 
   def __truediv__(self, other):
-    other = other if isinstance(other, Value) else Value(other)
-    out = Value(self.data * other.data**-1, (self, other), '/')
-    def _backward():
-      self.grad += (-other.data**-2) * out.grad
-      other.grad += (-self.data**-2) * out.grad
-    out._backward = _backward
-    return out
+    return self * other ** -1  # self / other
 
   def __rtruediv__(self, other):
-    return other * self**-1
+    return other * self**-1  # other / self

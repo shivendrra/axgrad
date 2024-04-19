@@ -18,28 +18,14 @@ x = tensor(A)
 y = tensor(B)
 c = tensor(C)
 
-# Addition
 z = x + y
 e = z*c.transpose()
 f = e.relu()
-print(e)
-print(f)
-f.backward()
-print("f", f)
-
-from axgrad.engine import Value
-
-a = Value(1)
-b = Value(9)
-c = b
-
-z = a + b
-e = z*c
-print(z)
-print(e)
-e.backward()
-print(e)
-print('\n')
+g = f*x
+g.backward()
+print("f", f.grad)
+print("g", g.grad)
+print("x", x.grad)
 
 x = tensor([
   [1.0, 2.0, 3.0, 8.0],

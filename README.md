@@ -1,21 +1,42 @@
 # axgrad
 ![axon.jpg](https://github.com/shivendrra/axgrad/blob/main/axon.jpg)
-A gradient engine along with it's own matrix operation library like PyTorch. It's supposed to be a good and lightweight C and Python based deep learning framework, which it's not, as of now.
+A gradient engine along with it's own matrix operation library like PyTorch. It's supposed to be a fast & lightweight, C and Python based deep learning framework, which it's not, as of now.
 
 ## Overview
-It contains two gradient engines, one exactly like Karpathy's [micrograd](https://github.com/karpathy/micrograd) and other is something like PyTorch or [TinyGrad](https://github.com/tinygrad/tinygrad) along with a basic neural net framework that has `Module`, `Linear` & `Sequence` layers similar to pytorch's `nn.Module`,  `nn.Linear` &`nn.Sequential`.
+It contains a gradient engine exactly like Karpathy's [micrograd](https://github.com/karpathy/micrograd) and a deep learning framework like PyTorch or [TinyGrad](https://github.com/tinygrad/tinygrad) that has `Module`, `Linear` & `Sequence` layers similar to pytorch's `nn.Module`,  `nn.Linear` &`nn.Sequential`. It still work in progress though.
 
 ### Features
 It has basic building blocks required to build a neural network: 
-1. Basic tensor operation framework that could easily so matrix addition, multiplication, transpose, subtraction except for division(idk how to do that).
+1. Basic tensor unary operations framework that could easily so matrix addition, multiplication, transpose, subtraction except for division(idk how to do that).
 2. A gradient engine that could compute and update gradients, automatically, much like micrograd, but on a tensor level.
 3. Optimizer & loss computation blocks to compute and optimize.
 4. Basic blocks of network like Linear layer similar to `nn.Linear`, Sequence layer similar to `nn.Sequential` and others.
-add more things in future...
+i'll be adding more things in future...
 
-## Usage
+### Usage
+This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to preform tensor operations and build a sample neural network
+#### Axgrad
 
-### Tensor operations
+```python
+from axgrad import Value
+
+a = Value(-4.0)
+b = Value(2.0)
+
+c = a + b
+d = a * b + b**3
+d += d * 2 + (b + a).relu()
+d += 3 * d + (b - a).relu()
+e = c - d
+f = e**4
+g = f / 125.25
+g.backward()
+
+print(f'{g.data:.4f}') # prints 24.7041, the outcome of this forward pass
+print(f'{a.grad:.4f}') # prints 138.8338, i.e. the numerical value of dg/da
+print(f'{b.grad:.4f}') # prints 645.5773, i.e. the numerical value of dg/db
+```
+#### Tensor operations
 
 ```python
 from axgrad import tensor
@@ -29,9 +50,10 @@ e = z*c.transpose() # mat_mul along with transpose
 f = e.relu() # non-linearity
 f.backward() # gradient pass
 
-print(f) # axon.tensor(data=[41.2, 0, 20.0], [12.0, 25.0, 0], [0, 0, 0],  grad=[1.0, 1.0, 1.0],[1.0, 1.0, 1.0],[1.0, 1.0, 1.0])
+print(f) # axon.tensor(data=[41.2, 0, 20.0], [12.0, 25.0, 0], [0, 0, 0],
+		     # grad=[1.0, 1.0, 1.0],[1.0, 1.0, 1.0],[1.0, 1.0, 1.0])
 ```
-### Neural Network
+#### Neural Network
 
 ```python
 import axgrad.modules.nn as nn
@@ -43,7 +65,7 @@ seq = nn.Sequence(4,2)
 print(linear(x))
 print(seq(x))
 ```
-### Matrix Functions
+#### Matrix Functions
 
 ```python
 import axgrad

@@ -8,26 +8,25 @@ class Module:
   
   def parameters(self):
     return []
-  
-class Neuron(Module):
-  def __init__(self, n_in, non_lin=True):
-    self.w = [Value(random.uniform(-1, 1)) for _ in range(n_in)]
+
+class Linear(Module):
+  def __init__(self, _in):
+    self.w = [Value(random.uniform(-1, 1)) for _ in range(_in)]
     self.b = Value(0)
-    self.nonlin = non_lin
   
   def __call__(self, x):
     act = sum((wi * xi for wi, xi in zip(self.w, x)), self.b)
-    return act.relu() if self.nonlin else act
-  
+    return act
+
   def parameters(self):
     return self.w + [self.b]
   
   def __repr__(self) -> str:
-    return f"{'ReLU' if self.nonlin else 'Linear'}Neuron({len(self.w)})"
+    return f"Linear Neuron({len(self.w)})"
 
 class Layer(Module):
   def __init__(self, n_in, n_out, **kwargs):
-    self.neurons = [Neuron(n_in, **kwargs) for _ in range(n_out)]
+    self.neurons = [Linear(n_in, **kwargs) for _ in range(n_out)]
   
   def __call__(self, x):
     out = [n(x) for n in self.neurons]
