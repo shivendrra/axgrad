@@ -10,13 +10,14 @@ class Module:
     return []
 
 class Linear(Module):
-  def __init__(self, _in):
+  def __init__(self, _in, nonlin):
     self.w = [Value(random.uniform(-1, 1)) for _ in range(_in)]
     self.b = Value(0)
+    self.nonlin = nonlin
   
   def __call__(self, x):
     act = sum((wi * xi for wi, xi in zip(self.w, x)), self.b)
-    return act
+    return act.relu() if self.nonlin else act
 
   def parameters(self):
     return self.w + [self.b]
@@ -41,7 +42,7 @@ class Layer(Module):
 class MLP(Module):
   def __init__(self, n_in, n_out):
     sz = [n_in] + n_out
-    self.layers = [Layer(sz[i], sz[i+1], non_lin=i!=len(n_out)-1) for i in range(len(n_out))]
+    self.layers = [Layer(sz[i], sz[i+1], nonlin=i!=len(n_out)-1) for i in range(len(n_out))]
 
   def __call__(self, x):
     for layers in self.layers:

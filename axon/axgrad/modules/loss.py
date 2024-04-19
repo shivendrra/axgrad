@@ -31,8 +31,8 @@ class Loss:
       Returns:
         axgrad.Value: float value of loss as Value object for backprop
     """
-    loss = (sum(self.error(ygt, yout)**2 for ygt, yout in zip(trg, prd))) / len(trg)
-    return loss
+    loss = sum(self.error(ygt, yout)**2 for ygt, yout in zip(trg, prd)) / len(trg)
+    return loss if isinstance(loss, Value) else Value(loss)
 
   def mae_loss(self, trg, prd):
     """
@@ -47,8 +47,8 @@ class Loss:
       Returns:
         axgrad.Value: float value of loss as Value object for backprop
     """
-    loss = Value(sum(absolute(self.error(ygt, yout).data) for ygt, yout in zip(trg, prd))) / len(trg)
-    return loss
+    loss = (sum(absolute(self.error(ygt, yout).data) for ygt, yout in zip(trg, prd))) / len(trg)
+    return loss if isinstance(loss, Value) else Value(loss)
   
   def hinge_loss(self, trg, prd):
     """

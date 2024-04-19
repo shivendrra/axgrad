@@ -1,3 +1,5 @@
+import math
+
 class Value:
   def __init__(self, data, children=(), _op=''):
     self.data = data
@@ -35,6 +37,22 @@ class Value:
     
     def _backward():
       self.grad += (other * self.data**(other-1)) * out.grad
+    out._backward = _backward
+    return out
+
+  def tanh(self):
+    t = (math.exp(2*self.data) -1)/(math.exp(2*self.data) + 1)
+    out = Value(t, (self,), 'tanh')
+    def _backward():
+      self.grad += (1 - t**2) * out.grad
+    out._backward = _backward
+    return out
+  
+  def sigmoid(self):
+    t = 1 / (1 + math.exp(-self.data))
+    out = Value(t, (self, ), 'sigmoid')
+    def _backward():
+      self.grad += t * (1 - t) * out.grad
     out._backward = _backward
     return out
 
@@ -81,7 +99,7 @@ class Value:
     return self * other  # other * self
 
   def __truediv__(self, other):
-    return self * other ** -1  # self / other
+    return self * other**-1  # self / other
 
   def __rtruediv__(self, other):
     return other * self**-1  # other / self

@@ -18,7 +18,7 @@ This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to prefo
 #### Axgrad
 
 ```python
-from axgrad import Value
+from axon.axgrad import Value
 
 a = Value(-4.0)
 b = Value(2.0)
@@ -32,14 +32,14 @@ f = e**4
 g = f / 125.25
 g.backward()
 
-print(f'{g.data:.4f}') # prints 24.7041, the outcome of this forward pass
-print(f'{a.grad:.4f}') # prints 138.8338, i.e. the numerical value of dg/da
-print(f'{b.grad:.4f}') # prints 645.5773, i.e. the numerical value of dg/db
+print(f'{g.data:.4f}') # 32.7026, the outcome of this forward pass
+print(f'{a.grad:.4f}') # 359.7285, i.e. the numerical value of dg/da
+print(f'{b.grad:.4f}') # 1569.7246, i.e. the numerical value of dg/db
 ```
 #### Tensor operations
 
 ```python
-from axgrad import tensor
+from axon import tensor
 
 # initializing 2-d matrices
 x = tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -50,13 +50,13 @@ e = z*c.transpose() # mat_mul along with transpose
 f = e.relu() # non-linearity
 f.backward() # gradient pass
 
-print(f) # axon.tensor(data=[41.2, 0, 20.0], [12.0, 25.0, 0], [0, 0, 0],
-		     # grad=[1.0, 1.0, 1.0],[1.0, 1.0, 1.0],[1.0, 1.0, 1.0])
+print(f) # axon.tensor(data=[41.2, 0, 20.0], [12.0, 25.0, 0], [0, 0, 0], 
+		# grad=[1.0, 1.0, 1.0],[1.0, 1.0, 1.0],[1.0, 1.0, 1.0])
 ```
 #### Neural Network
 
 ```python
-import axgrad.modules.nn as nn
+import axon.modules.nn as nn
 x = tensor([[1.0, 2.0, 3.0, 8.0],[-0.6, 2.0, -3.0, 0.7],[-4.0, -2.0, 3.0, -5.0]])
 
 linear = nn.Linear(4, 5, bias=True)
@@ -68,9 +68,9 @@ print(seq(x))
 #### Matrix Functions
 
 ```python
-import axgrad
-zeros = axgrad.zeros([1, 4, 5])
-ones = axgrad.ones([3, 4])
+import axon
+zeros = axon.zeros([1, 4, 5])
+ones = axon.ones([3, 4])
 
 print(zeros) # 3-d matrix containing zeros
 print(ones) # 2-d matrix containing ones

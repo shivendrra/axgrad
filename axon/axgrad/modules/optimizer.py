@@ -23,7 +23,7 @@ class Optim:
     def step(self):
       for p, v in zip(self.params, self.velo):
         v.data = v.data * self.moment + p.grad
-        p.data += self.lr * v.data + self.acc * (v.data - p.grad)
+        p.data += -self.lr * v.data + self.acc * (v.data - p.grad)
       return self.step
 
   class gd:
