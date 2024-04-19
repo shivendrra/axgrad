@@ -10,7 +10,9 @@ class tensor:
     self._op = _op
 
   def __repr__(self):
-    return f"axon.tensor(data={self.data}, grad={self.grad})"
+    data_str = '\n\t'.join([str(row) for row in self.data])
+    grad_str = '\n\t'.join([str(row) for row in self.grad])
+    return f"axon.tensor(data={data_str},\ngrad={grad_str})\n"
 
   def __add__(self, other):
     """
@@ -89,7 +91,37 @@ class tensor:
   def __truediv__(self, other):
     raise ArithmeticError(f"can't do a matrix division")
   
+  def __pow__(self, other):
+    """
+      raises the power of the elements in a matrix
+    
+      args:
+      - self (tensor): first tensor
+      - other (int or float): power to be raised
+    
+      returns:
+      - multiplied matrix of same shape as input matrix with each element's power being
+        raised to other
+    """
+    assert isinstance(other, (int, float))
+    out = tensor([[self.data[i][j]**other for j in range(len(self.data[i]))] for i in range(len(self.data))], children=(self,), _op=f'**{other}')
+    def _backward():
+      for i in range(len(self.data)):
+        for j in range(len(self.data[i])):
+          self.grad += (other * self.data[i][j]**(other-1)) * out.grad
+    out._backward = _backward
+    return out
+
   def relu(self):
+    """
+      simple relu function with backward pass on it's derivative
+    
+      args:
+      - self (tensor): first tensor
+    
+      returns:
+      - multiplied matrix with elements x if (x > 0)
+    """
     out = tensor([[max(0, self.data[i][j]) for j in range(len(self.data[i]))] for i in range(len(self.data))])
     def _backward():
       def change(arr):
