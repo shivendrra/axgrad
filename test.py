@@ -15,6 +15,7 @@
 
 # print(output)
 
+import axgrad
 from axgrad import tensor
 import axgrad.modules.nn as nn
 
@@ -41,7 +42,7 @@ f = e.relu()
 print(e)
 print(f)
 f.backward()
-print(f)
+print("f", f)
 
 from axgrad.engine import Value
 
@@ -55,14 +56,13 @@ print(z)
 print(e)
 e.backward()
 print(e)
-
 print('\n')
 
-x = [
+x = tensor([
   [1.0, 2.0, 3.0, 8.0],
   [-0.6, 2.0, -3.0, 0.7],
   [-4.0, -2.0, 3.0, -5.0],
-]
+])
 
 linear = nn.Linear(4, 5, bias=True)
 wei, bias = linear.weight, linear.bias

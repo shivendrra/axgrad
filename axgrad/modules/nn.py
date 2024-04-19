@@ -18,7 +18,8 @@ class Linear(Module):
     self.bias = [random.random() for _ in range(_out)] if bias is True else zeros([_out])
   
   def __call__(self, x):
-    out = tensor(x) * tensor(self.weight).transpose()
+    x = x if isinstance(x, tensor) else tensor(x)
+    out = x * tensor(self.weight).transpose()
     return out
 
   def parameters(self):
