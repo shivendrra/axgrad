@@ -1,0 +1,1 @@
+from .statics import arange, ns, randint, zeros, zeros_like

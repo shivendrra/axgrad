@@ -1,4 +1,4 @@
-from .statics.statics import get_shape, _operate, zeros, ones
+from .helpers.statics import get_shape, _operate, zeros, ones
 
 class tensor:
   def __init__(self, *args, children=(), _op=''):

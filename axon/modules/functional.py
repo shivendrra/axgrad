@@ -1,5 +1,5 @@
 from ..arrays import tensor
-from ..statics.statics import zeros, ones
+from ..helpers.statics import zeros, ones
 import numpy as np
 
 class Sequential:
