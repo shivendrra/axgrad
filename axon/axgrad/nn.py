@@ -1,6 +1,7 @@
-from .modules.shape import get_shape, matmul, transpose
+from .modules.shape import matmul, transpose
 from .engine import Value
 import random
+from .modules.activations import ReLU
 
 class Module:
   def zero_grad(self):
@@ -25,36 +26,6 @@ class Linear(Module):
   
   def __repr__(self) -> str:
     return f"Linear Neuron({len(self.wei)})"
-
-class Linear2d(Module):
-  """
-    Linear layer similar to that of pytorch's nn.Linear
-    - randomly initializes the weights and bias
-    - wrapper over Value from micrograd
-
-        `out = x * wT + b`
-    
-    returns:
-      parameters [list]: to Module class
-      out [list]: linearized outputs
-  """
-  def __init__(self, _in: int, _out: int, bias: bool =False) -> None:
-    self.wei = [[Value(random.uniform(-1, 1)).data for _ in range(_in)] for _ in range(_out)]
-    self.b = [Value(0).data for _ in range(_out)] if bias else None
-  
-  def __call__(self, x: list) -> Value:
-    if get_shape(x) == get_shape(self.wei):
-      out = matmul(x, transpose(self.wei))
-      out = out + self.b if self.b is not None else out
-    else:
-      raise ArithmeticError(f"tensor shape error!")
-    return out
-  
-  def parameters(self):
-    return self.wei + self.b if self.b is not None else self.wei
-  
-  def __repr__(self) -> str:
-    return f"2d Linear Neuron({len(self.wei)})"
 
 class Layer(Module):
   def __init__(self, n_in, n_out, **kwargs):
@@ -85,3 +56,58 @@ class MLP(Module):
 
   def __repr__(self):
     return f"MLP of [{', '.join(str(layer) for layer in self.layers)}]"
+
+class Linear2d:
+  """
+    Linear layer similar to that of pytorch's nn.Linear
+    - randomly initializes the weights and bias
+    - wrapper over Value from micrograd
+
+        `out = x * wT + b`
+    
+    returns:
+      parameters [list]: to Module class
+      out [list]: linearized outputs
+  """
+  def __init__(self, _in: int, _out: int, bias: bool =False) -> None:
+    self.wei = [[Value(random.uniform(-1, 1)) for _ in range(_in)] for _ in range(_out)]
+    self.b = [Value(0) for _ in range(_out)] if bias else None
+  
+  def __call__(self, x: list) -> Value:
+    if len(x[0]) == len(self.wei[0]):
+      out = matmul(x, transpose(self.wei))
+      if self.b is not None:
+        out = [[out[i][j] + self.b[j] for j in range(len(out[0]))] for i in range(len(out))]
+    else:
+      raise ArithmeticError(f"tensor shape error!", len(x[0]), '!=', len(self.wei[0]))
+    return out
+
+  def parameters(self):
+    return self.wei + self.b if self.b is not None else self.wei
+
+class FeedForward(Module):
+  """
+    simple feedforward layer
+    - two linear layers, one input & one output
+    - relu as activation function
+    
+    returns:
+      parameters [list]: to Module class
+      out [list]: outputs of dim (_out, 1)
+  """
+  def __init__(self, _in, _out):
+    self.layer1 = Linear2d(_in, _out, bias=True)
+    self.relu = ReLU()
+    self.layer2 = Linear2d(_out, 1, bias=False)
+  
+  def __call__(self, x):
+    x = self.layer1(x)
+    x = self.relu(x)
+    x = self.layer2(x)
+    return x
+
+  def parameters(self):
+    return self.layer1.parameters() + self.layer2.parameters()
+  
+  def __repr__(self) -> str:
+    return f"FeedForward"
