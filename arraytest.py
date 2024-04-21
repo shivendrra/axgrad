@@ -34,11 +34,15 @@ class ReLU:
 
 class Module:
   def zero_grad(self):
-    for p in self.parameters():
-      p.grad = 0
+
+    for _, layer_params in self.parameters().items():
+      for _, params in layer_params.items():
+        for row in params:
+          for value in row:
+            value.grad = 0
   
   def parameters(self):
-    return []
+    return {}
 
 class Linear2d:
   """
@@ -66,7 +70,10 @@ class Linear2d:
     return out
 
   def parameters(self):
-    return self.wei + self.b if self.b is not None else self.wei
+    params = {'Linear2d': self.wei}
+    if self.b is not None:
+      params['bias'] = self.b
+    return params
 
 class FeedForward(Module):
   """
@@ -79,7 +86,7 @@ class FeedForward(Module):
       out [list]: outputs of dim (_out, 1)
   """
   def __init__(self, _in, _out):
-    self.layer1 = Linear2d(_in, _out, bias=True)
+    self.layer1 = Linear2d(_in, _out, bias=False)
     self.relu = ReLU()
     self.layer2 = Linear2d(_out, 1, bias=False)
   
@@ -90,41 +97,10 @@ class FeedForward(Module):
     return x
 
   def parameters(self):
-    return self.layer1.parameters() + self.layer2.parameters()
-  
+    return {'layer1': self.layer1.parameters(), 'layer2': self.layer2.parameters()}
+
   def __repr__(self) -> str:
     return f"FeedForward"
-
-class Loss:
-
-  def error(self, trg, prd):
-    """
-      simple difference function
-
-      Args:
-        trg (int or floar): ground truth
-        prd (int or float): logits
-
-      Returns:
-        int or float: difference b/w logits & ground truth
-    """
-    return prd - trg
-
-  def mse_loss(self, trg, prd):
-    """
-      simple mean squared error loss function
-        
-        'mse_loss = sum(error**2)/len(trg)'
-
-      Args:
-        trg (list): list containing target tokens
-        prd (list): list containing logits
-
-      Returns:
-        axgrad.Value: float value of loss as Value object for backprop
-    """
-    loss = sum(self.error(ygt, yout)**2 for ygt, yout in zip(trg, prd)) / len(trg)
-    return loss if isinstance(loss, Value) else Value(loss)
 
 xs = [
   [-2.0, 3.0, -1.0],
@@ -134,16 +110,18 @@ xs = [
 ]
 
 ys = [-1.0, 1.0, -1.0, 1.0]
-n = FeedForward(3, 4)
 
-for k in range(10):
+n = FeedForward(3, 4)
+for k in range(2):
   ypred = n(xs)
   loss = Value(sum((ygt - yout[0].data)**2 for ygt, yout in zip(ys, ypred)) / len(ys))
   n.zero_grad()
   loss.backward()
 
-for p in n.parameters():
-  print(p)
+  for _, layer_params in n.parameters().items():
+    for _, params in layer_params.items():
+      for row in params:
+        for value in row:
+          value.data += -0.05 * value.grad
 
-# loss = loss_f.mse_loss(ys, ypred)
-# print(loss)
+  print(k, loss.data)

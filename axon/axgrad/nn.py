@@ -5,11 +5,32 @@ from .modules.activations import ReLU
 
 class Module:
   def zero_grad(self):
-    for p in self.parameters():
-      p.grad = 0
+    for _, layer_params in self.parameters().items():
+      for _, params in layer_params.items():
+        for row in params:
+          for value in row:
+            value.grad = 0
   
   def parameters(self):
-    return []
+    return {}
+
+  def children(self):
+    for attr_name in dir(self):
+      attr = getattr(self, attr_name)
+      if isinstance(attr, Module):
+        yield attr
+
+  def train(self, mode: bool=False):
+    if not isinstance(mode, bool):
+      raise ValueError("training mode is expected to be boolean")
+    self.training = mode
+    for modules in self.children():
+      modules.train(mode)
+    return self
+  
+  def eval(self):
+    """ sets training to False """
+    return self.train(False)
 
 class Linear(Module):
   def __init__(self, _in, nonlin):
@@ -81,10 +102,12 @@ class Linear2d:
     else:
       raise ArithmeticError(f"tensor shape error!", len(x[0]), '!=', len(self.wei[0]))
     return out
-
+  
   def parameters(self):
-    return self.wei + self.b if self.b is not None else self.wei
-
+    params = {'Linear2d': self.wei}
+    if self.b is not None:
+      params['bias'] = self.b
+    return params
 class FeedForward(Module):
   """
     simple feedforward layer
@@ -96,7 +119,7 @@ class FeedForward(Module):
       out [list]: outputs of dim (_out, 1)
   """
   def __init__(self, _in, _out):
-    self.layer1 = Linear2d(_in, _out, bias=True)
+    self.layer1 = Linear2d(_in, _out, bias=False)
     self.relu = ReLU()
     self.layer2 = Linear2d(_out, 1, bias=False)
   
@@ -107,7 +130,7 @@ class FeedForward(Module):
     return x
 
   def parameters(self):
-    return self.layer1.parameters() + self.layer2.parameters()
-  
+    return {'layer1': self.layer1.parameters(), 'layer2': self.layer2.parameters()}
+
   def __repr__(self) -> str:
     return f"FeedForward"
