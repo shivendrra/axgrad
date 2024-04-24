@@ -5,12 +5,6 @@ from .modules.activations import ReLU
 
 class Module:
   def zero_grad(self):
-    # for _, layer_params in self.parameters().items():
-    #   for _, params in layer_params.items():
-    #     for row in params:
-    #       for value in row:
-    #         value.grad = 0
-
     for p in self.parameters():
       p.grad = 0
   

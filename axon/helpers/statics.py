@@ -1,15 +1,5 @@
 import random
 
-def get_shape(arr):
-  """
-    args:
-    - arr: array for determining the shape
-
-    returns:
-    - tuple with the shape
-  """
-  return [] if not isinstance(arr, list) else [len(arr)] + get_shape(arr[0])
-
 def _operate(arr1, arr2, op=''):
   """
     staticmethod to carry addition or subtraction for __add__ & __sub__
