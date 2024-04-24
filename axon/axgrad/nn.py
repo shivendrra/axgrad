@@ -5,14 +5,17 @@ from .modules.activations import ReLU
 
 class Module:
   def zero_grad(self):
-    for _, layer_params in self.parameters().items():
-      for _, params in layer_params.items():
-        for row in params:
-          for value in row:
-            value.grad = 0
+    # for _, layer_params in self.parameters().items():
+    #   for _, params in layer_params.items():
+    #     for row in params:
+    #       for value in row:
+    #         value.grad = 0
+
+    for p in self.parameters():
+      p.grad = 0
   
   def parameters(self):
-    return {}
+    return []
 
   def children(self):
     for attr_name in dir(self):
@@ -104,10 +107,13 @@ class Linear2d:
     return out
   
   def parameters(self):
-    params = {'Linear2d': self.wei}
+    params = []
+    for row in self.wei:
+      params.extend(row)
     if self.b is not None:
-      params['bias'] = self.b
+      params.extend(self.b)
     return params
+
 class FeedForward(Module):
   """
     simple feedforward layer
@@ -130,7 +136,10 @@ class FeedForward(Module):
     return x
 
   def parameters(self):
-    return {'layer1': self.layer1.parameters(), 'layer2': self.layer2.parameters()}
+    params = []
+    for layer_params in [self.layer1.parameters(), self.layer2.parameters()]:
+      params.extend(layer_params)
+    return params
 
   def __repr__(self) -> str:
     return f"FeedForward"
