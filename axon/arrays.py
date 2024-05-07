@@ -1,23 +1,61 @@
-from .helpers.statics import _operate, zeros, ones
 from .helpers.shape import get_shape
+from .helpers.statics import zeros, ones
+
+def check_arr(arr1, arr2):
+  if get_shape(arr1.data)[1] == get_shape(arr2.data)[0] and len(get_shape(arr2.data)) == 2:
+    return True
+  else:
+    return False
+
+def _operate(arr1, arr2, op=''):
+  """
+    staticmethod to carry addition or subtraction for __add__ & __sub__
+
+    args:
+      - arr1: first tensor
+      - arr2: second tensor
+      - _op: '+' or '-'
+    
+    returns:
+      - matrix with performed operation
+  """
+  if len(arr1) != len(arr2):
+    raise ValueError("Arrays must be of same shape & size")
+  result = []
+  for i in range(len(arr1)):
+    if isinstance(arr1[i], list) and isinstance(arr2[i], list):
+      result.append(_operate(arr1[i], arr2[i], op=op))
+    else:
+      if op=='+':
+        result.append(arr1[i] + arr2[i])
+      elif op=='-':
+        result.append(arr1[i] - arr2[i])
+      elif op=='*':
+        result.append(arr1[i] * arr2[i])
+      elif op=='/':
+        result.append(arr1[i] / arr2[i])
+    return result
+  
+  else:
+    raise ArithmeticError(f"both matrix should be of same shape for element level {op}")
 
 class tensor:
-  def __init__(self, *args, children=(), _op=''):
-    self.data = args[0] if len(args) == 1 and isinstance(args[0], list) else list(args)
+  def __init__(self, *data, requires_grad:bool=False, child:set=()) -> None:
+    self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
     self.shape = self.shape()
     self.grad = zeros(self.shape, dtype=float)
-    self._backward = lambda: None
-    self._prev = set(children)
-    self._op = _op
+    self._prev = set(child)
+    self.req_grad = requires_grad
 
   def __repr__(self):
     data_str = '\n\t'.join([str(row) for row in self.data])
     grad_str = '\n\t'.join([str(row) for row in self.grad])
-    return f"axon.tensor(data={data_str},\ngrad={grad_str})\n"
-
+    return f"axon.tensor(data={data_str},\ngrad={grad_str})\n" if self.req_grad is True else f"axon.tensor({data_str})"
+  
   def __add__(self, other):
     """
-      matrix addition of each element
+      matrix's element level addition
+      both matrices should have same shape
     
       args:
       - self (tensor): first tensor
@@ -27,21 +65,29 @@ class tensor:
       - matrix with added corresponding values
     """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = tensor(_operate(arr1=self.data, arr2=other.data, op='+'), children=(self, other), _op='+')
-    def _backward():
-      def change(arr):
-        for i in range(len(arr.data)):
-          for j in range(len(arr.data[i])):
-            arr.data[i][j] += out.grad[i][j]
-          return arr
-      self.grad = change(self)
-      other.grad = change(other)
-    out._backward = _backward
+    out = tensor(_operate(arr1=self.data, arr2=other.data, op='+'), requires_grad=self.req_grad, children=(self, other))
     return out
-
+  
+  def __mul__(self, other):
+    """
+      matrix's element level multiplication
+      both matrices should have same shape
+    
+      args:
+      - self (tensor): first tensor
+      - other (tensor): second tensor
+    
+      returns:
+      - matrix with multiplied corresponding values
+    """
+    other = other if isinstance(other, tensor) else tensor(other)
+    out = tensor(_operate(arr1=self.data, arr2=other.data, op='*'), requires_grad=self.req_grad, children=(self, other))
+    return out
+  
   def __sub__(self, other):
     """
-      matrix subtraction of each element
+      matrix's element level subtraction
+      both matrices should have same shape
     
       args:
       - self (tensor): first tensor
@@ -51,46 +97,24 @@ class tensor:
       - matrix with subtracted corresponding values
     """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = tensor(_operate(arr1=self.data, arr2=other.data, _op='-'), children=(self, other), _op='-')
-    def _backward():
-      def change(arr):
-        for i in range(len(arr.data)):
-          for j in range(len(arr.data[i])):
-            arr.data[i][j] += out.grad[i][j]
-        return arr
-      self.grad = change(self)
-      other.grad = change(other)
-    out._backward = _backward
+    out = tensor(_operate(arr1=self.data, arr2=other.data, op='-'), requires_grad=self.req_grad, children=(self, other))
     return out
-
-  def __mul__(self, other):
+  
+  def __truediv__(self, other):
     """
-      matrix multiplication for self, and other as a & b
+      matrix's element level division
+      both matrices should have same shape
     
       args:
       - self (tensor): first tensor
       - other (tensor): second tensor
     
       returns:
-      - multiplied matrix with shape (len(a[0]), len(b(1)))
+      - matrix with divided corresponding values
     """
-    if self.shape[1] != other.shape[0]:
-      raise ValueError(f"invalid shape for matrix multiplication: {self.shape} != {other.shape}")
-    else:
-      out = tensor([[sum(self.data[i][k] * other.data[k][j] for k in range(len(other.data))) for j in range(len(other.data[0]))] for i in range(len(self.data))], children=(self, other), _op='*')
-      def _backward():
-        def change(arr, trg):
-          for i in range(len(arr.data)):
-            for j in range(len(arr.data[i])):
-              arr.data[i][j] += out.grad[i][j] * trg.data[i][j]
-          return arr
-        self.grad = change(self, other)
-        other.grad = change(other, self)
-        out._backward = _backward
-      return out
-
-  def __truediv__(self, other):
-    raise ArithmeticError(f"can't do a matrix division")
+    other = other if isinstance(other, tensor) else tensor(other)
+    out = tensor(_operate(arr1=self.data, arr2=other.data, op='/'), requires_grad=self.req_grad, children=(self, other))
+    return out
   
   def __pow__(self, other):
     """
@@ -105,58 +129,7 @@ class tensor:
         raised to other
     """
     assert isinstance(other, (int, float))
-    out = tensor([[self.data[i][j]**other for j in range(len(self.data[i]))] for i in range(len(self.data))], children=(self,), _op=f'**{other}')
-    def _backward():
-      for i in range(len(self.data)):
-        for j in range(len(self.data[i])):
-          self.grad += (other * self.data[i][j]**(other-1)) * out.grad
-    out._backward = _backward
-    return out
-
-  def relu(self):
-    """
-      simple relu function with backward pass on it's derivative
-    
-      args:
-      - self (tensor): first tensor
-    
-      returns:
-      - multiplied matrix with elements x if (x > 0)
-    """
-    out = tensor([[max(0, self.data[i][j]) for j in range(len(self.data[i]))] for i in range(len(self.data))])
-    def _backward():
-      def change(arr):
-        for i in range(len(arr.data)):
-          for j in range(len(arr.data[i])):
-            arr.data[i][j] += out.grad[i][j] * (out.data[i][j] > 0)
-        return arr
-      self.grad = change(self)
-    out._backward = _backward
-    return out
-
-  def backward(self):
-    """
-      calculates the gradient for all the items in _prev w.r.t final matrix
-
-      args:
-      - self (tensor): final tensor that contains all the operated features
-
-      returns:
-      - self.grad (tensor): updated gradients on the matrix
-    """
-    topo = []
-    visited = set()
-    def build_topo(v):
-      if v not in visited:
-        visited.add(v)
-        for child in v._prev:
-          build_topo(child)
-        topo.append(v)
-    build_topo(self)
-
-    self.grad = ones(self.shape, dtype=float)
-    for v in reversed(topo):
-      v._backward()
+    raise NotImplementedError("__pow__ function not implemented")
 
   def shape(self):
     """
@@ -165,8 +138,8 @@ class tensor:
       returns:
         tuple: tuple that contains the shape of the tensor
     """
-    return tuple(get_shape(self.data))
-
+    return get_shape(self.data)
+  
   def transpose(self):
     """
       args:
@@ -178,3 +151,30 @@ class tensor:
     rows = len(self.data)
     cols = len(self.data[0])
     return tensor([[self.data[i][j] for i in range(rows)] for j in range(cols)])
+  
+  @staticmethod
+  def matmul_2d(arr1, arr2):
+
+    if check_arr(arr1, arr2) is True:
+      out = tensor([[sum(arr1.data[i][k] * arr2.data[k][j] for k in range(len(arr2.data))) for j in range(len(arr2.data[0]))] for i in range(len(arr1.data))], child=(arr1, arr2))
+      return out
+    else:
+      raise ArithmeticError(f"Shape are not matching: {len(arr1[0])} should be equal to {len(arr2[1])}")
+
+  @staticmethod
+  def convolution_2d(image, kernel):
+    img_h, img_w = len(image), len(image[0])
+    ker_h, ker_w = len(kernel), len(kernel[0])
+
+    output_height = img_h - ker_h + 1
+    output_width = img_w - ker_w + 1
+
+    output = [[0] * output_width for _ in range(output_height)]
+
+    for i in range(output_height):
+      for j in range(output_width):
+        for k in range(ker_h):
+          for l in range(ker_w):
+            output[i][j] += image[i+k][j+l] * kernel[k][l]
+
+    return output
