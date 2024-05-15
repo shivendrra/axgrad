@@ -1,198 +1,124 @@
-from axon import tensor
-import axon.modules.nn as nn
+from axon.axgrad import Value
+import random
 
-A = [[1, 2, 3],
-     [4, 5, 6],
-     [7, 8, 9]]
+def get_shape(arr):
+  if isinstance(arr, list):
+    return (len(arr), ) + get_shape(arr[0])
+  else:
+    return ()
 
-B = [[9, 8, -7],
-     [6, -5, 4],
-     [3, -2, -1]]
+def matmul(arr1, arr2):
+  xs, ys = get_shape(arr1), get_shape(arr2)
+  if xs[1] == ys[0]:
+    out = [[sum(arr1[i][k] * arr2[k][j] for k in range(len(arr2))) for j in range(len(arr2[0]))] for i in range(len(arr1))]
+    return out
+  else:
+    raise ArithmeticError(f"tensor shape error! : {xs[0]} != {ys[1]}")
 
-C = [[9, -8, -7.8],
-     [-1.5, -5, 4],
-     [-0.4, 2, -1]]
+def transpose(arr):
+  R, C = get_shape(arr)
+  return [[arr[i][j] for i in range(R)] for j in range(C)]
 
-x = tensor(A)
-y = tensor(B)
-c = tensor(C)
-
-z = x + y
-e = z*c.transpose()
-f = e.relu()
-g = f*x
-g.backward()
-print("f", f.grad)
-print("g", g.grad)
-print("x", x.grad)
-
-x = tensor([
-  [1.0, 2.0, 3.0, 8.0],
-  [-0.6, 2.0, -3.0, 0.7],
-  [-4.0, -2.0, 3.0, -5.0],
-])
-
-linear = nn.Linear(4, 5, bias=True)
-wei, bias = linear.weight, linear.bias
-print(linear(x))
-
-print('\n')
-seq = nn.Sequence(_in=4, _out=2)
-print(seq(x))
-
-# from axon.axgrad import Value
-# import random
-
-# def get_shape(arr):
-#   if isinstance(arr, list):
-#     return (len(arr), ) + get_shape(arr[0])
-#   else:
-#     return ()
-
-# def matmul(arr1, arr2):
-#   xs, ys = get_shape(arr1), get_shape(arr2)
-#   if xs[1] == ys[0]:
-#     out = [[sum(arr1[i][k] * arr2[k][j] for k in range(len(arr2))) for j in range(len(arr2[0]))] for i in range(len(arr1))]
+class ReLU:
+  """
+    applies relu activation to the list items
+      `y = x if x > 0 else 0`
     
-#     del xs, ys
-#     return out
-#   else:
-#     raise ArithmeticError(f"tensor shape error! : {xs[0]} != {ys[1]}")
+    returns:
+      x [list]: containing new non-linear values
+  """
+  def __call__(self, x) -> Value:
+    return [[xi.relu().data for xi in row] for row in x]
 
-# def transpose(arr):
-#   R, C = get_shape(arr)
-#   return [[arr[i][j] for i in range(R)] for j in range(C)]
+class Module:
+  def zero_grad(self):
+    for p in self.parameters():
+      p.grad = 0
 
-# class ReLU:
-#   """
-#     applies relu activation to the list items
-#       `y = x if x > 0 else 0`
-    
-#     returns:
-#       x [list]: containing new non-linear values
-#   """
-#   def __call__(self, x) -> Value:
-#     return [[xi.relu().data for xi in row] for row in x]
+  def parameters(self):
+    return []
 
-# class Module:
-#   def zero_grad(self):
-#     for p in self.parameters():
-#       p.grad = 0
+class Linear2d:
+    """
+    Linear layer similar to that of PyTorch's nn.Linear
+    - randomly initializes the weights and bias
+    - wrapper over Value from micrograd
 
-#   def parameters(self):
-#     return []
+    `out = x * wT + b`
 
-# class Linear2d:
-#     def __init__(self, _in: int, _out: int, bias: bool = False) -> None:
-#         self.wei = [[Value(random.uniform(-1, 1)) for _ in range(_in)] for _ in range(_out)]
-#         self.b = [Value(0) for _ in range(_out)] if bias else None
+    Returns:
+        parameters [list]: to Module class
+        out [list]: linearized outputs
+    """
+    def __init__(self, _in: int, _out: int, bias: bool = False) -> None:
+        self.wei = [[Value(random.uniform(-1, 1)) for _ in range(_in)] for _ in range(_out)]
+        self.b = [Value(0) for _ in range(_out)] if bias else None
 
-#     def __call__(self, x: list) -> Value:
-#         if len(x[0]) == len(self.wei[0]):
-#             out = matmul(x, transpose(self.wei))
-#             if self.b is not None:
-#                 out = [[out[i][j] + self.b[j] for j in range(len(out[0]))] for i in range(len(out))]
+    def __call__(self, x: list) -> Value:
+      if len(x[0]) == len(self.wei[0]):
+        out = matmul(x, transpose(self.wei))
+        if self.b is not None:
+          out = [[out[i][j] + self.b[j] for j in range(len(out[0]))] for i in range(len(out))]
+      else:
+        raise ArithmeticError(f"tensor shape error!", len(x[0]), '!=', len(self.wei[0]))
+      return out
 
-#             # Add input tensors to _prev attribute of output tensors
-#             for row in out:
-#                 for val in row:
-#                     val._prev.update(set(sum(x, [])))  # Flatten the input list of lists and convert to set
+    def parameters(self):
+        params = []
+        for row in self.wei:
+            params.extend(row)
+        if self.b is not None:
+            params.extend(self.b)
+        return params
 
-#             return out
-#         else:
-#             raise ArithmeticError(f"tensor shape error!", len(x[0]), '!=', len(self.wei[0]))
+class FeedForward(Module):
+    """
+    simple feedforward layer
+    - two linear layers, one input & one output
+    - relu as activation function
 
-#     def parameters(self):
-#       params = []
-#       for row in self.wei:
-#         params.extend(row)
-#       if self.b is not None:
-#         params.extend(self.b)
-#       return params
-    
-# class FeedForward(Module):
-#     """
-#     simple feedforward layer
-#     - two linear layers, one input & one output
-#     - relu as activation function
+    returns:
+        parameters [list]: to Module class
+        out [list]: outputs of dim (_out, 1)
+    """
+    def __init__(self, _in, _out):
+        self.layer1 = Linear2d(_in, _out, bias=False)
+        self.relu = ReLU()
+        self.layer2 = Linear2d(_out, 1, bias=False)
 
-#     returns:
-#         parameters [list]: to Module class
-#         out [list]: outputs of dim (_out, 1)
-#     """
-#     def __init__(self, _in, _out):
-#         self.layer1 = Linear2d(_in, _out, bias=False)
-#         self.relu = ReLU()
-#         self.layer2 = Linear2d(_out, 1, bias=False)
+    def __call__(self, x):
+        x = self.layer1(x)
+        x = self.relu(x)
+        x = self.layer2(x)
+        return x
 
-#     def __call__(self, x):
-#         x = self.layer1(x)
-#         x = self.relu(x)
-#         x = self.layer2(x)
-#         return x
+    def parameters(self):
+        params = []
+        for layer_params in [self.layer1.parameters(), self.layer2.parameters()]:
+            params.extend(layer_params)
+        return params
 
-#     def parameters(self):
-#         params = []
-#         for layer_params in [self.layer1.parameters(), self.layer2.parameters()]:
-#             params.extend(layer_params)
-#         return params
+    def __repr__(self) -> str:
+        return f"FeedForward"
 
-#     def __repr__(self) -> str:
-#         return f"FeedForward"
+xs = [
+  [-2.0, 3.0, -1.0],
+  [3.0, -1.0, 0.5],
+  [0.5, -1.0, 1.0],
+  [1.0, 1.0, -1.0],
+]
 
-# xs = [
-#   [-2.0, 3.0, -1.0],
-#   [3.0, -1.0, 0.5],
-#   [0.5, -1.0, 1.0],
-#   [1.0, 1.0, -1.0],
-# ]
+ys = [-1.0, 1.0, -1.0, 1.0]
 
-# ys = [-1.0, 1.0, -1.0, 1.0]
+n = FeedForward(3, 4)
 
-# n = FeedForward(3, 4)
+for k in range(20):
+  ypred = n(xs)
+  loss = Value(sum((ygt - yout[0].data)**2 for ygt, yout in zip(ys, ypred)) / len(ys))
+  n.zero_grad()
+  loss.backward()
 
-# ypred = n(xs)
+  for p in n.parameters():
+    p.data += -0.05 * p.grad
 
-# loss = 0
-# for ygt, yout in zip(ys, ypred):
-#   loss += Value(Value(ygt) - yout[0])**2
-# loss /= len(ys)
-
-# print(loss._prev)
-# loss.backward()
-
-
-
-
-# def backward(arr):
-#   topo = []
-#   visited = set()
-
-#   def build(v):
-#     if v not in visited:
-
-# for k in range(20):
-#     ypred = n(xs)
-#     loss = Value(sum((Value(ygt) - yout[0])**2 for ygt, yout in zip(ys, ypred)) / len(ys))
-#     n.zero_grad()
-#     loss.backward()
-
-#     for p in n.parameters():
-#         print(p.grad)  # Print gradients for debugging
-
-#     for p in n.parameters():
-#         p.data += -0.05 * p.grad
-
-#     print(k, loss)
-
-
-# for k in range(20):
-#   ypred = n(xs)
-#   loss = Value(sum((ygt - yout[0].data)**2 for ygt, yout in zip(ys, ypred)) / len(ys))
-#   n.zero_grad()
-#   loss.backward()
-
-#   for p in n.parameters():
-#     p.data += -0.05 * p.grad
-
-#   print(k, loss._prev)
+  print(k, loss)

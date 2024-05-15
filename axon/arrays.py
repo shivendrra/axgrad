@@ -1,4 +1,4 @@
-from .helpers.shape import get_shape
+from .helpers.shape import get_shape, broadcast_array, broadcast_shapes
 from .helpers.statics import zeros, ones
 
 def check_arr(arr1, arr2):
@@ -6,38 +6,27 @@ def check_arr(arr1, arr2):
     return True
   else:
     return False
-
-def _operate(arr1, arr2, op=''):
-  """
-    staticmethod to carry addition or subtraction for __add__ & __sub__
-
-    args:
-      - arr1: first tensor
-      - arr2: second tensor
-      - _op: '+' or '-'
-    
-    returns:
-      - matrix with performed operation
-  """
-  if len(arr1) != len(arr2):
-    raise ValueError("Arrays must be of same shape & size")
-  result = []
-  for i in range(len(arr1)):
-    if isinstance(arr1[i], list) and isinstance(arr2[i], list):
-      result.append(_operate(arr1[i], arr2[i], op=op))
-    else:
-      if op=='+':
-        result.append(arr1[i] + arr2[i])
-      elif op=='-':
-        result.append(arr1[i] - arr2[i])
-      elif op=='*':
-        result.append(arr1[i] * arr2[i])
-      elif op=='/':
-        result.append(arr1[i] / arr2[i])
-    return result
   
-  else:
-    raise ArithmeticError(f"both matrix should be of same shape for element level {op}")
+def _ops_unpack(arr):
+  new = []
+  if isinstance(arr, list):
+    for i in arr:
+      if isinstance(i, list):
+        new.extend(_ops_unpack(i))
+      elif isinstance(i, int) or isinstance(i, float):
+        new.append(arr)
+        break
+  return new
+
+def _unpack(arr, new=None):
+  if new is None:
+    new = []
+  if isinstance(arr, list):
+    for i in arr:
+      _unpack(i, new)
+  elif isinstance(arr, int) or isinstance(arr, float):
+    new.append(arr)
+  return new
 
 class tensor:
   def __init__(self, *data, requires_grad:bool=False, child:set=()) -> None:
@@ -52,6 +41,12 @@ class tensor:
     grad_str = '\n\t'.join([str(row) for row in self.grad])
     return f"axon.tensor(data={data_str},\ngrad={grad_str})\n" if self.req_grad is True else f"axon.tensor({data_str})"
   
+  def __getitem__(self, index):
+    return self.data[index]
+  
+  def __setitem__(self, index, value):
+    self.data[index] = value
+  
   def __add__(self, other):
     """
       matrix's element level addition
@@ -65,7 +60,10 @@ class tensor:
       - matrix with added corresponding values
     """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = tensor(_operate(arr1=self.data, arr2=other.data, op='+'), requires_grad=self.req_grad, children=(self, other))
+    out = zeros(self.shape)
+    for i in range(len(self.data)):
+      for j in range(len(self.data[i])):
+        out[i][j] = self.data[i][j] + other.data[i][j]
     return out
   
   def __mul__(self, other):
@@ -81,8 +79,18 @@ class tensor:
       - matrix with multiplied corresponding values
     """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = tensor(_operate(arr1=self.data, arr2=other.data, op='*'), requires_grad=self.req_grad, children=(self, other))
-    return out
+    if self.shape != other.shape:
+      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
+    else:
+      out = zeros(self.shape)
+      self = tensor(_ops_unpack(self))
+      other = tensor(_ops_unpack(other))
+
+      for i in range(len(self.data)):
+        for j in range(len(self.data[i])):
+          out[i][j] = self.data[i][j] * other.data[i][j]
+    # out = tensor(_operate(arr1=self.data, arr2=other.data, op='*'), requires_grad=self.req_grad, child=(self, other))
+    return tensor(out)
   
   def __sub__(self, other):
     """
@@ -97,7 +105,10 @@ class tensor:
       - matrix with subtracted corresponding values
     """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = tensor(_operate(arr1=self.data, arr2=other.data, op='-'), requires_grad=self.req_grad, children=(self, other))
+    out = zeros(self.shape)
+    for i in range(len(self.data)):
+      for j in range(len(self.data[i])):
+        out[i][j] = self.data[i][j] - other.data[i][j]
     return out
   
   def __truediv__(self, other):
@@ -113,7 +124,10 @@ class tensor:
       - matrix with divided corresponding values
     """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = tensor(_operate(arr1=self.data, arr2=other.data, op='/'), requires_grad=self.req_grad, children=(self, other))
+    out = zeros(self.shape)
+    for i in range(len(self.data)):
+      for j in range(len(self.data[i])):
+        out[i][j] = self.data[i][j] - other.data[i][j]
     return out
   
   def __pow__(self, other):
@@ -152,14 +166,39 @@ class tensor:
     cols = len(self.data[0])
     return tensor([[self.data[i][j] for i in range(rows)] for j in range(cols)])
   
-  @staticmethod
-  def matmul_2d(arr1, arr2):
+  def unpack(self):
+    """
+      unpacks a n-dim tensor into a list
 
-    if check_arr(arr1, arr2) is True:
-      out = tensor([[sum(arr1.data[i][k] * arr2.data[k][j] for k in range(len(arr2.data))) for j in range(len(arr2.data[0]))] for i in range(len(arr1.data))], child=(arr1, arr2))
-      return out
-    else:
-      raise ArithmeticError(f"Shape are not matching: {len(arr1[0])} should be equal to {len(arr2[1])}")
+    Args:
+      self (tensor): n-dim tensor to unpack
+
+    Returns:
+      new (list): 1-dim list with all the elements
+    """
+    new = _unpack(self.data)
+    return new
+
+  def _sum(self):
+    """
+      unpacks the n-dim tensor & then sums up all the elements
+      into a single integer/float
+
+    Args:
+      self (tensor): n-dim tensor to sum
+
+    Returns:
+      sum (int/float): sum of all the elements present in the n-dim tensor
+    """
+    unpacked_arr = _unpack(self.data)
+    return sum(i for i in unpacked_arr)
+  
+  def broadcast(self, other):
+    other = other if isinstance(other, tensor) else tensor(other)
+    new_shape = broadcast_shapes(self.shape, other.shape)
+    self_broadcasted = broadcast_array(self.data, new_shape)
+    other_broadcasted = broadcast_array(other.data, new_shape)
+    return tensor(self_broadcasted), tensor(other_broadcasted)
 
   @staticmethod
   def convolution_2d(image, kernel):
@@ -176,5 +215,18 @@ class tensor:
         for k in range(ker_h):
           for l in range(ker_w):
             output[i][j] += image[i+k][j+l] * kernel[k][l]
-
     return output
+
+  @staticmethod
+  def matmul(x, y):
+    x = x if isinstance(x, tensor) else tensor(x)
+    y = y if isinstance(y, tensor) else tensor(y)
+    if len(x.data[0]) != len(y.data):
+      raise ValueError("Matrices have incompatible dimensions for multiplication.")
+
+    out = zeros((len(x.data), len(y.data[0])))
+    y_t = y.transpose().data
+    for i in range(len(x.data)):
+      for j in range(len(y_t)):
+        out[i][j] = sum(x.data[i][k] * y_t[j][k] for k in range(len(y.data)))
+    return tensor(out)

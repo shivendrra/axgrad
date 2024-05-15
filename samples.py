@@ -1,66 +1,103 @@
-x = [[[[2, 4, 4], [-2, 4, -4], [2, 4, 4], [-2, 4, -4]],
-     [[2, 2, 3], [1, 2, 5], [2, 4, 4], [-2, 4, -4]],
-     [[1, 6, -4], [2, -4, 4], [2, 4, 4], [-2, 4, -4]],
-     [[1, 6, -4], [2, -4, 4], [2, 4, 4], [-2, 4, -4]],],
-     [[[2, 4, 4], [-2, 4, -4], [2, 4, 4], [-2, 4, -4]],
-     [[2, 2, 3], [1, 2, 5], [2, 4, 4], [-2, 4, -4]],
-     [[1, 6, -4], [2, -4, 4], [2, 4, 4], [-2, 4, -4]],
-     [[1, 6, -4], [2, -4, 4], [2, 4, 4], [-2, 4, -4]],],]
+# import numpy as np
 
-y = [[[[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],
-     [[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],
-     [[1, 6, 5], [2, -4, 5], [-1, -3, 9]],
-     [[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],],
-     [[[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],
-     [[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],
-     [[1, 6, 5], [2, -4, 5], [-1, -3, 9]],
-     [[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],]]
+# # Define matrices A, B, and D
+# A = np.random.randn(3, 4)  # Shape (3, 4)
+# B = np.random.randn(4, 5)  # Shape (4, 5)
+# D = np.random.randn(3, 5)  # Shape (3, 5)
 
-z = [[[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],
-     [[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],
-     [[1, 6, 5], [2, -4, 5], [-1, -3, 9]],
-     [[2, 4, 1], [-2, 4, 3], [-3, 4, 3]],]
+# # Function for matrix multiplication
+# def matmul(A, B):
+#     m, n = A.shape
+#     n, p = B.shape
+#     C = np.zeros((m, p))
+#     for i in range(m):
+#         for j in range(p):
+#             for k in range(n):
+#                 C[i, j] += A[i, k] * B[k, j]
+#     return C
 
-a = [[2, 4, 4], [1, 5, 6]]
-b = [[2, 4], [1, 5], [-1, 5]]
+# # Function for matrix addition
+# def matadd(C, D):
+#     m, p = C.shape
+#     E = np.zeros((m, p))
+#     for i in range(m):
+#         for j in range(p):
+#             E[i, j] = C[i, j] + D[i, j]
+#     return E
 
-def convolution(arr1, arr2):
-    m = len(arr1)
-    n = len(arr2)
-    result = [0] * (m + n - 1)
+# # Perform matrix multiplication
+# C = matmul(A, B)
 
-    for i in range(m):
-        for j in range(n):
-            result[i + j] += arr1[i] * arr2[j]
+# # Add the result with another matrix D
+# E = matadd(C, D)
 
-    return result
+# # Define the loss as the sum of all elements in E
+# loss = np.sum(E)
 
-arr1 = [1, 2, 3]
-arr2 = [4, 5]
+# # Compute gradients manually
+# dE = np.ones_like(E)  # Derivative of loss w.r.t E is 1 for each element
 
-conv_result = convolution(arr1, arr2)
-print("Convolution result:", conv_result)
+# # Gradients w.r.t C (same as dE)
+# dC = dE
 
-def convolution_2d(image, kernel):
-    image_height, image_width = len(image), len(image[0])
-    kernel_height, kernel_width = len(kernel), len(kernel[0])
+# # Gradients w.r.t A and B
+# dA = np.zeros_like(A)
+# dB = np.zeros_like(B)
 
-    output_height = image_height - kernel_height + 1
-    output_width = image_width - kernel_width + 1
+# # Compute gradients using the chain rule
+# m, n = A.shape
+# n, p = B.shape
 
-    output = [[0] * output_width for _ in range(output_height)]
+# for i in range(m):
+#     for k in range(n):
+#         for j in range(p):
+#             dA[i, k] += dC[i, j] * B[k, j]
+#             dB[k, j] += dC[i, j] * A[i, k]
 
-    for i in range(output_height):
-        for j in range(output_width):
-            for k in range(kernel_height):
-                for l in range(kernel_width):
-                    output[i][j] += image[i+k][j+l] * kernel[k][l]
+# # Print the gradients
+# print("Gradient w.r.t A:\n", dA)
+# print("Gradient w.r.t B:\n", dB)
 
-    return output
+# # Optionally, print intermediate matrices
+# print("Matrix A:\n", A)
+# print("Matrix B:\n", B)
+# print("Matrix C (A @ B):\n", C)
+# print("Matrix D:\n", D)
+# print("Matrix E (C + D):\n", E)
+# print("Loss (sum of E):\n", loss)
 
-image = list([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+# x = [[[1, 4, 4], [1, 5, 6], [1, 5, 7]],
+#      [[1, 4, 4], [1, 5, 6], [1, 5, 7]]]
 
-kernel = list([[1, 0, -1], [1, 0, -1], [1, 0, -1]])
+# def unpack(arr, new=None):
+#   if new is None:
+#     new = []
+#   if isinstance(arr, list):
+#     for i in arr:
+#       unpack(i, new)
+#   elif isinstance(arr, int):
+#     new.append(arr)
+#   return new
 
-result = convolution_2d(image, kernel)
-print("Convolution result:", result)
+# y = unpack(x)
+# print(y)
+
+# def _sum(arr):
+#   return sum(i for i in arr)
+
+# print(_sum(y))
+
+from axon import tensor, zeros
+import numpy as np
+
+x = [[1, 4, 4], [1, 5, 6], [1, 5, 7]]
+y = [[1, 4, 4], [1, 5, 6], [1, 5, 7], [1, 4, 5]]
+z = [[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]]
+
+a, b, c = tensor(x), tensor(y), tensor(z)
+
+new = tensor.matmul(a, c)
+print(new)
+
+n = a * a
+print(n)

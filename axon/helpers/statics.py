@@ -1,24 +1,5 @@
 import random
 
-def _operate(arr1, arr2, op=''):
-  """
-    staticmethod to carry addition or subtraction for __add__ & __sub__
-
-    args:
-      - arr1: first tensor
-      - arr2: second tensor
-      - _op: '+' or '-'
-    
-    returns:
-      - matrix with performed operation
-  """
-  if len(arr1) != len(arr2):
-    raise ValueError("Arrays must be of same shape & size")
-  result = []
-  for i in range(len(arr1)):
-    result.append(_operate(arr1[i], arr2[i], op=op)) if isinstance(arr1[i], list) and isinstance(arr2[i], list) else result.append(arr1[i] + arr2[i]) if op=='+' else result.append(arr1[i] - arr2[i])
-  return result
-
 def zeros_like(arr, dtype=int):
   """
     Create an array of zeros with the same shape and dtype as the input array.
