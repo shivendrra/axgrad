@@ -1,29 +1,26 @@
 from .helpers.shape import get_shape, broadcast_array, broadcast_shapes
 from .helpers.statics import zeros, ones
+import math
 
-def check_arr(arr1, arr2):
-  if get_shape(arr1.data)[1] == get_shape(arr2.data)[0] and len(get_shape(arr2.data)) == 2:
-    return True
-  else:
-    return False
-  
-def _ops_unpack(arr):
-  new = []
-  if isinstance(arr, list):
-    for i in arr:
-      if isinstance(i, list):
-        new.extend(_ops_unpack(i))
-      elif isinstance(i, int) or isinstance(i, float):
-        new.append(arr)
-        break
-  return new
+def _ops_unpack(obj):
+  """
+  unpack a tensor object into a list of lists
+  args:
+    obj (tensor): tensor to unpack
 
-def _unpack(arr, new=None):
+  returns:
+    list: list of lists representing the tensor's data
+  """
+  if isinstance(obj, tensor):
+    return obj.data
+  return obj
+
+def _flatten(arr, new=None):
   if new is None:
     new = []
   if isinstance(arr, list):
     for i in arr:
-      _unpack(i, new)
+      _flatten(i, new)
   elif isinstance(arr, int) or isinstance(arr, float):
     new.append(arr)
   return new
@@ -48,36 +45,20 @@ class tensor:
     self.data[index] = value
   
   def __add__(self, other):
-    """
-      matrix's element level addition
-      both matrices should have same shape
-    
-      args:
-      - self (tensor): first tensor
-      - other (tensor): second tensor
-    
-      returns:
-      - matrix with added corresponding values
-    """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = zeros(self.shape)
-    for i in range(len(self.data)):
-      for j in range(len(self.data[i])):
-        out[i][j] = self.data[i][j] + other.data[i][j]
-    return out
+    if self.shape != other.shape:
+      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
+    else:
+      out = zeros(self.shape)
+      self = tensor(_ops_unpack(self))
+      other = tensor(_ops_unpack(other))
+
+      for i in range(len(self.data)):
+        for j in range(len(self.data[i])):
+          out[i][j] = self.data[i][j] + other.data[i][j]
+    return tensor(out)
   
   def __mul__(self, other):
-    """
-      matrix's element level multiplication
-      both matrices should have same shape
-    
-      args:
-      - self (tensor): first tensor
-      - other (tensor): second tensor
-    
-      returns:
-      - matrix with multiplied corresponding values
-    """
     other = other if isinstance(other, tensor) else tensor(other)
     if self.shape != other.shape:
       raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
@@ -89,61 +70,48 @@ class tensor:
       for i in range(len(self.data)):
         for j in range(len(self.data[i])):
           out[i][j] = self.data[i][j] * other.data[i][j]
-    # out = tensor(_operate(arr1=self.data, arr2=other.data, op='*'), requires_grad=self.req_grad, child=(self, other))
     return tensor(out)
   
   def __sub__(self, other):
-    """
-      matrix's element level subtraction
-      both matrices should have same shape
-    
-      args:
-      - self (tensor): first tensor
-      - other (tensor): second tensor
-    
-      returns:
-      - matrix with subtracted corresponding values
-    """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = zeros(self.shape)
-    for i in range(len(self.data)):
-      for j in range(len(self.data[i])):
-        out[i][j] = self.data[i][j] - other.data[i][j]
-    return out
+    if self.shape != other.shape:
+      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
+    else:
+      out = zeros(self.shape)
+      self = tensor(_ops_unpack(self))
+      other = tensor(_ops_unpack(other))
+
+      for i in range(len(self.data)):
+        for j in range(len(self.data[i])):
+          out[i][j] = self.data[i][j] - other.data[i][j]
+    return tensor(out)
   
   def __truediv__(self, other):
-    """
-      matrix's element level division
-      both matrices should have same shape
-    
-      args:
-      - self (tensor): first tensor
-      - other (tensor): second tensor
-    
-      returns:
-      - matrix with divided corresponding values
-    """
     other = other if isinstance(other, tensor) else tensor(other)
-    out = zeros(self.shape)
-    for i in range(len(self.data)):
-      for j in range(len(self.data[i])):
-        out[i][j] = self.data[i][j] - other.data[i][j]
-    return out
+    if self.shape != other.shape:
+      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
+    else:
+      out = zeros(self.shape)
+      self = tensor(_ops_unpack(self))
+      other = tensor(_ops_unpack(other))
+
+      for i in range(len(self.data)):
+        for j in range(len(self.data[i])):
+          out[i][j] = self.data[i][j] + other.data[i][j]
+    return tensor(out)
   
-  def __pow__(self, other):
-    """
-      raises the power of the elements in a matrix
-    
-      args:
-      - self (tensor): first tensor
-      - other (int or float): power to be raised
-    
-      returns:
-      - multiplied matrix of same shape as input matrix with each element's power being
-        raised to other
-    """
-    assert isinstance(other, (int, float))
-    raise NotImplementedError("__pow__ function not implemented")
+  def __pow__(self, pow):
+    assert isinstance(pow, (int, float))
+    unpacked_tensor = _ops_unpack(self)
+
+    def apply_pow(data, pow):
+      if isinstance(data, list):
+        return [apply_pow(sub_data, pow) for sub_data in data]
+      else:
+        return math.pow(data, pow)
+
+    out = apply_pow(unpacked_tensor, pow)
+    return tensor(out)
 
   def shape(self):
     """
@@ -166,7 +134,7 @@ class tensor:
     cols = len(self.data[0])
     return tensor([[self.data[i][j] for i in range(rows)] for j in range(cols)])
   
-  def unpack(self):
+  def flatten(self):
     """
       unpacks a n-dim tensor into a list
 
@@ -176,22 +144,24 @@ class tensor:
     Returns:
       new (list): 1-dim list with all the elements
     """
-    new = _unpack(self.data)
+    new = _flatten(self.data)
     return new
 
-  def _sum(self):
+  def sum(self, dtype=None):
     """
       unpacks the n-dim tensor & then sums up all the elements
       into a single integer/float
 
-    Args:
+    args:
       self (tensor): n-dim tensor to sum
+      dtype (optional): int/float for the output
 
-    Returns:
+    returns:
       sum (int/float): sum of all the elements present in the n-dim tensor
     """
-    unpacked_arr = _unpack(self.data)
-    return sum(i for i in unpacked_arr)
+    unpacked_arr = _flatten(self.data)
+    out = sum(i for i in unpacked_arr)
+    return dtype(out) if dtype is not None else out
   
   def broadcast(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
@@ -222,7 +192,7 @@ class tensor:
     x = x if isinstance(x, tensor) else tensor(x)
     y = y if isinstance(y, tensor) else tensor(y)
     if len(x.data[0]) != len(y.data):
-      raise ValueError("Matrices have incompatible dimensions for multiplication.")
+      raise ValueError(f"Matrices have incompatible dimensions for multiplication. {x.shape} != {y.shape}")
 
     out = zeros((len(x.data), len(y.data[0])))
     y_t = y.transpose().data
