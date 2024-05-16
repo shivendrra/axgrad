@@ -202,4 +202,4 @@ plt.show()
 ```
 
 ### trained output:
-![trained example](https://github.com/shivendrra/axgrad/tree/main/docs/example_net.jpg)
+![trained example](https://github.com/shivendrra/axgrad/blob/main/docs/example_net.png)
