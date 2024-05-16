@@ -16,6 +16,10 @@ i'll be adding more things in future...
 ## Usage
 This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to preform tensor operations and build a sample neural network
 
+anyway, prefer documentation for detailed usage guide:
+1. [axon.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axonDoc.md)
+2. [axgrad.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axgradDoc.md)
+
 ### Axgrad
 ```python
 from axgrad import Value
