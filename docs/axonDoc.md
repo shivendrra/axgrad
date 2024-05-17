@@ -92,6 +92,36 @@ result = t1.transpose()
 print(result)  # Output: tensor(data=[[1, 3], [2, 4]])
 ```
 
+### .concat()
+Concatenated given input of tensors together along input dimension.
+- **Args**:
+  - `array` (tuple): Tuple containg same size tensors for concatenation.
+  - `axis` (tensor): axis/dim for performing concatenation.
+- **Returns**: New tensor with concatenated tensors, having same dimensions as previous tensors
+
+**Example**:
+```python
+t = axon.tensor([[1, 2], [3, 4]])
+t = axon.tensor([[5, 6], [7, 8]])
+result = axon.concat((t1, t2, t1), axis=1)
+print(result)  # Output: axon.tensor([1, 2, 5, 6], [3, 4, 7, 8])
+```
+
+### .stack()
+Stacks given input of tensors together along input dimension.
+- **Args**:
+  - `array` (tuple): Tuple containg same size tensors for stacking.
+  - `axis` (tensor): axis/dim for performing stacking.
+- **Returns**: New tensor with stacked tensors, having +1 dimensions than previous tensors
+
+**Example**:
+```python
+t1 = axon.tensor([[1, 2], [3, 4]])
+t2 = axon.tensor([[5, 6], [7, 8]])
+result = axon.stack((t1, t2, t1), axis=0)
+print(result)  # Output: axon.tensor([[1, 2], [3, 4]], [[5, 6], [7, 8]] [[1, 2], [3, 4]])
+```
+
 ### .matmul()
 Performs matrix multiplication on two tensors.
 - **Args**:
