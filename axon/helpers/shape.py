@@ -82,3 +82,9 @@ def broadcast_array(array, target_shape):
   if current_shape == target_shape:
     return array
   return expand_dims(array, current_shape, target_shape)
+
+def transpose(arr):
+  if isinstance(arr[0], list):
+    return [list(row) for row in zip(*arr)]
+  else:
+    return arr
