@@ -1,58 +1,31 @@
-# from axon import tensor, zeros
-# import numpy as np
-
-x = [[1, 4, 4], [1, 5, 6], [1, 5, 7]]
-y = [[1, 4, 4], [1, 5, 6], [1, 5, 7], [1, 4, 5]]
-# z = [[[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]], [[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]]]
-
-# a, b, c = tensor(x), tensor(y), tensor(z)
-
-# x = a * a * a
-# print(x.sum())
-
-# x = tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-# y = tensor([[9, 8, -7], [6, -5, 4], [3, -2, -1]])
-# print(x + y)
-
-# x = tensor([[1, 4, 4], [1, 5, 6], [1, 5, 7]])
-# z = tensor([[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]])
-
-# print(tensor.matmul(x, z))
-
-import torch
-
-# a = torch.tensor(x)
-# for i in range(10):
-#   y = torch.stack((x))
-# print(a.shape)
-# print(y.shape)
-# print(y)
-
-# x = torch.randn(2, 3)
+# import torch
+# x = torch.tensor([[1, 4, 5], [1, 4, 6]])
 # print(x)
+# print(x.size())
 
-# y = torch.cat((x, x, x), 0)
+# y = torch.cat((x, x), dim=0)
 # print(y)
+# print(y.size())
 
-# z = torch.cat((x, x, x), 1)
-# print(z)
+import axon
 
-x = torch.randn(2, 3)
-print(x)
-print(x.size())
+x = axon.tensor([[1, 4, 5], [1, 4, 6]])
 
-y = torch.stack((x, x))
-print(y)
-print(y.size())
+def cat(array: tuple, dim: int=0):
+  if not array:
+    raise ValueError("Need atleast one array to stack")
+  
+  # shape checking
+  base_shape = array[0].shape # shape of first array for target array
+  for arr in array:
+    if arr.shape != base_shape:
+      raise ValueError("All inputs must be of same shape & size!")
+  new_shape = list(base_shape[:])
+  print(new_shape)
+  new_shape.insert(dim, len(array))
+  print(new_shape)
+  pass
 
-z = torch.stack((x, x), dim=1)
-print(z)
-print(z.size())
-
-a = torch.stack((x, x), dim=2)
-print(a)
-print(a.size())
-
-b = torch.stack((x, x), dim=-1)
-print(b)
-print(b.size())
+cat((x, x))
+# y = axon.stack((x, x), dim=1)
+# print(y)

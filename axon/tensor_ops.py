@@ -30,8 +30,54 @@ def matmul(x:tensor, y:tensor) -> tensor:
       out[i][j] = sum(x.data[i][k] * y_t[j][k] for k in range(len(y.data)))
   return tensor(out)
 
-def stack(tuples: tuple, dim:int =0) -> tensor:
-  pass
+def stack(array: tuple, dim: int=0) -> tensor:
+  if not array:
+    raise ValueError("Need atleast one array to stack")
+  
+  # shape checking
+  base_shape = array[0].shape
+  for arr in array:
+    if arr.shape != base_shape:
+      raise ValueError("All inputs must be of same shape & size!")
+  
+  # new shape after stacking & initilization
+  new_shape = list(base_shape[:])
+  new_shape.insert(dim, len(array))
+  new_data = zeros(new_shape)
+  
+  def get_element(data, indices):
+    for idx in indices:
+        data = data[idx]
+    return data
 
-def cat(tuples:tuple, dim:int =0) -> tensor:
+  def insert_data(new_data, arrays, dim, indices=[]):
+    if len(indices) == len(new_shape):
+      for idx, array in enumerate(arrays):
+        data_idx = indices[:]
+        data_idx[dim] = idx
+        sub_arr = new_data
+        for k in data_idx[:-1]:
+          sub_arr = sub_arr[k]
+        sub_arr[data_idx[-1]] = get_element(array.data, indices[:dim] + indices[dim+1:])
+      return
+      
+    for i in range(new_shape[len(indices)]):
+      insert_data(new_data, arrays, dim, indices + [i])
+    
+  insert_data(new_data, array, dim)
+  return tensor(new_data)
+
+def cat(array: tuple, dim: int=0) -> tensor:
+  if not array:
+    raise ValueError("Need atleast one array to stack")
+  
+  # shape checking
+  base_shape = array[0].shape # shape of first array for target array
+  for arr in array:
+    if arr.shape != base_shape:
+      raise ValueError("All inputs must be of same shape & size!")
+  new_shape = list(base_shape[:])
+  print(new_shape)
+  new_shape.insert(dim, len(array))
+  print(new_shape)
   pass
