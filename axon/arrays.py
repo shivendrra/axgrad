@@ -1,5 +1,6 @@
 from .helpers.shape import get_shape, broadcast_array, broadcast_shapes
-from .helpers.statics import zeros, ones
+from .helpers.statics import zeros
+from .helpers.activate import relu, sigmoid, tanh, gelu
 import math
 
 def _flatten(arr, new=None):
@@ -13,14 +14,13 @@ def _flatten(arr, new=None):
   return new
 
 class tensor:
-  def __init__(self, *data, requires_grad:bool=False, child:tuple=(), _ops:str='', _gradops:str=''):
+  def __init__(self, *data, requires_grad:bool=False, child:tuple=(), _ops:str=''):
     self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
     self.shape = self.shape()
     self.grad = zeros(self.shape, dtype=int)
     self._prev = set(child)
     self.req_grad = requires_grad
     self._ops = None if _ops == '' else _ops
-    self._gradops = _gradops
 
   def __repr__(self):
     data_str = '\n\t'.join([str(row) for row in self.data])
@@ -91,6 +91,42 @@ class tensor:
 
     out = apply_pow(self.data, pow)
     return tensor(out, child=(self,))
+
+  def relu(self):
+    def apply_relu(data):
+      if isinstance(data, list):
+        return [apply_relu(sub_data) for sub_data in data]
+      else:
+        return relu(data)
+    out = apply_relu(self.data)
+    return tensor(out, child=(self,), _ops='<ReLU>')
+
+  def tanh(self):
+    def apply_tanh(data):
+      if isinstance(data, list):
+        return [apply_tanh(sub_data) for sub_data in data]
+      else:
+        return tanh(data)
+    out = apply_tanh(self.data)
+    return tensor(out, child=(self,), _ops='<tanh>')
+  
+  def gelu(self):
+    def apply_gelu(data):
+      if isinstance(data, list):
+        return [apply_gelu(sub_data) for sub_data in data]
+      else:
+        return gelu(data)
+    out = apply_gelu(self.data)
+    return tensor(out, child=(self,), _ops='<gelu>')
+
+  def sigmoid(self):
+    def apply_sigmoid(data):
+      if isinstance(data, list):
+        return [apply_sigmoid(sub_data) for sub_data in data]
+      else:
+        return sigmoid(data)
+    out = apply_sigmoid(self.data)
+    return tensor(out, child=(self,), _ops='<sigmoid>')
 
   def shape(self):
     return get_shape(self.data)
