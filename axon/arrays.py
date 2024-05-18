@@ -2,19 +2,6 @@ from .helpers.shape import get_shape, broadcast_array, broadcast_shapes
 from .helpers.statics import zeros, ones
 import math
 
-def _ops_unpack(obj):
-  """
-  unpack a tensor object into a list of lists
-  args:
-    obj (tensor): tensor to unpack
-
-  returns:
-    list: list of lists representing the tensor's data
-  """
-  if isinstance(obj, tensor):
-    return obj.data
-  return obj
-
 def _flatten(arr, new=None):
   if new is None:
     new = []
@@ -26,12 +13,14 @@ def _flatten(arr, new=None):
   return new
 
 class tensor:
-  def __init__(self, *data, requires_grad:bool=False, child:set=()) -> None:
+  def __init__(self, *data, requires_grad:bool=False, child:tuple=(), _ops:str='', _gradops:str=''):
     self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
     self.shape = self.shape()
-    self.grad = zeros(self.shape, dtype=float)
+    self.grad = zeros(self.shape, dtype=int)
     self._prev = set(child)
     self.req_grad = requires_grad
+    self._ops = None if _ops == '' else _ops
+    self._gradops = _gradops
 
   def __repr__(self):
     data_str = '\n\t'.join([str(row) for row in self.data])
@@ -48,61 +37,51 @@ class tensor:
     other = other if isinstance(other, tensor) else tensor(other)
     if self.shape != other.shape:
       raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
-    else:
-      out = zeros(self.shape)
-      self = tensor(_ops_unpack(self))
-      other = tensor(_ops_unpack(other))
-
-      for i in range(len(self.data)):
-        for j in range(len(self.data[i])):
-          out[i][j] = self.data[i][j] + other.data[i][j]
-    return tensor(out)
+    
+    def _add(x, y):
+      if not isinstance(x, list):
+        return x + y
+      return [_add(xi, yi) for xi, yi in zip(x, y)]
+    
+    return tensor(_add(self.data, other.data), child=(self, other), _ops='<ElemLevelAdd>')
   
   def __mul__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
     if self.shape != other.shape:
       raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
-    else:
-      out = zeros(self.shape)
-      self = tensor(_ops_unpack(self))
-      other = tensor(_ops_unpack(other))
-
-      for i in range(len(self.data)):
-        for j in range(len(self.data[i])):
-          out[i][j] = self.data[i][j] * other.data[i][j]
-    return tensor(out)
+    
+    def _mul(x, y):
+      if not isinstance(x, list):
+        return x * y
+      return [_mul(xi, yi) for xi, yi in zip(x, y)]
+    
+    return tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')
   
   def __sub__(self, other):
-    other = other if isinstance(other, tensor) else tensor(other)
-    if self.shape != other.shape:
-      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
-    else:
-      out = zeros(self.shape)
-      self = tensor(_ops_unpack(self))
-      other = tensor(_ops_unpack(other))
-
-      for i in range(len(self.data)):
-        for j in range(len(self.data[i])):
-          out[i][j] = self.data[i][j] - other.data[i][j]
-    return tensor(out)
+    return self + (-other)
   
   def __truediv__(self, other):
-    other = other if isinstance(other, tensor) else tensor(other)
-    if self.shape != other.shape:
-      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
-    else:
-      out = zeros(self.shape)
-      self = tensor(_ops_unpack(self))
-      other = tensor(_ops_unpack(other))
+    return self * other ** -1
 
-      for i in range(len(self.data)):
-        for j in range(len(self.data[i])):
-          out[i][j] = self.data[i][j] + other.data[i][j]
-    return tensor(out)
+  def __neg__(self):
+    def _neg(data):
+      if not isinstance(data, list):
+        return -data
+      return [_neg(sub_data) for sub_data in data]
+
+    return _neg(self.data)
+
+  def __rsub__(self, other):
+    return other + (-self)
+
+  def __rmul__(self, other):
+    return self * other
   
+  def __rtruediv__(self, other):
+    return other * self**-1
+
   def __pow__(self, pow):
     assert isinstance(pow, (int, float))
-    unpacked_tensor = _ops_unpack(self)
 
     def apply_pow(data, pow):
       if isinstance(data, list):
@@ -110,55 +89,22 @@ class tensor:
       else:
         return math.pow(data, pow)
 
-    out = apply_pow(unpacked_tensor, pow)
-    return tensor(out)
+    out = apply_pow(self.data, pow)
+    return tensor(out, child=(self,))
 
   def shape(self):
-    """
-      computes the shape of a tensor
-
-      returns:
-        tuple: tuple that contains the shape of the tensor
-    """
     return get_shape(self.data)
   
   def transpose(self):
-    """
-      args:
-      - self: tensor to be transposed
-    
-      returns:
-      - transposed matrix
-    """
     rows = len(self.data)
     cols = len(self.data[0])
     return tensor([[self.data[i][j] for i in range(rows)] for j in range(cols)])
   
   def flatten(self):
-    """
-      unpacks a n-dim tensor into a list
-
-    Args:
-      self (tensor): n-dim tensor to unpack
-
-    Returns:
-      new (list): 1-dim list with all the elements
-    """
     new = _flatten(self.data)
     return new
 
   def sum(self, dtype=None):
-    """
-      unpacks the n-dim tensor & then sums up all the elements
-      into a single integer/float
-
-    args:
-      self (tensor): n-dim tensor to sum
-      dtype (optional): int/float for the output
-
-    returns:
-      sum (int/float): sum of all the elements present in the n-dim tensor
-    """
     unpacked_arr = _flatten(self.data)
     out = sum(i for i in unpacked_arr)
     return dtype(out) if dtype is not None else out
@@ -166,6 +112,5 @@ class tensor:
   def broadcast(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
     new_shape = broadcast_shapes(self.shape, other.shape)
-    self_broadcasted = broadcast_array(self.data, new_shape)
     other_broadcasted = broadcast_array(other.data, new_shape)
-    return tensor(self_broadcasted), tensor(other_broadcasted)
+    return tensor(other_broadcasted)
