@@ -8,6 +8,7 @@ class backward:
             accumulate_grad(g, og)
           return
         grad += out
+        print("grad: ", grad)
     
       accumulate_grad(one.grad, out.grad)
       accumulate_grad(two.grad, out.grad)
@@ -44,9 +45,11 @@ class backward:
       accumulate_grad(one.grad, out.grad, exp)
     return _backward
 
+  @staticmethod
   def relu_backward(one, out, exp):
     pass
-
+  
+  @staticmethod
   def backward(arr):
     topo = []
     visited = set()

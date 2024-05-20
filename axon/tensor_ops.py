@@ -17,7 +17,7 @@ def matmul(x:tensor, y:tensor) -> tensor:
   for i in range(len(x.data)):
     for j in range(len(y_t)):
       out[i][j] = sum(x.data[i][k] * y_t[j][k] for k in range(len(y.data)))
-  return tensor(out)
+  return tensor(out, child=(x, y), _ops='<matmul>')
 
 def stack(array: tuple, axis: int=0) -> tensor:
   if not array:

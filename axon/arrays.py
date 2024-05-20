@@ -56,7 +56,7 @@ class tensor:
       if not isinstance(x, list):
         return x * y
       return [_mul(xi, yi) for xi, yi in zip(x, y)]
-    out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')
+    out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')      
     out._backward = backward.mul_backward(self, other, out)
     return out
   
@@ -102,7 +102,7 @@ class tensor:
       else:
         return relu(data)
     out = apply_relu(self.data)
-    return tensor(out, child=(self,), _ops='<ReLU>')
+    return tensor(out, child=(self,), _ops='<relu>')
 
   def tanh(self):
     def apply_tanh(data):
@@ -132,9 +132,9 @@ class tensor:
     return tensor(out, child=(self,), _ops='<sigmoid>')
 
   def backward(self):
-    self.leaf = backward.backward(self)
+    topo = backward.backward(self)
     self.grad = ones(self.shape, dtype=float)
-    for node in reversed(self.leaf):
+    for node in reversed(topo):
       node._backward()
 
   def shape(self):
