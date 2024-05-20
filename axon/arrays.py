@@ -1,6 +1,7 @@
 from .helpers.shape import get_shape, broadcast_array, broadcast_shapes
-from .helpers.statics import zeros
+from .helpers.statics import zeros, ones
 from .helpers.activate import relu, sigmoid, tanh, gelu
+from .backward import backward
 import math
 
 def _flatten(arr, new=None):
@@ -14,18 +15,17 @@ def _flatten(arr, new=None):
   return new
 
 class tensor:
-  def __init__(self, *data, requires_grad:bool=False, child:tuple=(), _ops:str=''):
+  def __init__(self, *data, child:tuple=(), _ops:str=''):
     self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
     self.shape = self.shape()
-    self.grad = zeros(self.shape, dtype=int)
-    self._prev = set(child)
-    self.req_grad = requires_grad
+    self.grad = zeros(self.shape, dtype=float)
+    self.prev = set(child)
+    self._backward = lambda: None
     self._ops = None if _ops == '' else _ops
 
   def __repr__(self):
     data_str = '\n\t'.join([str(row) for row in self.data])
-    grad_str = '\n\t'.join([str(row) for row in self.grad])
-    return f"axon.tensor(data={data_str},\ngrad={grad_str})\n" if self.req_grad is True else f"axon.tensor({data_str})"
+    return f"axon.tensor(data={data_str}"
   
   def __getitem__(self, index):
     return self.data[index]
@@ -43,7 +43,9 @@ class tensor:
         return x + y
       return [_add(xi, yi) for xi, yi in zip(x, y)]
     
-    return tensor(_add(self.data, other.data), child=(self, other), _ops='<ElemLevelAdd>')
+    out = tensor(_add(self.data, other.data), child=(self, other), _ops='<ElemLevelAdd>')
+    out._backward = backward.add_backward(self, other, out)
+    return out
   
   def __mul__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
@@ -54,8 +56,9 @@ class tensor:
       if not isinstance(x, list):
         return x * y
       return [_mul(xi, yi) for xi, yi in zip(x, y)]
-    
-    return tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')
+    out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')
+    out._backward = backward.mul_backward(self, other, out)
+    return out
   
   def __sub__(self, other):
     return self + (-other)
@@ -90,7 +93,7 @@ class tensor:
         return math.pow(data, pow)
 
     out = apply_pow(self.data, pow)
-    return tensor(out, child=(self,))
+    return tensor(out, child=(self,), _ops='<pow>')
 
   def relu(self):
     def apply_relu(data):
@@ -127,6 +130,12 @@ class tensor:
         return sigmoid(data)
     out = apply_sigmoid(self.data)
     return tensor(out, child=(self,), _ops='<sigmoid>')
+
+  def backward(self):
+    self.leaf = backward.backward(self)
+    self.grad = ones(self.shape, dtype=float)
+    for node in reversed(self.leaf):
+      node._backward()
 
   def shape(self):
     return get_shape(self.data)
