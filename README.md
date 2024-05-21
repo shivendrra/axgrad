@@ -1,17 +1,29 @@
 # axgrad
 ![axon.jpg](https://github.com/shivendrra/axgrad/blob/main/axon.jpg)
-A gradient engine along with it's own matrix operation library like PyTorch. It's supposed to be a good and lightweight C and Python based deep learning framework, which it's not, as of now.
+My attempt to make something like [TinyGrad](https://github.com/tinygrad/tinygrad) or [PyTorch](https://github.com/pytorch/pytorch)
+A framework like PyTorch & MicroGrad written fully in python(i will add the c & cpp components for faster implementation though).
+It's supposed to be a good and lightweight C and Python based deep learning framework, which it's not, as of now(still building).
 
 ## Overview
-It contains a gradient engine exactly like Karpathy's [micrograd](https://github.com/karpathy/micrograd) and a deep learning framework like PyTorch or [TinyGrad](https://github.com/tinygrad/tinygrad) that has `Module`, `Linear` & `Sequence` layers similar to pytorch's `nn.Module`,  `nn.Linear` &`nn.Sequential`. It still work in progress though.
+It contains a framework similar to Numpy which allows to do basic matrix operations like element-wise add/mul + matrix multiplication + broadcasting and many more things in near future.
 
-### Features
-It has basic building blocks required to build a neural network: 
-1. Basic tensor unary operations framework that could easily so matrix addition, multiplication, transpose, subtraction except for division(idk how to do that).
-2. A gradient engine that could compute and update gradients, automatically, much like micrograd, but on a tensor level.
+## Features
+It has basic building blocks required to build a neural network:
+1. Basic tensor ops framework that could easily so matrix add/mul (element-wise), transpose, broadcasting, matmul, etc.
+2. A gradient engine that could compute and update gradients, automatically, much like micrograd, but on a tensor level ~ autograd like.
 3. Optimizer & loss computation blocks to compute and optimize.
-4. Basic blocks of network like Linear layer similar to `nn.Linear`, Sequence layer similar to `nn.Sequential` and others.
 i'll be adding more things in future...
+
+### Progress
+
+| Development                  | Status      | Feature                                                                |
+| ---------------------------- | ----------- | ---------------------------------------------------------------------- |
+| Base Class                   | in progress | <ul><li>[x] tensor.py</li><li>[ ] Axgrad</li><li>[x] Broadcasting</li></ul>                 |
+| Versions                         | in progress | <ul><li>[ ] cpp version</li><li>[ ] c version</li><li>[ ] final version</li></ul>    |
+| Loss                         | in progress | <ul><li>[ ] MSE</li><li>[ ] Cross Entropy</li><li>[ ] MAE</li></ul>    |
+| Language Transformer | in progress    | <ul><li>[x] Matmul</li><li>[ ] Embeddings</li></ul> |
+| Convolutional Neural Network | in progress    | <ul><li>[ ] Conv2d</li><li>[ ] MaxPool2d</li><li>[ ] Dropout</li></ul> |
+| Neural Network Components                  | in progress | <ul><li>[ ] Module</li><li>[ ] Sequential</li><li>[ ] ModuleList</li><li>[ ] Linear</li></ul>
 
 ## Usage
 This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to preform tensor operations and build a sample neural network
@@ -58,7 +70,7 @@ It's similar to NumPy, for now. I'm trying to add more functions/methods to make
 
 #### Tensor operations
 ```python
-from axgrad import tensor
+from axon import tensor
 
 # initializing 2-d matrices
 x = tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -79,17 +91,6 @@ x = tensor([[1, 4, 4], [1, 5, 6], [1, 5, 7]])
 z = tensor([[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]])
 print(tensor.matmul(x, z)) # out: axon.tensor([33, 45, 49, 37], [45, 62, 68, 51], [49, 68, 75, 56])
 ```
-
-## Progress
-
-| Development                  | Status      | Feature                                                                |
-| ---------------------------- | ----------- | ---------------------------------------------------------------------- |
-| Base Class                   | in progress | <ul><li>[X] tensor.py</li><li>[ ] Axgrad</li><li>[x] Broadcasting</li></ul>                 |
-| Versions                         | in progress | <ul><li>[ ] cpp version</li><li>[ ] c version</li><li>[ ] final version</li></ul>    |
-| Loss                         | in progress | <ul><li>[ ] MSE</li><li>[ ] Cross Entropy</li><li>[ ] MAE</li></ul>    |
-| Language Transformer | in progress    | <ul><li>[x] 2-d Matmul</li><li>[ ] ndim Matmul</li><li>[ ] Embeddings</li></ul> |
-| Convolutional Neural Network | in progress    | <ul><li>[ ] Conv2d</li><li>[ ] MaxPool2d</li><li>[ ] Dropout</li></ul> |
-| Neural Network Components                  | in progress | <ul><li>[ ] Module</li><li>[ ] Sequential</li><li>[ ] ModuleList</li><li>[ ] Linear</li></ul>
 
 ## Contribution
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
