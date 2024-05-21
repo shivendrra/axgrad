@@ -1,38 +1,4 @@
 import random
-import math
-
-def relu(x:float) -> float:
-  return max(0, x)
-
-def relu_derivative(x:float) -> float:
-  return 1 if x > 0 else 0
-
-def LeakyRELU(x:float, alpha: float=0.03) -> float:
-  return x if x >= 0 else alpha * x
-
-def LeakyRELU_derivative(x:float, alpha:float= 0.03) -> float:
-  return 1 if x > 0 else alpha
-
-def tanh(x:float) -> float:
-  return (math.exp(x) - math.exp(-x)) / (math.exp(x) + math.exp(-x))
-
-def tanh_derivative(x:float) -> float:
-  return 1 - (tanh(x)**2)
-
-def sigmoid(x:float) -> float:
-  return 1 / (1 + math.exp(-x))
-
-def sigmoid_derivative(x:float) -> float:
-  return sigmoid(x)(1 - sigmoid(x))
-
-def gelu(x:float) -> float:
-  return 
-
-def softmax(x):
-  max_x = max(x)
-  exp_values = [math.exp(i - max_x) for i in x]
-  exp_sum = sum(exp_values)
-  return [exp_value / exp_sum for exp_value in exp_values]
 
 def zeros_like(arr, dtype=int):
   """
@@ -106,3 +72,4 @@ def randint(low, high, size=None, dtype=int):
 
 def arange(start, end, step):
   return [start + i * step for i in range(int((end - start) / step))]
+

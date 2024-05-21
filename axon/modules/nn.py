@@ -1,5 +1,5 @@
 import random
-from ..arrays import tensor
+from ..tensor import tensor
 from ..helpers.statics import ones, zeros
 
 class Module:

@@ -80,6 +80,17 @@ z = tensor([[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]])
 print(tensor.matmul(x, z)) # out: axon.tensor([33, 45, 49, 37], [45, 62, 68, 51], [49, 68, 75, 56])
 ```
 
+## Progress
+
+| Development                  | Status      | Feature                                                                |
+| ---------------------------- | ----------- | ---------------------------------------------------------------------- |
+| Base Class                   | in progress | <ul><li>[X] tensor.py</li><li>[ ] Axgrad</li><li>[x] Broadcasting</li></ul>                 |
+| Versions                         | in progress | <ul><li>[ ] cpp version</li><li>[ ] c version</li><li>[ ] final version</li></ul>    |
+| Loss                         | in progress | <ul><li>[ ] MSE</li><li>[ ] Cross Entropy</li><li>[ ] MAE</li></ul>    |
+| Language Transformer | in progress    | <ul><li>[x] 2-d Matmul</li><li>[ ] ndim Matmul</li><li>[ ] Embeddings</li></ul> |
+| Convolutional Neural Network | in progress    | <ul><li>[ ] Conv2d</li><li>[ ] MaxPool2d</li><li>[ ] Dropout</li></ul> |
+| Neural Network Components                  | in progress | <ul><li>[ ] Module</li><li>[ ] Sequential</li><li>[ ] ModuleList</li><li>[ ] Linear</li></ul>
+
 ## Contribution
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 Please make sure to update tests as appropriate. But it's still a work in progress.

@@ -1,10 +1,11 @@
+import axon
 from axon import tensor
 
-x = tensor([[1, 2], [3, 4]])
-y = tensor([[5, 6], [7, 8]])
+a = [[[1, 4, 5], [1, 5, 7]], [[1, 4, 5], [1, 5, 7]], [[1, 4, 5], [1, 5, 7]], [[1, 4, 5], [1, 5, 7]]]
+b = [[[1, 5, 6], [1, 5, 7], [1, 7, 3]], [[1, 5, 6], [1, 5, 7], [1, 7, 3]], [[1, 5, 6], [1, 5, 7], [1, 7, 3]], [[1, 5, 6], [1, 5, 7], [1, 7, 3]]]
 
-c = x * y
-z = c * x
-z.backward()
+x, y = tensor(a), tensor(b)
 
-print(x.grad)
+c = axon.matmul(x, y)
+print(c)
+print(c.shape)

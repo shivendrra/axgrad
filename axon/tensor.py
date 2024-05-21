@@ -1,18 +1,8 @@
-from .helpers.shape import get_shape, broadcast_array, broadcast_shapes
+from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten
 from .helpers.statics import zeros, ones
-from .helpers.activate import relu, sigmoid, tanh, gelu
+from .nn.acitvations import relu, sigmoid, tanh, gelu
 from .backward import backward
 import math
-
-def _flatten(arr, new=None):
-  if new is None:
-    new = []
-  if isinstance(arr, list):
-    for i in arr:
-      _flatten(i, new)
-  elif isinstance(arr, int) or isinstance(arr, float):
-    new.append(arr)
-  return new
 
 class tensor:
   def __init__(self, *data, child:tuple=(), _ops:str=''):
@@ -101,8 +91,10 @@ class tensor:
         return [apply_relu(sub_data) for sub_data in data]
       else:
         return relu(data)
-    out = apply_relu(self.data)
-    return tensor(out, child=(self,), _ops='<relu>')
+    
+    out =  tensor(apply_relu(self.data), child=(self,), _ops='<relu>')
+    out._backward = backward.relu_backward(self, out)
+    return out
 
   def tanh(self):
     def apply_tanh(data):
@@ -110,8 +102,9 @@ class tensor:
         return [apply_tanh(sub_data) for sub_data in data]
       else:
         return tanh(data)
-    out = apply_tanh(self.data)
-    return tensor(out, child=(self,), _ops='<tanh>')
+    out = tensor(apply_tanh(self.data), child=(self,), _ops='<tanh>')
+    out._backward = backward.tanh_backward(self, out)
+    return out
   
   def gelu(self):
     def apply_gelu(data):

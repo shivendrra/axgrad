@@ -1,23 +1,35 @@
-from .arrays import tensor
+from .tensor import tensor
 from .helpers.statics import zeros
+from .helpers.shape import transpose
 
 def get_element(data, indices):
   for idx in indices:
     data = data[idx]
   return data
 
-def matmul(x:tensor, y:tensor) -> tensor:
-  x = x if isinstance(x, tensor) else tensor(x)
-  y = y if isinstance(y, tensor) else tensor(y)
-  if len(x.data[0]) != len(y.data):
-    raise ValueError(f"Matrices have incompatible dimensions for multiplication. {x.shape} != {y.shape}")
+def matmul(a, b):
+  def _remul(a, b):
+    if len(a.shape) == 2 and len(b.shape) == 2:
+      out = zeros((len(a.data), len(b.data[0])))
+      b_t = transpose(b.data)
+      for i in range(len(a.data)):
+        for j in range(len(b_t)):
+          out[i][j] = sum(a.data[i][k] * b_t[j][k] for k in range(len(a.data[0])))
+      return out
+    else:
+      out_shape = a.shape[:-1] + (b.shape[-1],)
+      out = zeros(out_shape)
+      for i in range(len(a.data)):
+        out[i] = _remul(tensor(a.data[i]), tensor(b.data[i]))
+      return out
 
-  out = zeros((len(x.data), len(y.data[0])))
-  y_t = y.transpose().data
-  for i in range(len(x.data)):
-    for j in range(len(y_t)):
-      out[i][j] = sum(x.data[i][k] * y_t[j][k] for k in range(len(y.data)))
-  return tensor(out, child=(x, y), _ops='<matmul>')
+  if a.shape[-1] != b.shape[-2]:
+    raise ValueError("Matrices have incompatible dimensions for matmul")
+
+  a = a if isinstance(a, tensor) else tensor(a)
+  b = b if isinstance(b, tensor) else tensor(b)
+  out = _remul(a, b)
+  return tensor(out, child=(a, b), _ops='<Matmul>')
 
 def stack(array: tuple, axis: int=0) -> tensor:
   if not array:

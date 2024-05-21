@@ -1,3 +1,3 @@
 from .helpers.statics import ones, zeros, zeros_like, arange, randint, ns
-from .arrays import tensor
-from .tensor_ops import matmul, stack, concat
+from .tensor import tensor
+from .ops import matmul, stack, concat

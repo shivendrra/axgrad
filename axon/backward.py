@@ -46,8 +46,32 @@ class backward:
     return _backward
 
   @staticmethod
-  def relu_backward(one, out, exp):
-    pass
+  def relu_backward(one:list, out:list) -> None:
+    def _backward():
+      def accumulate_grad(grad, out_grad, data):
+        if isinstance(grad, list):
+          for g, og, d in zip(grad, out_grad, data):
+            accumulate_grad(g, og, d)
+          return
+        grad += (data > 0) * out_grad
+        print(grad)
+      
+      accumulate_grad(one.grad, out.grad, one.data)
+    return _backward
+  
+  @staticmethod
+  def tanh_backward(one:list, out:list) -> None:
+    def _backward():
+      def accumulate_grad(grad, out_grad, data):
+        if isinstance(grad, list):
+          for g, og, d in zip(grad, out_grad, data):
+            accumulate_grad(g, og, d)
+          return
+        grad += (1 - data ** 2) * out_grad
+        print(grad)
+      
+      accumulate_grad(one.grad, out.grad, one.data)
+    return _backward
   
   @staticmethod
   def backward(arr):
