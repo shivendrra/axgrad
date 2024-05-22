@@ -23,7 +23,7 @@ i'll be adding more things in future...
 | Loss                         | in progress | <ul><li>[ ] MSE</li><li>[ ] Cross Entropy</li><li>[ ] MAE</li></ul>    |
 | Language Transformer | in progress    | <ul><li>[x] Matmul</li><li>[ ] Embeddings</li></ul> |
 | Convolutional Neural Network | in progress    | <ul><li>[ ] Conv2d</li><li>[ ] MaxPool2d</li><li>[ ] Dropout</li></ul> |
-| Neural Network Components                  | in progress | <ul><li>[ ] Module</li><li>[ ] Sequential</li><li>[ ] ModuleList</li><li>[ ] Linear</li></ul>
+| Neural Network Components                  | in progress | <ul><li>[ ] Module</li><li>[ ] Sequential</li><li>[ ] ModuleList</li><li>[x] Linear</li></ul>
 
 ## Usage
 This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to preform tensor operations and build a sample neural network

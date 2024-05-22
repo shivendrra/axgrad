@@ -1,4 +1,4 @@
-from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten
+from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape
 from .helpers.statics import zeros, ones
 from .nn.acitvations import relu, sigmoid, tanh, gelu
 from .backward import backward
@@ -10,23 +10,34 @@ class tensor:
     self.shape = self.shape()
     self.grad = zeros(self.shape, dtype=float)
     self.prev = set(child)
+    self.leaf = set()
     self._backward = lambda: None
     self._ops = None if _ops == '' else _ops
 
   def __repr__(self):
     data_str = '\n\t'.join([str(row) for row in self.data])
-    return f"axon.tensor(data={data_str}"
+    return f'axon.tensor(data={data_str}'
   
   def __getitem__(self, index):
     return self.data[index]
   
   def __setitem__(self, index, value):
-    self.data[index] = value
+    if isinstance(index, tuple):
+      data_ref = self.data
+      grad_ref = self.grad
+      for idx in index[:-1]:
+        data_ref = data_ref[idx]
+        grad_ref = grad_ref[idx]
+      data_ref[index[-1]] = value
+      grad_ref[index[-1]] = value
+    else:
+      self.data[index] = value
+      self.grad[index] = value
   
   def __add__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
     if self.shape != other.shape:
-      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
+      raise ValueError(f'Arrays must be of same shape & size {self.shape} != {other.shape}')
     
     def _add(x, y):
       if not isinstance(x, list):
@@ -40,7 +51,7 @@ class tensor:
   def __mul__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
     if self.shape != other.shape:
-      raise ValueError(f"Arrays must be of same shape & size {self.shape} != {other.shape}")
+      raise ValueError(f'Arrays must be of same shape & size {self.shape} != {other.shape}')
     
     def _mul(x, y):
       if not isinstance(x, list):
@@ -127,6 +138,7 @@ class tensor:
   def backward(self):
     topo = backward.backward(self)
     self.grad = ones(self.shape, dtype=float)
+    self.leaf = topo
     for node in reversed(topo):
       node._backward()
 
@@ -141,6 +153,25 @@ class tensor:
   def flatten(self):
     new = _flatten(self.data)
     return new
+  
+  def squeeze(self, dim:int=None):
+    if dim is not None and (dim<0 or dim>=len(self.shape)):
+      raise IndexError(f'Dimension out of range (expected to be in range of {len(self.shape)} dimensions)')
+    
+    s_data = _squeeze(self.data, dim)
+    return tensor(s_data, child=(self,), _ops='<squeeze>')
+
+  def unsqeeze(self, dim:int):
+    if dim < 0 or dim > len(self.shape):
+      raise IndexError(f'Dimension out of range (expected to be in range of {len(self.shape) + 1} dimensions)')
+
+    u_data = _unsqueeze(self.data, dim)
+    return tensor(u_data, child=(self,), _ops='<unsqueeze>')
+
+  def reshape(self, new_shape:tuple):
+    flat_data = self.flatten()
+    reshaped = _reshape(self.data, flat_data, new_shape)
+    return tensor(reshaped, child=(self,), _ops='<reshape>')
 
   def sum(self, dtype=None):
     unpacked_arr = _flatten(self.data)

@@ -13,7 +13,7 @@ def LeakyRELU_derivative(x:float, alpha:float= 0.03) -> float:
   return 1 if x > 0 else alpha
 
 def tanh(x:float) -> float:
-  return (math.exp(x) - math.exp(-x)) / (math.exp(x) + math.exp(-x))
+  return math.tanh(x)
 
 def tanh_derivative(x:float) -> float:
   return 1 - (tanh(x)**2)

@@ -1,14 +1,32 @@
 import axon
 from axon import tensor
 
-a = [[1, -4],
-     [-2, 7]]
-# a = [[[1, 4, 5], [1, 5, 7]], [[1, 4, 5], [1, 5, 7]], [[1, 4, 5], [1, 5, 7]], [[1, 4, 5], [1, 5, 7]]]
-b = [[[1, 5, 6], [1, 5, 7], [1, 7, 3]], [[1, 5, 6], [1, 5, 7], [1, 7, 3]], [[1, 5, 6], [1, 5, 7], [1, 7, 3]], [[1, 5, 6], [1, 5, 7], [1, 7, 3]]]
+a = tensor([[1, 2, 3, 4], [5, 6, 7, 8]])
+print("Original tensor:")
+print(a)
+print(a.shape)
 
-x, y = tensor(a), tensor(b)
+reshaped = a.reshape((4, 2))
+print("Reshaped tensor:")
+print(reshaped)
+print(reshaped.shape)
 
-# print(x.shape)
-c = axon.matmul(x, x)
-print(c)
-print(c.shape)
+a = tensor([[[1], [2], [3]], [[4], [5], [6]]])
+print("Original tensor:")
+print(a)
+print(a.shape)
+
+squeezed = a.squeeze()
+print("Squeezed tensor:")
+print(squeezed)
+print(squeezed.shape)
+
+a = tensor([[[1]], [[2]], [[3]]])
+print("Original tensor:")
+print(a)
+print(a.shape)
+
+squeezed = a.squeeze(dim=1)
+print("Squeezed tensor along dimension 1:")
+print(squeezed)
+print(squeezed.shape)

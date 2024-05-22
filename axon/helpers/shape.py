@@ -23,6 +23,46 @@ def _flatten(arr, new=None):
     new.append(arr)
   return new
 
+def _squeeze(data, dim):
+  if dim is None:
+    if isinstance(data, list):
+      squeezed = [_squeeze(d, None) for d in data]
+      return squeezed if len(squeezed) > 1 else squeezed[0]
+    return data
+  if isinstance(data, list):
+    if dim == 0:
+      return data[0] if len(data) == 1 else data
+    return [_squeeze(d, dim - 1) for d in data]
+  return data
+
+def _unsqueeze(data, dim):
+  if dim == 0:
+    return [data]
+  if isinstance(data, list):
+    return [_unsqueeze(d, dim-1) for d in data]
+  return [data]
+
+def _reshape(data, flat_data, new_shape):
+  reshaped = []
+  shape_size = _shape_size(data, new_shape)
+  if shape_size != len(flat_data):
+    raise ValueError("Total size of new array must be unchanged")
+
+  def _recursive_reshape(data, shape):
+    if len(shape) == 1:
+      return data[:shape[0]]
+    size = shape[0]
+    sub_size = _shape_size(data, shape[1:])
+    return [_recursive_reshape(data[i * sub_size:(i + 1) * sub_size], shape[1:]) for i in range(size)]
+
+  return _recursive_reshape(flat_data, new_shape)
+
+def _shape_size(data, shape):
+  size = 1
+  for dim in shape:
+    size *= dim
+  return size
+
 def broadcast_shapes(shape1, shape2):
   result_shape = []
   for dim1, dim2 in zip(reversed(shape1), reversed(shape2)):
