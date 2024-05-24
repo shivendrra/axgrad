@@ -1,7 +1,7 @@
 from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape
 from .helpers.statics import zeros, ones
 from .helpers.acitvations import relu, sigmoid, tanh, gelu
-from .backward import backward
+from .axgrad import backward
 import math
 
 class tensor:
@@ -26,8 +26,8 @@ class tensor:
       self.leaf = None
 
   def __repr__(self):
-    data_str = '\n\t'.join([str(row) for row in self.data])
-    return f'axon.tensor(data={data_str})'
+    data_str = ',\n\t'.join([str(row) for row in self.data])
+    return f'tensor(data={data_str})'
   
   def __getitem__(self, index):
     return self.data[index]
@@ -56,7 +56,7 @@ class tensor:
       return [_add(xi, yi) for xi, yi in zip(x, y)]
     
     out = tensor(_add(self.data, other.data), child=(self, other), _ops='<ElemLevelAdd>')
-    out._backward = backward.add_backward(self, other, out)
+    out._backward = backward.add_back(self, other, out)
     return out
   
   def __mul__(self, other):
@@ -70,7 +70,7 @@ class tensor:
       return [_mul(xi, yi) for xi, yi in zip(x, y)]
     
     out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')      
-    out._backward = backward.mul_backward(self, other, out)
+    out._backward = backward.mul_back(self, other, out)
     return out
   
   def __sub__(self, other):
@@ -105,8 +105,9 @@ class tensor:
       else:
         return math.pow(data, pow)
 
-    out = apply_pow(self.data, pow)
-    return tensor(out, child=(self,), _ops='<pow>')
+    out = tensor(apply_pow(self.data, pow), child=(self,), _ops='<pow>')
+    out._backward = backward.pow_back(self, out, pow)
+    return out
 
   def relu(self):
     def apply_relu(data):
@@ -116,7 +117,7 @@ class tensor:
         return relu(data)
     
     out =  tensor(apply_relu(self.data), child=(self,), _ops='<relu>')
-    out._backward = backward.relu_backward(self, out)
+    out._backward = backward.relu_back(self, out)
     return out
 
   def tanh(self):
@@ -126,7 +127,7 @@ class tensor:
       else:
         return tanh(data)
     out = tensor(apply_tanh(self.data), child=(self,), _ops='<tanh>')
-    out._backward = backward.tanh_backward(self, out)
+    out._backward = backward.tanh_back(self, out)
     return out
   
   def gelu(self):
@@ -135,8 +136,8 @@ class tensor:
         return [apply_gelu(sub_data) for sub_data in data]
       else:
         return gelu(data)
-    out = apply_gelu(self.data)
-    return tensor(out, child=(self,), _ops='<gelu>')
+    out = tensor(apply_gelu(self.data), child=(self,), _ops='<gelu>')
+    return out
 
   def sigmoid(self):
     def apply_sigmoid(data):
@@ -144,8 +145,9 @@ class tensor:
         return [apply_sigmoid(sub_data) for sub_data in data]
       else:
         return sigmoid(data)
-    out = apply_sigmoid(self.data)
-    return tensor(out, child=(self,), _ops='<sigmoid>')
+    out = tensor(apply_sigmoid(self.data), child=(self,), _ops='<sigmoid>')
+    out._backward = backward.sigmoid_back(self, out)
+    return out
 
   def backward(self):
     topo = backward.backward(self)

@@ -73,3 +73,8 @@ def randint(low, high, size=None, dtype=int):
 def arange(start, end, step):
   return [start + i * step for i in range(int((end - start) / step))]
 
+def randn(domain=(1, -1), shape=None):
+  if len(shape) == 1:
+    return [random.uniform(domain[0], domain[1]) for _ in range(shape[0])]
+  else:
+    return [randn(domain=domain, shape=shape[1:]) for _ in range(shape[0])]
