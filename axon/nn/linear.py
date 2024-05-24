@@ -1,11 +1,11 @@
 from ..ops import matmul
 from ..tensor import tensor
+from ..helpers.statics import randn
 from .module import Module
-import random
 
 class Linear(Module):
   def __init__(self, _in, _out, bias=False):
-    self.w = tensor([[random.uniform(-1, 1) for _ in range(_in)] for _ in range(_out)])
+    self.w = tensor(randn((_in, _out)))
     self.b = tensor([0 for _ in range(_out)]) if bias is True else None
 
   def __call__(self, x):
