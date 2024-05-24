@@ -1,6 +1,6 @@
 from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape
 from .helpers.statics import zeros, ones
-from .nn.acitvations import relu, sigmoid, tanh, gelu
+from .helpers.acitvations import relu, sigmoid, tanh, gelu
 from .backward import backward
 import math
 

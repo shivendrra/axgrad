@@ -1,7 +1,7 @@
-import axon
-from axon import tensor
+from axon import tensor, nn
 
-a = tensor([[1, 2, 3, 4], [5, 6, 7, 8]])
+a = tensor([[-1, 2, -3, 4], [5, -6, 7, -8]])
+
 print("Original tensor:")
 print(a)
 print(a.shape)
