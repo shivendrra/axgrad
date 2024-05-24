@@ -5,7 +5,7 @@ from .module import Module
 
 class Linear(Module):
   def __init__(self, _in, _out, bias=False):
-    self.w = tensor(randn((_in, _out)))
+    self.w = tensor(randn(shape=(_in, _out)))
     self.b = tensor([0 for _ in range(_out)]) if bias is True else None
 
   def __call__(self, x):

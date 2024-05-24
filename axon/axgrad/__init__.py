@@ -1,1 +1,1 @@
-from .functional import Backward
+from .functional import backward
