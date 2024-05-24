@@ -6,21 +6,32 @@ import math
 
 class tensor:
   def __init__(self, *data, child:tuple=(), _ops:str=''):
-    self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
-    self.shape = self.shape()
-    self.grad = zeros(self.shape, dtype=float)
-    self.prev = set(child)
-    self.leaf = set()
-    self._backward = lambda: None
-    self._ops = None if _ops == '' else _ops
+    if data != None:
+      self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
+      self.shape = self.shape()
+      self.ndim = len(self.shape)
+      self.grad = zeros(self.shape, dtype=float)
+      self.prev = set(child)
+      self.leaf = set()
+      self._backward = lambda: None
+      self._ops = None if _ops == '' else _ops
+    else:
+      self.data = None
+      self.shape = None
+      self.ndim = None
+      self.grad = None
+      self.prev = None
+      self._backward = None
+      self._ops = None
+      self.leaf = None
 
   def __repr__(self):
     data_str = '\n\t'.join([str(row) for row in self.data])
-    return f'axon.tensor(data={data_str}'
+    return f'axon.tensor(data={data_str})'
   
   def __getitem__(self, index):
     return self.data[index]
-  
+
   def __setitem__(self, index, value):
     if isinstance(index, tuple):
       data_ref = self.data
@@ -57,6 +68,7 @@ class tensor:
       if not isinstance(x, list):
         return x * y
       return [_mul(xi, yi) for xi, yi in zip(x, y)]
+    
     out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')      
     out._backward = backward.mul_backward(self, other, out)
     return out
@@ -176,7 +188,7 @@ class tensor:
   def sum(self, dtype=None):
     unpacked_arr = _flatten(self.data)
     out = sum(i for i in unpacked_arr)
-    return dtype(out) if dtype is not None else out
+    return tensor(dtype(out), child=(self,), _ops='<elementsum>') if dtype is not None else tensor(out, child=(self,), _ops='<elementsum>')
   
   def broadcast(self, other):
     other = other if isinstance(other, tensor) else tensor(other)

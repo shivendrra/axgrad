@@ -18,7 +18,7 @@ i'll be adding more things in future...
 
 | Development                  | Status      | Feature                                                                |
 | ---------------------------- | ----------- | ---------------------------------------------------------------------- |
-| Base Class                   | in progress | <ul><li>[x] tensor.py</li><li>[ ] Axgrad</li><li>[x] Broadcasting</li></ul>                 |
+| Base Class                   | in progress | <ul><li>[x] tensor.py</li><li>[x] Axgrad</li><li>[x] Broadcasting</li></ul>                 |
 | Versions                         | in progress | <ul><li>[ ] cpp version</li><li>[ ] c version</li><li>[ ] final version</li></ul>    |
 | Loss                         | in progress | <ul><li>[ ] MSE</li><li>[ ] Cross Entropy</li><li>[ ] MAE</li></ul>    |
 | Language Transformer | in progress    | <ul><li>[x] Matmul</li><li>[ ] Embeddings</li></ul> |
