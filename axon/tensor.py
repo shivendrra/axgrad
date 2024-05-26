@@ -1,5 +1,5 @@
 from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape
-from .helpers.statics import zeros, ones
+from .helpers.utils import zeros, ones
 from .helpers.acitvations import relu, sigmoid, tanh, gelu
 from .axgrad import backward
 import math
@@ -27,7 +27,7 @@ class tensor:
 
   def __repr__(self):
     data_str = ',\n\t'.join([str(row) for row in self.data])
-    return f'tensor(data={data_str})'
+    return f'tensor({data_str})'
   
   def __getitem__(self, index):
     return self.data[index]
@@ -197,3 +197,6 @@ class tensor:
     new_shape = broadcast_shapes(self.shape, other.shape)
     other_broadcasted = broadcast_array(other.data, new_shape)
     return tensor(other_broadcasted)
+  
+  def tolist(self):
+    return self.data

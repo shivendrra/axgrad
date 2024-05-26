@@ -1,6 +1,7 @@
 from .tensor import tensor
-from .helpers.statics import zeros
+from .helpers.utils import zeros
 from .helpers.shape import transpose
+from .axgrad import backward
 
 def get_element(data, indices):
   for idx in indices:
@@ -28,8 +29,9 @@ def matmul(a, b):
 
   a = a if isinstance(a, tensor) else tensor(a)
   b = b if isinstance(b, tensor) else tensor(b)
-  out = _remul(a, b)
-  return tensor(out, child=(a, b), _ops='<Matmul>')
+  out = tensor(_remul(a, b), child=(a, b), _ops='<matmul>')
+  out._backward = backward.matmul_back(a, b, out)
+  return out
 
 def stack(array: tuple, axis: int=0) -> tensor:
   if not array:

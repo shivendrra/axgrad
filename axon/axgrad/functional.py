@@ -32,6 +32,11 @@ class backward:
     return _back
   
   @staticmethod
+  def matmul_back(one:list, two:list, out:list):
+    _back = MatMulBackward(one, two, out)
+    return _back
+  
+  @staticmethod
   def backward(arr):
     topo = []
     visited = set()

@@ -1,5 +1,5 @@
 from typing import Any
-from ..helpers.statics import zeros
+from ..helpers.utils import zeros
 
 class Optim:
   class SGD:
