@@ -35,3 +35,15 @@ class MatMulBackward:
     self.first.grad = self.backward(self.first.grad, self.out.grad, self.second.data, transpose=True)
     self.second.grad = self.backward(self.second.grad, self.out.grad, self.first.data)
     return self.__call__
+
+class SumBackward:
+  def __init__(self, first, out):
+    self.first = first
+    self.out = out
+
+  def backward(self, grad, out):
+    raise NotImplementedError("no Backward function for SumBackward")
+  
+  def __call__(self):
+    self.first.grad = self.backward(self.first.grad, self.out.grad)
+    return self.__call__

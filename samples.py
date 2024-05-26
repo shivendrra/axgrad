@@ -26,11 +26,32 @@ from axon import tensor, nn
 # print(model.parameters())
 # print(model)
 
+# def sum(self, axis=None, keepdim=False):
+#     def _re_sum(data, axis):
+#       if axis is None or axis == 0:
+#         _flat = _flatten(data)
+#         return [sum(_flat)]
+#       else:
+#         out = []
+#         for row in data:
+#           out.append(_re_sum(row, axis-1))
+#         return out
+
+#     if axis is not None and (axis < 0 or axis >= len(self.shape)):
+#       raise ValueError("Axis out of range for the tensor")
+    
+#     out = _re_sum(self.data, axis)
+#     if keepdim:
+#       if isinstance(out[0], list):
+#         out = [item for item in out]
+#     else:
+#       out = _flatten(out)
+#     return out
+
 t = tensor([[1, 2, 3], [4, 5, 6]])
 
 print(t.sum())  # tensor(21)
 print(t.sum(axis=0))  # tensor([5, 7, 9])
-print("sep------------------")
 print(t.sum(axis=1))  # tensor([6, 15])
-# print(t.sum(axis=0, keepdim=True))  # tensor([[5, 7, 9]])
-# print(t.sum(axis=1, keepdim=True))  # tensor([[6], [15]])
+print(t.sum(axis=0, keepdim=True))  # tensor([[5, 7, 9]])
+print(t.sum(axis=1, keepdim=True))  # tensor([[6], [15]])

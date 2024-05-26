@@ -196,17 +196,15 @@ class tensor:
   def sum(self, axis=None, keepdim=False):
     def _re_sum(data, axis):
       if axis is None:
-        print("none: ", data)
         return [sum(_flatten(data))]
       elif axis == 0:
         return [sum(row[i] for row in data) for i in range(len(data[0]))]
       else:
         for i in range(len(data[0])):
           for row in data:
-            print("row: ", row)
             if isinstance(row[i], list):
-              return _re_sum(row[i], axis=axis-1)
-            return _re_sum(row, None)
+              return _re_sum(row[i], axis-1)
+            return [_re_sum(data[j], None) for j in range(len(data))]
 
     if axis is not None and (axis < 0 or axis >= len(self.shape)):
       raise ValueError("Axis out of range for the tensor")
@@ -217,6 +215,8 @@ class tensor:
         out = [item for item in out]
     else:
       out = _flatten(out)
+    out = tensor(out, child=(self,), _ops='<sum>')
+    out._backward = backward.sum_back(self, out)
     return out
   
   def broadcast(self, other):

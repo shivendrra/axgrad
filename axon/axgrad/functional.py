@@ -36,6 +36,10 @@ class backward:
     _back = MatMulBackward(one, two, out)
     return _back
   
+  def sum_back(one:list, two:list, out:list):
+    _back = SumBackward(one, out)
+    return _back
+  
   @staticmethod
   def backward(arr):
     topo = []
