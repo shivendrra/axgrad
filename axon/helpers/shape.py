@@ -13,15 +13,11 @@ def check_arr(arr1, arr2):
 def view_arr(arr):
   raise NotImplementedError("view function is empty")
 
-def _flatten(arr, new=None):
-  if new is None:
-    new = []
-  if isinstance(arr, list):
-    for i in arr:
-      _flatten(i, new)
-  elif isinstance(arr, int) or isinstance(arr, float):
-    new.append(arr)
-  return new
+def _flatten(data):
+  if isinstance(data, list):
+    return [item for sublist in data for item in _flatten(sublist)]
+  else:
+    return [data]
 
 def _squeeze(data, dim):
   if dim is None:

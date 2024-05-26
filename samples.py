@@ -11,16 +11,26 @@ from axon import tensor, nn
 # c.backward()
 # print(a.grad)
 
-class MyModel(nn.Module):
-  def __init__(self):
-    super(MyModel, self).__init__()
-    self.fc1 = nn.Linear(10, 5)
-    self.fc2 = nn.Linear(5, 2)
+# class MLP(nn.Module):
+#   def __init__(self):
+#     super(MLP, self).__init__()
+#     self.fc1 = nn.Linear(10, 5)
+#     self.fc2 = nn.Linear(5, 2)
 
-  def forward(self, x):
-    x = self.fc1(x)
-    x = self.fc2(x)
-    return x
+#   def forward(self, x):
+#     x = self.fc1(x)
+#     x = self.fc2(x)
+#     return x
 
-model = MyModel()
-print(model.parameters())
+# model = MLP()
+# print(model.parameters())
+# print(model)
+
+t = tensor([[1, 2, 3], [4, 5, 6]])
+
+print(t.sum())  # tensor(21)
+print(t.sum(axis=0))  # tensor([5, 7, 9])
+print("sep------------------")
+print(t.sum(axis=1))  # tensor([6, 15])
+# print(t.sum(axis=0, keepdim=True))  # tensor([[5, 7, 9]])
+# print(t.sum(axis=1, keepdim=True))  # tensor([[6], [15]])

@@ -15,6 +15,21 @@ def zeros_like(arr, dtype=int):
   else:
     return dtype(0)
 
+def ones_like(arr, dtype=int):
+  """
+    Create an array of zeros with the same shape and dtype as the input array.
+    Args:
+      arr (list or tuple): Input array.
+    Returns:
+      list: Array of zeros with the same shape and dtype as the input array.
+  """
+  if isinstance(arr, list):
+    return [ones_like(elem) for elem in arr]
+  elif isinstance(arr, tuple):
+    return tuple(ones_like(elem) for elem in arr)
+  else:
+    return dtype(1)
+
 def zeros(shape, dtype=int):
   """
     creates an array of zeros according to the given input
