@@ -39,6 +39,12 @@ class Module:
     for module in self._modules.values():
       params.extend(module.parameters())
     return params
+  
+  def n_param(self):
+    total = 0
+    for param in self.parameters():
+      total += param.numel()
+    return total
 
   def save_dict(self):
     state = OrderedDict()
