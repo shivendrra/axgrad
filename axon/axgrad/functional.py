@@ -27,8 +27,27 @@ class backward:
     return _back
   
   @staticmethod
+  def gelu_back(one:list, out:list):
+    _back = geluBackward(one, out)
+    return _back
+  
+  @staticmethod
+  def leaky_r_backward(one:list, out:list):
+    _back = leakyreluBackward(one, out)
+    return _back
+  
+  @staticmethod
   def pow_back(one:list, out:list, exp:list):
     _back = PowBackward(one, out, exp)
+    return _back
+  
+  @staticmethod
+  def matmul_back(one:list, two:list, out:list):
+    _back = MatMulBackward(one, two, out)
+    return _back
+  
+  def sum_back(one:list, two:list, out:list):
+    _back = SumBackward(one, out)
     return _back
   
   @staticmethod

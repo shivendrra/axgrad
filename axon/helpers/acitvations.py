@@ -27,5 +27,11 @@ def sigmoid_derivative(x:float) -> float:
 def cdf(x:float) -> float:
   return 0.5 * (1 + tanh(math.sqrt(2/math.pi) * (x + 0.044715 * x ** 3)))
   
+def pdf(x:float) -> float:
+  return (1 / math.sqrt(2 * math.pi)) * math.exp(-0.5 * x**2)
+
 def gelu(x:float) -> float:
   return x * cdf(x)
+
+def gelu_derivative(x:float) -> float:
+  return cdf(x) + x * pdf(x)

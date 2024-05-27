@@ -1,3 +1,5 @@
+from ...helpers.shape import transpose as tp
+
 class PowBackward:
   def __init__(self, first:list, out:list, exp:float):
     self.first = first
@@ -18,7 +20,30 @@ class MatMulBackward:
   def __init__(self, first:list, second:list, out:list):
     self.first = first
     self.second = second
-    self.out = self.out
+    self.out = out
+
+  def backward(self, grad, out, other, transpose=False):
+    if not isinstance(grad, list):
+      if not transpose:
+        grad += grad * other
+      else:
+        grad += grad * tp(other)
+      return grad
+    return [self.backward(g, og, o, transpose) for g, og, o in zip(grad, out, other)]
 
   def __call__(self):
+    self.first.grad = self.backward(self.first.grad, self.out.grad, self.second.data, transpose=True)
+    self.second.grad = self.backward(self.second.grad, self.out.grad, self.first.data)
+    return self.__call__
+
+class SumBackward:
+  def __init__(self, first, out):
+    self.first = first
+    self.out = out
+
+  def backward(self, grad, out):
+    raise NotImplementedError("no Backward function for SumBackward")
+  
+  def __call__(self):
+    self.first.grad = self.backward(self.first.grad, self.out.grad)
     return self.__call__

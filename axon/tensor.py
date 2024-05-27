@@ -1,5 +1,5 @@
 from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape
-from .helpers.statics import zeros, ones
+from .helpers.utils import zeros, ones
 from .helpers.acitvations import relu, sigmoid, tanh, gelu
 from .axgrad import backward
 import math
@@ -27,7 +27,7 @@ class tensor:
 
   def __repr__(self):
     data_str = ',\n\t'.join([str(row) for row in self.data])
-    return f'tensor(data={data_str})'
+    return f'tensor({data_str})'
   
   def __getitem__(self, index):
     return self.data[index]
@@ -159,6 +159,12 @@ class tensor:
   def shape(self):
     return get_shape(self.data)
   
+  def zero_grad(self):
+    self.grad = None
+  
+  def detach(self):
+    self.grad = None
+  
   def transpose(self):
     rows = len(self.data)
     cols = len(self.data[0])
@@ -187,13 +193,37 @@ class tensor:
     reshaped = _reshape(self.data, flat_data, new_shape)
     return tensor(reshaped, child=(self,), _ops='<reshape>')
 
-  def sum(self, dtype=None):
-    unpacked_arr = _flatten(self.data)
-    out = sum(i for i in unpacked_arr)
-    return tensor(dtype(out), child=(self,), _ops='<elementsum>') if dtype is not None else tensor(out, child=(self,), _ops='<elementsum>')
+  def sum(self, axis=None, keepdim=False):
+    def _re_sum(data, axis):
+      if axis is None:
+        return [sum(_flatten(data))]
+      elif axis == 0:
+        return [sum(row[i] for row in data) for i in range(len(data[0]))]
+      else:
+        for i in range(len(data[0])):
+          for row in data:
+            if isinstance(row[i], list):
+              return _re_sum(row[i], axis-1)
+            return [_re_sum(data[j], None) for j in range(len(data))]
+
+    if axis is not None and (axis < 0 or axis >= len(self.shape)):
+      raise ValueError("Axis out of range for the tensor")
+    
+    out = _re_sum(self.data, axis)
+    if keepdim:
+      if isinstance(out[0], list):
+        out = [item for item in out]
+    else:
+      out = _flatten(out)
+    out = tensor(out, child=(self,), _ops='<sum>')
+    out._backward = backward.sum_back(self, out)
+    return out
   
   def broadcast(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
     new_shape = broadcast_shapes(self.shape, other.shape)
     other_broadcasted = broadcast_array(other.data, new_shape)
     return tensor(other_broadcasted)
+  
+  def tolist(self):
+    return self.data
