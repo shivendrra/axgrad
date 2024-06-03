@@ -5,8 +5,6 @@ class AddBackward:
     self.out = out
 
   def backward(self, grad, out):
-    if grad is None:
-      grad = [[0] * len(row) for row in out]
     if not isinstance(grad, list):
       grad += out
       return grad
@@ -24,8 +22,6 @@ class MulBackward:
     self.out = out
 
   def backward(self, grad, out, mul):
-    if grad is None:
-      grad = [[0] * len(row) for row in out]
     if not isinstance(grad, list):
       grad += out * mul
       return grad
