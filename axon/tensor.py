@@ -47,35 +47,48 @@ class tensor:
   
   def __add__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
-    if self.shape != other.shape:
-      raise ValueError(f'Arrays must be of same shape & size {self.shape} != {other.shape}')
-    
+    try:
+      self_b = self.broadcast(other)
+      other_b = other.broadcast(self)
+    except ValueError as e:
+      raise ValueError(f'Arrays must be of compatible shape for broadcasting {self.shape} and {other.shape}')
+
     def _add(x, y):
       if not isinstance(x, list):
         return x + y
       return [_add(xi, yi) for xi, yi in zip(x, y)]
     
-    out = tensor(_add(self.data, other.data), child=(self, other), _ops='<ElemLevelAdd>')
-    out._backward = backward.add_back(self, other, out)
+    out = tensor(_add(self_b.data, other_b.data), child=(self_b, other_b), _ops='<ElemLevelAdd>')
+    out._backward = backward.add_back(self_b, other_b, out)
+    del self, other
     return out
   
   def __mul__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
-    if self.shape != other.shape:
-      raise ValueError(f'Arrays must be of same shape & size {self.shape} != {other.shape}')
+    try:
+      self_b = self.broadcast(other)
+      other_b = other.broadcast(self)
+    except ValueError as e:
+      raise ValueError(f'Arrays must be of compatible shape for broadcasting {self.shape} and {other.shape}')
     
     def _mul(x, y):
       if not isinstance(x, list):
         return x * y
       return [_mul(xi, yi) for xi, yi in zip(x, y)]
     
-    out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')      
-    out._backward = backward.mul_back(self, other, out)
+    out = tensor(_mul(self_b.data, other_b.data), child=(self_b, other_b), _ops='<ElemLevelMul>')
+    out._backward = backward.mul_back(self_b, other_b, out)
+    del self, other
     return out
-  
+
+  def _infer_shape(self, data):
+    if isinstance(data, list):
+      return [len(data)] + self._infer_shape(data[0])
+    return []
+
   def __sub__(self, other):
     return self + (-other)
-  
+
   def __truediv__(self, other):
     return self * other ** -1
 

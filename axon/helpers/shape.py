@@ -60,14 +60,20 @@ def _shape_size(data, shape):
   return size
 
 def broadcast_shapes(shape1, shape2):
+  if len(shape1) < len(shape2):
+    shape1, shape2 = shape2, shape1
+    
   result_shape = []
-  for dim1, dim2 in zip(reversed(shape1), reversed(shape2)):
+  for i in range(1, len(shape2) + 1):
+    dim1 = shape1[-i]
+    dim2 = shape2[-i]
+        
     if dim1 == 1 or dim2 == 1 or dim1 == dim2:
       result_shape.append(max(dim1, dim2))
     else:
       raise ValueError(f"Shapes {shape1} and {shape2} are not compatible for broadcasting")
-  result_shape.extend(reversed(shape1[len(shape2):]))
-  result_shape.extend(reversed(shape2[len(shape1):]))
+  
+  result_shape.extend(reversed(shape1[:-len(shape2)]))
   return tuple(reversed(result_shape))
 
 def broadcast_array(array, target_shape):
