@@ -46,8 +46,14 @@ class backward:
     _back = MatMulBackward(one, two, out)
     return _back
   
-  def sum_back(one:list, two:list, out:list):
+  @staticmethod
+  def sum_back(one:list, out:list):
     _back = SumBackward(one, out)
+    return _back
+  
+  @staticmethod
+  def trans_back(one:list, dim0:int, dim1:int, out:list):
+    _back = TransposeBackward(one, dim0, dim1, out)
     return _back
   
   @staticmethod

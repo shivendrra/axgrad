@@ -97,8 +97,11 @@ def broadcast_array(array, target_shape):
   
   return expand_dims(array, current_shape, target_shape)
 
-def transpose(arr):
-  if isinstance(arr[0], list):
-    return [list(row) for row in zip(*arr)]
+def transpose(matrix):
+  return list(map(list, zip(*matrix)))
+
+def re_transpose(data, dim0, dim1, ndim, depth=0):
+  if depth == ndim - 2:
+    return [list(row) for row in zip(*data)]
   else:
-    return arr
+    return [re_transpose(sub_data, dim0, dim1, ndim, depth+1) for sub_data in data]

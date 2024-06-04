@@ -1,16 +1,14 @@
-import axon
-from axon import tensor, nn
+from axon import tensor
 
-a = tensor([[-1, 2, -3, 4], [5, -6, 7, -8]])
-b = tensor(1.5)
-c = a + b
-d = c * b
-d.backward()
-print(d)
-print(a.grad)
-print(b.grad)
-print(c.grad)
-print(d.grad)
+# a = tensor([[-1, 2, -3, 4], [5, -6, 7, -8]])
+# b = tensor([0.5])
+# c = a * b
+# d = c * 3
+# d.backward()
+# print(d)
+# print(a.grad)
+# print(b.grad)
+# print(c.grad)
 
 # b = tensor([[1, 4, 6, 6], [4, 7, -2, -3]])
 
@@ -21,6 +19,13 @@ print(d.grad)
 # c.backward()
 # print(a.grad)
 # print(a + b)
+
+a = tensor([[1, 2, 3], [4, 5, 6]])
+print("Original tensor:", a.data)
+a_t = a.transpose(0, 1)
+print("Transposed tensor:", a_t.data)
+a_t.backward()
+print("Gradient after backward pass:", a.grad)
 
 # class MLP(nn.Module):
 #   def __init__(self):
