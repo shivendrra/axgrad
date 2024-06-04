@@ -1,8 +1,9 @@
+from ..tensor import tensor
 from collections import OrderedDict
 from .parameter import Parameter
 import pickle
 
-class Module:
+class Module(tensor):
   def __init__(self) -> None:
     self._modules = OrderedDict()
     self._params = OrderedDict()

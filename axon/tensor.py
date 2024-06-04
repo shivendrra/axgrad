@@ -1,11 +1,11 @@
-from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape
+from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape, re_transpose
 from .helpers.utils import zeros, ones
 from .helpers.acitvations import relu, sigmoid, tanh, gelu
 from .axgrad import backward
 import math
 
 class tensor:
-  def __init__(self, *data, child:tuple=(), _ops:str=''):
+  def __init__(self, *data, child:tuple=(), _ops:str='', requires_grad=True):
     if data != None:
       self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
       self.shape = self.shape()
@@ -15,6 +15,7 @@ class tensor:
       self.leaf = set()
       self._backward = lambda: None
       self._ops = None if _ops == '' else _ops
+      self.requires_grad = requires_grad
     else:
       self.data = None
       self.shape = None
@@ -24,6 +25,7 @@ class tensor:
       self._backward = None
       self._ops = None
       self.leaf = None
+      self.requires_grad = None
 
   def __repr__(self):
     data_str = ',\n\t'.join([str(row) for row in self.data])
@@ -47,9 +49,11 @@ class tensor:
   
   def __add__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
-    if self.shape != other.shape:
-      raise ValueError(f'Arrays must be of same shape & size {self.shape} != {other.shape}')
-    
+    try:
+      other = self.broadcast(other)
+    except ValueError as e:
+      raise ValueError(f'Arrays must be of compatible shape for broadcasting {self.shape} and {other.shape}')
+
     def _add(x, y):
       if not isinstance(x, list):
         return x + y
@@ -61,21 +65,28 @@ class tensor:
   
   def __mul__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
-    if self.shape != other.shape:
-      raise ValueError(f'Arrays must be of same shape & size {self.shape} != {other.shape}')
+    try:
+      other = self.broadcast(other)
+    except ValueError as e:
+      raise ValueError(f'Arrays must be of compatible shape for broadcasting {self.shape} and {other.shape}')
     
     def _mul(x, y):
       if not isinstance(x, list):
         return x * y
       return [_mul(xi, yi) for xi, yi in zip(x, y)]
     
-    out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')      
+    out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')
     out._backward = backward.mul_back(self, other, out)
     return out
-  
+
+  def _infer_shape(self, data):
+    if isinstance(data, list):
+      return [len(data)] + self._infer_shape(data[0])
+    return []
+
   def __sub__(self, other):
     return self + (-other)
-  
+
   def __truediv__(self, other):
     return self * other ** -1
 
@@ -164,11 +175,26 @@ class tensor:
   
   def detach(self):
     self.grad = None
+
+  def _transpose(self, data, dim0, dim1):
+    if len(data) == 0:
+      return data
+    if len(self.shape) == 1:
+      return data
+    if len(self.shape) == 2:
+      if dim0 == 0 and dim1 == 1:
+        return [list(row) for row in zip(*data)]
+      elif dim0 == 1 and dim1 == 0:
+        return [list(row) for row in zip(*data)]
+    return re_transpose(data, dim0, dim1, len(self.shape))
   
-  def transpose(self):
-    rows = len(self.data)
-    cols = len(self.data[0])
-    return tensor([[self.data[i][j] for i in range(rows)] for j in range(cols)])
+  def transpose(self, dim0, dim1):
+    if dim0 >= len(self.shape) or dim1 >= len(self.shape):
+      raise ValueError("Transpose dimensions out of range")
+    out = self._transpose(self.data, dim0, dim1)
+    out = tensor(out, child=(self,), _ops='<transpose>')
+    out.backward = backward.trans_back(self, dim0, dim1, out)
+    return out
   
   def flatten(self):
     new = _flatten(self.data)
