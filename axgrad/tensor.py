@@ -1,9 +1,9 @@
 from typing import Any
-from .helpers.shape import get_shape, _flatten, _unsqueeze
+from .helpers.shape import get_shape, flatten, _unsqueeze
 import math
 
 class tensor:
-  def __init__(self, *data, child=(), requires_grad=False):
+  def __init__(self, *data, child:tuple=(), requires_grad:bool=False):
     self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
     self.shape = self.shape()
     self.ndim = len(self.shape)
@@ -17,12 +17,12 @@ class tensor:
   def __repr__(self) -> str:
     data_str = ',\n\t'.join([str(row) for row in self.data])
     return f'tensor({data_str})'
-  
+
   def __getitem__(self, index):
     return self.data[index]
-  
+
   def __setattr__(self, name: str, value: Any) -> None:
-    pass
+    super().__setattr__(name, value)
 
   def __setitem__(self, index, value):
     if isinstance(index, tuple):
@@ -45,8 +45,8 @@ class tensor:
   def shape(self):
     return get_shape(self.data)
 
-  def flatten(self, start_dim:int, end_dim:int):
-    out = tensor(_flatten(self.data, start_dim, end_dim), child=(self,))
+  def flatten(self, start_dim:int=0, end_dim:int=-1):
+    out = tensor(flatten(self.data, start_dim, end_dim), child=(self,))
     return out
 
   def unsqueeze(self, dim:int=0):
