@@ -9,15 +9,6 @@ def _unsqueeze(data, dim=0):
       return [_unsqueeze(d, dim-1) for d in data]
     return [data]
 
-def _flatten(data):
-  if isinstance(data, list):
-    result = []
-    for item in data:
-      result.extend(_flatten(item))
-    return result
-  else:
-    return [data]
-
 def flatten(input_tensor, start_dim=0, end_dim=-1):
   def _recurse_flatten(data, current_dim):
     if current_dim < start_dim:
@@ -74,5 +65,31 @@ def broadcast_array(array, target_shape):
     for subarray in array:
       result.append(expand_dims(subarray, current_shape[1:], target_shape[1:]))
     return result
-  
+
   return expand_dims(array, current_shape, target_shape)
+
+def _flatten(data):
+  if isinstance(data, list):
+    return [item for sublist in data for item in _flatten(sublist)]
+  else:
+    return [data]
+
+def _reshape(data, flat_data, new_shape):
+  shape_size = _shape_size(new_shape)
+  if shape_size != len(flat_data):
+    raise ValueError("Total size of new array must be unchanged")
+
+  def _recursive_reshape(data, shape):
+    if len(shape) == 1:
+      return data[:shape[0]]
+    size = shape[0]
+    sub_size = _shape_size(shape[1:])
+    return [_recursive_reshape(data[i * sub_size:(i + 1) * sub_size], shape[1:]) for i in range(size)]
+
+  return _recursive_reshape(flat_data, new_shape)
+
+def _shape_size(shape):
+  size = 1
+  for dim in shape:
+    size *= dim
+  return size
