@@ -74,7 +74,8 @@ def _flatten(data):
   else:
     return [data]
 
-def _reshape(data, flat_data, new_shape):
+def _reshape(data, new_shape):
+  flat_data = _flatten(data)
   shape_size = _shape_size(new_shape)
   if shape_size != len(flat_data):
     raise ValueError("Total size of new array must be unchanged")

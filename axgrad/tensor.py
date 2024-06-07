@@ -55,7 +55,7 @@ class tensor:
 
   def shape(self):
     return get_shape(self.data)
-  
+
   def size(self):
     return tuple(get_shape(self.data))
 
@@ -72,15 +72,14 @@ class tensor:
   def unsqueeze(self, dim:int=0):
     out = tensor(_unsqueeze(self.data, dim), child=(self,))
     return out
-  
+
   def squeeze(self):
     raise NotImplementedError("No function written!")
-  
+
   def reshape(self, new_shape:tuple):
-    flat_data = self.flatten()
-    reshaped = _reshape(self.data, flat_data, new_shape)
+    reshaped = _reshape(self.data, new_shape)
     return tensor(reshaped, child=(self,))
-  
+
   def broadcast(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
     new_shape, needs_broadcasting = broadcasted_shape(self.shape, other.shape)
@@ -88,6 +87,33 @@ class tensor:
     if needs_broadcasting:
       other = tensor(broadcast_array(other.data, new_shape), child=(other,))
     return other
+
+  def sum(self, axis:int=None, keepdim:bool=False):
+    
+    # doesn't work properly
+    def _re_sum(data, axis):
+      if axis is None:
+        return [sum(flatten(data))]
+      elif axis == 0:
+        return [sum(row[i] for row in data) for i in range(len(data[0]))]
+      else:
+        for i in range(len(data[0])):
+          for row in data:
+            if isinstance(row[i], list):
+              return _re_sum(row[i], axis-1)
+            return [_re_sum(data[j], None) for j in range(len(data))]
+
+    if axis is not None and (axis < 0 or axis >= len(self.shape)):
+      raise ValueError("Axis out of range for the tensor")
+
+    out = _re_sum(self.data, axis)
+    if keepdim:
+      if isinstance(out[0], list):
+        out = [item for item in out]
+    else:
+      out = flatten(out)
+    out = tensor(out, child=(self,))
+    return out
 
   def __add__(self, other):
     other = other if isinstance(other, tensor) else tensor(other)
