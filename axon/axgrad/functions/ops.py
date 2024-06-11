@@ -6,12 +6,13 @@ class PowBackward:
   
   def backward(self, grad, out, exp):
     if not isinstance(grad, list):
+      print(grad, out, exp)
       grad += (exp * out**(exp -1)) * out
       return grad
     return [self.backward(g, og, exp) for g, og in zip(grad, out)]
   
   def __call__(self):
-    self.one.grad = self.backward(self.one.grad, self.out.grad, self.exp)
+    self.first.grad = self.backward(self.first.grad, self.out.grad, self.exp)
     return self.__call__
 
 class MatMulBackward:

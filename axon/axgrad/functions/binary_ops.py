@@ -13,6 +13,10 @@ class AddBackward:
   def __call__(self):
     self.first.grad = self.backward(self.first.grad, self.out.grad)
     self.second.grad = self.backward(self.second.grad, self.out.grad)
+    print("first grad: ", self.first.grad)
+    print("second grad: ", self.second.grad)
+    print("self: ", self.first)
+    print("second: ", self.second)
     return self.__call__
 
 class MulBackward:
