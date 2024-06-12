@@ -1,34 +1,29 @@
-a = [[1, 4, 6], [1, 5, 8]]
+a = [[2, 3, 5], [6, 4, 9]]
 b = [[[1, 4, 6], [1, 5, 8]],
      [[1, 4, 6], [1, 5, 8]],
      [[1, 4, 6], [1, 5, 8]],
      [[1, 4, 6], [1, 5, 8]]]
+c = [[1, 2, 3], [4, 5, 6]]
+import axon
+from axon import tensor
 
-# from axgrad import tensor
+a, b = tensor(a), tensor(b)
+c = tensor(c)
+c = a.copy()
+a[0][1] = 5
+print(c)
+print(a)
 
-# a, b = tensor(a), tensor(b)
+# arr1 = tensor([[1, 2], [3, 4]])
+# arr2 = tensor([[5, 6], [7, 8]])
 
-# c = a + b
-# print(c)
-# print(c.prev)
+# out = axon.stack(arr1, arr2, arr1, arr2, axis=2)
+# print(out)
 
-# a = a.broadcast(b)
-# print(a.sum())
+# import numpy as np
 
-import torch
+# arr1 = np.array([[1, 2], [3, 4]])
+# arr2 = np.array([[5, 6], [7, 8]])
 
-a, b = torch.tensor(a, requires_grad=True, dtype=torch.float64), torch.tensor(b, requires_grad=True, dtype=torch.float64)
-c = a + b
-d = c ** 2
-e = d.sum()
-
-c.retain_grad()
-d.retain_grad()
-e.retain_grad()
-e.backward()
-
-print("e grad: ", e.grad)
-print("d grad: ", d.grad)
-print("c grad: ", c.grad)
-print("b grad: ", b.grad)
-print("a grad: ", a.grad)
+# out = np.stack((arr1, arr2, arr1, arr2), axis=2)
+# print(out)

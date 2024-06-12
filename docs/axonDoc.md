@@ -1,6 +1,6 @@
 # Axon framework documentation
 
-The `tensor` class provides an implementation of multi-dimensional arrays (tensors) and various operations on them. It supports element-wise arithmetic, matrix multiplication, broadcasting, transposition, and more.
+The `tensor` class provides an implementation of multi-dimensional arrays (tensors) and various operations on them. It supports element-wise arithmetic, matrix multiplication, broadcasting, transposition, and more just like numpy.
 
 ## Initialization
 
@@ -137,7 +137,7 @@ result = tensor.matmul(t1, t2)
 print(result)  # Output: tensor(data=[[19, 22], [43, 50]])
 ```
 
-### .convolution_2d()
+<!-- ### .convolution_2d()
 Performs 2D convolution on an image with a given kernel.
 - **Args**:
   - `image` (list): The 2D list representing the image.
@@ -150,7 +150,7 @@ image = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 kernel = [[1, 0], [0, -1]]
 result = tensor.convolution_2d(image, kernel)
 print(result)  # Output: [[-3, -3], [-3, -3]]
-```
+``` -->
 
 ## Utility Functions
 
@@ -177,6 +177,23 @@ Sums all elements in the tensor.
 ```python
 result = t1.sum()
 print(result)  # Output: 10
+```
+
+### .copy()
+copys the array into new assigned variable with all it's previous attributes.
+
+- **Args**:
+  - `self` (optional): The same array on which it's called.
+- **Returns**: The sum of all elements in the tensor.
+
+
+**Example**:
+```python
+a = tensor([[2, 3, 5], [6, 4, 9]])
+c = a.copy()
+a[0][1] = 5
+print(c)  # tensor([2, 3, 5], [6, 4, 9])
+print(a)  # tensor([2, 5, 5], [6, 4, 9])
 ```
 
 ### .broadcast()
@@ -245,24 +262,6 @@ Creates an array of ones with the specified shape and data type.
 ```python
 output_array = axon.ones((2, 3))
 print(output_array)  # Output: [[1, 1, 1], [1, 1, 1]]
-```
-
-### .ns()
-
-Creates an array filled with a specified value `n`, with the specified shape and data type.
-
-- **Args**:
-  - `shape` (list or tuple): Shape of the output array.
-  - `n` (int or float): The value to fill the array with.
-  - `dtype` (type, optional): Data type of the output array elements. Default is `int`.
-
-- **Returns**: 
-  - `list`: Array filled with the specified value `n`, with the specified shape and data type.
-
-**Example**:
-```python
-output_array = axon.ns((2, 3), 5)
-print(output_array)  # Output: [[5, 5, 5], [5, 5, 5]]
 ```
 
 ### .randint()

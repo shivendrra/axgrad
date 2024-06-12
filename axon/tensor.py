@@ -1,122 +1,162 @@
-from .helpers.shape import get_shape, broadcast_array, broadcast_shapes, _flatten, _squeeze, _unsqueeze, _reshape, re_transpose
+from typing import Any, Iterator
+from .helpers.shape import get_shape, flatten, _unsqueeze, broadcasted_shape, broadcast_array, _reshape, re_transpose, _flatten, _squeeze
 from .helpers.utils import zeros, ones
 from .helpers.acitvations import relu, sigmoid, tanh, gelu
 from .axgrad import backward
+from copy import deepcopy
 import math
 
 class tensor:
-  def __init__(self, *data, child:tuple=(), _ops:str='', requires_grad=True):
-    if data != None:
-      self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
-      self.shape = self.shape()
-      self.ndim = len(self.shape)
-      self.grad = zeros(self.shape, dtype=float)
-      self.prev = set(child)
-      self.leaf = set()
-      self._backward = lambda: None
-      self._ops = None if _ops == '' else _ops
-      self.requires_grad = requires_grad
+  def __init__(self, *data, child:tuple=(), requires_grad:bool=True):
+    self.data = data[0] if len(data) == 1 and isinstance(data[0], list) else list(data)
+    self.shape = self.shape()
+    self.ndim = len(self.shape)
+    self.requires_grad = requires_grad
+    self.prev = set(child)
+    self.leaf = set()
+    self._backward = lambda: None
+    self.grad_fn = None
+    if self.requires_grad is True:
+      self.grad = zeros(self.shape)
     else:
-      self.data = None
-      self.shape = None
-      self.ndim = None
       self.grad = None
-      self.prev = None
-      self._backward = None
-      self._ops = None
-      self.leaf = None
-      self.requires_grad = None
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     data_str = ',\n\t'.join([str(row) for row in self.data])
     return f'tensor({data_str})'
-  
+
   def __getitem__(self, index):
     return self.data[index]
 
-  def __setitem__(self, index, value):
+  def __setattr__(self, name: str, value: Any) -> None:
+    super().__setattr__(name, value)
+
+  def __setitem__(self, index:int, value: Any):
     if isinstance(index, tuple):
-      data_ref = self.data
-      grad_ref = self.grad
+      data = self.data
+      grad = self.grad
       for idx in index[:-1]:
-        data_ref = data_ref[idx]
-        grad_ref = grad_ref[idx]
-      data_ref[index[-1]] = value
-      grad_ref[index[-1]] = value
+        data = data[idx]
+        grad = grad[idx]
+      data[index[-1]] = value
+      grad[index[-1]] = value
     else:
       self.data[index] = value
       self.grad[index] = value
-  
-  def __add__(self, other):
-    other = other if isinstance(other, tensor) else tensor(other)
-    try:
-      other = self.broadcast(other)
-    except ValueError as e:
-      raise ValueError(f'Arrays must be of compatible shape for broadcasting {self.shape} and {other.shape}')
 
-    def _add(x, y):
-      if not isinstance(x, list):
-        return x + y
-      return [_add(xi, yi) for xi, yi in zip(x, y)]
-    
-    out = tensor(_add(self.data, other.data), child=(self, other), _ops='<ElemLevelAdd>')
-    out._backward = backward.add_back(self, other, out)
-    return out
-  
-  def __mul__(self, other):
-    other = other if isinstance(other, tensor) else tensor(other)
-    try:
-      other = self.broadcast(other)
-    except ValueError as e:
-      raise ValueError(f'Arrays must be of compatible shape for broadcasting {self.shape} and {other.shape}')
-    
-    def _mul(x, y):
-      if not isinstance(x, list):
-        return x * y
-      return [_mul(xi, yi) for xi, yi in zip(x, y)]
-    
-    out = tensor(_mul(self.data, other.data), child=(self, other), _ops='<ElemLevelMul>')
-    out._backward = backward.mul_back(self, other, out)
-    return out
+  def __iter__(self) -> Iterator:
+    for item in self.data:
+      yield item
+
+  def tolist(self):
+    return self.data
+
+  def copy(self):
+    return tensor(deepcopy(self.data), child=tuple(self.prev), requires_grad=self.requires_grad)
+
+  def zero_grad(self):
+    self.grad = None
+
+  def detach(self):
+    self.grad = None
+    self.grad_fn = None
 
   def _infer_shape(self, data):
     if isinstance(data, list):
       return [len(data)] + self._infer_shape(data[0])
     return []
 
-  def __sub__(self, other):
-    return self + (-other)
+  def shape(self):
+    return get_shape(self.data)
 
+  def size(self):
+    return tuple(get_shape(self.data))
+
+  def numel(self):
+    out = 1
+    for dim in self.shape:
+      out = out * dim
+    return out
+
+  def __add__(self, other):
+    other = other if isinstance(other, tensor) else tensor(other)
+    def _add(a, b):
+      if not isinstance(a, list):
+        return a + b
+      else:
+        return [_add(ai, bi) for ai, bi in zip(a,b)]
+
+    target_shape, requires_broadcasting = broadcasted_shape(self.shape, other.shape)
+
+    if requires_broadcasting:
+      self = tensor(broadcast_array(self.data, target_shape))
+      other = tensor(broadcast_array(other.data, target_shape))
+
+    if self.shape == other.shape:
+      out = tensor(_add(self.data, other.data), child=(self, other))
+      out._backward = backward.add_back(self, other, out)
+    else:
+      raise ValueError(f"invalid dimensions for addition. {self.shape} != {other.shape}")
+
+    return out
+
+  def __mul__(self, other):
+    other = other if isinstance(other, tensor) else tensor(other)
+    def _mul(a, b):
+      if not isinstance(a, list):
+        return a * b
+      else:
+        return [_mul(ai, bi) for ai, bi in zip(a,b)]
+
+    target_shape, requires_broadcasting = broadcasted_shape(self.shape, other.shape)
+
+    if requires_broadcasting:
+      self = tensor(broadcast_array(self.data, target_shape))
+      other = tensor(broadcast_array(other.data, target_shape))
+
+    if self.shape == other.shape:
+      out = tensor(_mul(self.data, other.data), child=(self, other))
+      out._backward = backward.mul_back(self, other, out)
+    else:
+      raise ValueError(f"invalid dimensions for addition. {self.shape} != {other.shape}")
+
+    return out
+  
+  def __radd__(self, other):
+    return other + self
+  
+  def __rmul__(self, other):
+    return other * self
+  
   def __truediv__(self, other):
     return self * other ** -1
-
+  
+  def __rtruediv__(self, other):
+    return other * self ** -1
+  
+  def __sub__(self, other):
+    return self + (-other)
+  
+  def __rsub__(self, other):
+    return other + (-self)
+  
   def __neg__(self):
     def _neg(data):
       if not isinstance(data, list):
         return -data
       return [_neg(sub_data) for sub_data in data]
 
-    return _neg(self.data)
-
-  def __rsub__(self, other):
-    return other + (-self)
-
-  def __rmul__(self, other):
-    return self * other
-  
-  def __rtruediv__(self, other):
-    return other * self**-1
+    return tensor(_neg(self.data), child=(self,))
 
   def __pow__(self, pow):
     assert isinstance(pow, (int, float))
-
-    def apply_pow(data, pow):
+    
+    def _pow(data, pow):
       if isinstance(data, list):
-        return [apply_pow(sub_data, pow) for sub_data in data]
-      else:
-        return math.pow(data, pow)
+        return [_pow(sub_data, pow) for sub_data in data]
+      return math.pow(data, pow)
 
-    out = tensor(apply_pow(self.data, pow), child=(self,), _ops='<pow>')
+    out = tensor(_pow(self.data, pow), child=(self,))
     out._backward = backward.pow_back(self, out, pow)
     return out
 
@@ -127,7 +167,7 @@ class tensor:
       else:
         return relu(data)
     
-    out =  tensor(apply_relu(self.data), child=(self,), _ops='<relu>')
+    out =  tensor(apply_relu(self.data), child=(self,))
     out._backward = backward.relu_back(self, out)
     return out
 
@@ -137,7 +177,7 @@ class tensor:
         return [apply_tanh(sub_data) for sub_data in data]
       else:
         return tanh(data)
-    out = tensor(apply_tanh(self.data), child=(self,), _ops='<tanh>')
+    out = tensor(apply_tanh(self.data), child=(self,))
     out._backward = backward.tanh_back(self, out)
     return out
   
@@ -147,7 +187,8 @@ class tensor:
         return [apply_gelu(sub_data) for sub_data in data]
       else:
         return gelu(data)
-    out = tensor(apply_gelu(self.data), child=(self,), _ops='<gelu>')
+    out = tensor(apply_gelu(self.data), child=(self,))
+    out._backward = backward.gelu_back(self, out)
     return out
 
   def sigmoid(self):
@@ -156,25 +197,16 @@ class tensor:
         return [apply_sigmoid(sub_data) for sub_data in data]
       else:
         return sigmoid(data)
-    out = tensor(apply_sigmoid(self.data), child=(self,), _ops='<sigmoid>')
+    out = tensor(apply_sigmoid(self.data), child=(self,))
     out._backward = backward.sigmoid_back(self, out)
     return out
 
   def backward(self):
     topo = backward.backward(self)
-    self.grad = ones(self.shape, dtype=float)
+    self.grad = ones(self.shape)
     self.leaf = topo
     for node in reversed(topo):
       node._backward()
-
-  def shape(self):
-    return get_shape(self.data)
-  
-  def zero_grad(self):
-    self.grad = None
-  
-  def detach(self):
-    self.grad = None
 
   def _transpose(self, data, dim0, dim1):
     if len(data) == 0:
@@ -196,9 +228,26 @@ class tensor:
     out.backward = backward.trans_back(self, dim0, dim1, out)
     return out
   
-  def flatten(self):
-    new = _flatten(self.data)
-    return new
+  def flatten(self, start_dim:int=0, end_dim:int=-1):
+    out = tensor(flatten(self.data, start_dim, end_dim), child=(self,))
+    return out
+
+  def unsqueeze(self, dim:int=0):
+    out = tensor(_unsqueeze(self.data, dim), child=(self,))
+    return out
+
+  def reshape(self, new_shape:tuple):
+    new_shape = new_shape if isinstance(new_shape, tuple) else tuple(new_shape,)
+    reshaped = _reshape(self.data, new_shape)
+    return tensor(reshaped, child=(self,))
+
+  def broadcast(self, other):
+    other = other if isinstance(other, tensor) else tensor(other)
+    new_shape, needs_broadcasting = broadcasted_shape(self.shape, other.shape)
+
+    if needs_broadcasting:
+      other = tensor(broadcast_array(other.data, new_shape), child=(other,))
+    return other
   
   def squeeze(self, dim:int=None):
     if dim is not None and (dim<0 or dim>=len(self.shape)):
@@ -206,18 +255,6 @@ class tensor:
     
     s_data = _squeeze(self.data, dim)
     return tensor(s_data, child=(self,), _ops='<squeeze>')
-
-  def unsqeeze(self, dim:int):
-    if dim < 0 or dim > len(self.shape):
-      raise IndexError(f'Dimension out of range (expected to be in range of {len(self.shape) + 1} dimensions)')
-
-    u_data = _unsqueeze(self.data, dim)
-    return tensor(u_data, child=(self,), _ops='<unsqueeze>')
-
-  def reshape(self, new_shape:tuple):
-    flat_data = self.flatten()
-    reshaped = _reshape(self.data, flat_data, new_shape)
-    return tensor(reshaped, child=(self,), _ops='<reshape>')
 
   def sum(self, axis=None, keepdim=False):
     def _re_sum(data, axis):
@@ -241,15 +278,6 @@ class tensor:
         out = [item for item in out]
     else:
       out = _flatten(out)
-    out = tensor(out, child=(self,), _ops='<sum>')
+    out = tensor(out, child=(self,))
     out._backward = backward.sum_back(self, out)
     return out
-  
-  def broadcast(self, other):
-    other = other if isinstance(other, tensor) else tensor(other)
-    new_shape = broadcast_shapes(self.shape, other.shape)
-    other_broadcasted = broadcast_array(other.data, new_shape)
-    return tensor(other_broadcasted)
-  
-  def tolist(self):
-    return self.data

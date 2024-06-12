@@ -5,21 +5,21 @@ A framework like PyTorch & MicroGrad written fully in python(i will add the c & 
 It's supposed to be a good and lightweight C and Python based deep learning framework, which it's not, as of now(still building).
 
 ## Overview
-It contains a framework similar to Numpy which allows to do basic matrix operations like element-wise add/mul + matrix multiplication + broadcasting and many more things in near future.
+It contains a framework similar to Numpy which allows to do basic matrix operations like element-wise add/mul + matrix multiplication + broadcasting. Also building pytorch like auto-differentiation engine: axgrad (work in progress!)
 
 ## Features
 It has basic building blocks required to build a neural network:
 1. Basic tensor ops framework that could easily so matrix add/mul (element-wise), transpose, broadcasting, matmul, etc.
-2. A gradient engine that could compute and update gradients, automatically, much like micrograd, but on a tensor level ~ autograd like.
-3. Optimizer & loss computation blocks to compute and optimize.
+2. A gradient engine that could compute and update gradients, automatically, much like micrograd, but on a tensor level ~ autograd like (work in progress!).
+3. Optimizer & loss computation blocks to compute and optimize (work in progress!).
 i'll be adding more things in future...
 
 ### Progress
 
 | Development                  | Status      | Feature                                                                |
 | ---------------------------- | ----------- | ---------------------------------------------------------------------- |
-| Base Class                   | in progress | <ul><li>[x] tensor.py</li><li>[x] Axgrad</li><li>[x] Broadcasting</li></ul>                 |
-| Versions                         | in progress | <ul><li>[ ] cpp version</li><li>[ ] c version</li><li>[ ] final version</li></ul>    |
+| Base Class                   | in progress | <ul><li>[x] Axon</li><li>[ ] Auto-diff (axgrad)</li><li>[x] Broadcasting</li></ul>                 |
+| Versions                         | in progress | <ul><li>[x] python version</li><li>[ ] c version</li><li>[ ] final version</li></ul>    |
 | Loss                         | in progress | <ul><li>[ ] MSE</li><li>[ ] Cross Entropy</li><li>[ ] MAE</li></ul>    |
 | Language Transformer | in progress    | <ul><li>[x] Matmul</li><li>[ ] Embeddings</li></ul> |
 | Convolutional Neural Network | in progress    | <ul><li>[ ] Conv2d</li><li>[ ] MaxPool2d</li><li>[ ] Dropout</li></ul> |
@@ -29,41 +29,8 @@ i'll be adding more things in future...
 This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to preform tensor operations and build a sample neural network
 
 anyway, prefer documentation for detailed usage guide:
-1. [axon.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axonDoc.md)
-2. [axgrad.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axgradDoc.md)
-
-### Axgrad
-```python
-from axgrad import Value
-
-a = Value(-4.0)
-b = Value(2.0)
-
-c = a + b
-d = a * b + b**3
-d += d * 2 + (b + a).relu()
-d += 3 * d + (b - a).relu()
-e = c - d
-f = e**4
-g = f / 125.25
-g.backward()
-
-print(f'{g.data:.4f}') # prints 24.7041, the outcome of this forward pass
-print(f'{a.grad:.4f}') # prints 138.8338, i.e. the numerical value of dg/da
-print(f'{b.grad:.4f}') # prints 645.5773, i.e. the numerical value of dg/db
-```
-
-#### Neural Network
-```python
-import axgrad.nn as nn
-x = tensor([[1.0, 2.0, 3.0, 8.0],[-0.6, 2.0, -3.0, 0.7],[-4.0, -2.0, 3.0, -5.0]])
-
-linear = nn.Linear(4, 5, bias=True)
-seq = nn.Sequence(4,2)
-
-print(linear(x))
-print(seq(x))
-```
+1. [axon.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axonDoc.md): for using like numpy
+2. [axgrad.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axgradDoc.md): for building neural network from axon library (incomplete for now)
 
 ### Axon
 It's similar to NumPy, for now. I'm trying to add more functions/methods to make it equivalent to PyTorch, at-least to some extent. It supports a few basic functions for now, like element wise ops: add/sub/mul/div/pow; tensor ops: matmul, flatten, 2d-convolution, transpose, shape, etc.
@@ -84,8 +51,8 @@ print(z) # output: axon.tensor([10, 10, -4], [10, 0, 10], [10, 6, 8])
 ```python
 import axon
 
-zeros = axon.zeros([1, 4, 5], dtype=float) # 3-d matrix containg zeros, (float)
-ones = axgon.ones([3, 4], dtype=int) # 2-d matrix containing ones, (int)
+zeros = axon.zeros([1, 4, 5]) # 3-d matrix containg zeros, (float)
+ones = axgon.ones([3, 4]) # 2-d matrix containing ones, (int)
 
 x = tensor([[1, 4, 4], [1, 5, 6], [1, 5, 7]])
 z = tensor([[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]])
