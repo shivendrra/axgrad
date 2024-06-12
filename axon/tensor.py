@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Any, Iterator
 from .helpers.shape import get_shape, flatten, _unsqueeze, broadcasted_shape, broadcast_array, _reshape, re_transpose, _flatten, _squeeze
 from .helpers.utils import zeros, ones
 from .helpers.acitvations import relu, sigmoid, tanh, gelu
 from .axgrad import backward
+from copy import deepcopy
 import math
 
 class tensor:
@@ -15,7 +16,6 @@ class tensor:
     self.leaf = set()
     self._backward = lambda: None
     self.grad_fn = None
-    # self.grad = zeros(self.shape)
     if self.requires_grad is True:
       self.grad = zeros(self.shape)
     else:
@@ -44,8 +44,15 @@ class tensor:
       self.data[index] = value
       self.grad[index] = value
 
+  def __iter__(self) -> Iterator:
+    for item in self.data:
+      yield item
+
   def tolist(self):
     return self.data
+
+  def copy(self):
+    return tensor(deepcopy(self.data), child=tuple(self.prev), requires_grad=self.requires_grad)
 
   def zero_grad(self):
     self.grad = None
@@ -230,6 +237,7 @@ class tensor:
     return out
 
   def reshape(self, new_shape:tuple):
+    new_shape = new_shape if isinstance(new_shape, tuple) else tuple(new_shape,)
     reshaped = _reshape(self.data, new_shape)
     return tensor(reshaped, child=(self,))
 
