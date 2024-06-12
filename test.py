@@ -8,16 +8,19 @@ from axon import tensor
 
 a, b = tensor(a), tensor(b)
 
-c = a + b
+c = a + a
+d = c.tanh()
 # for prev in c.prev:
 #   print(prev.grad)
-c.backward()
-print("c: ", c.grad)
-print("a: ", a.grad)
-print("b: ", b.grad)
+d.backward()
+print(d.prev)
+print("d: ", d)
+print("d.grad: ", d.grad)
+print("c.grad: ", c.grad)
+print("a.grad: ", a.grad)
+print("b.grad: ", b.grad)
 
 # import torch
-
 # a, b = torch.tensor(a, requires_grad=True, dtype=torch.float64), torch.tensor(b, requires_grad=True, dtype=torch.float64)
 # c = a + b
 # d = c.sum()
