@@ -20,7 +20,7 @@ class ReLU(Module):
       x._backward = backward.relu_back(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), child=(self,), _ops='<relu>')
+      out = tensor(_apply(x.data), child=(self,))
       out._backward = backward.relu_back(x, out)
       return out
 
@@ -47,7 +47,7 @@ class Tanh(Module):
       x._backward = backward.tanh_back(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), child=(self,), _ops='<tanh>')
+      out = tensor(_apply(x.data), child=(self,))
       out._backward = backward.tanh_back(x, out)
       return out
 
@@ -74,7 +74,7 @@ class Sigmoid(Module):
       x._backward = backward.sigmoid_back(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), child=(self,), _ops='<sigmoid>')
+      out = tensor(_apply(x.data), child=(self,))
       out._backward = backward.sigmoid_back(x, out)
       return out
 
@@ -101,7 +101,7 @@ class GELU(Module):
       x._backward = backward.gelu_back(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), child=(self,), _ops='<gelu>')
+      out = tensor(_apply(x.data), child=(self,))
       out._backward = backward.gelu_back(x, out)
       return out
 
@@ -128,7 +128,7 @@ class LeakyRelu(Module):
       x._backward = backward.leaky_r_backward(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), child=(self,), _ops='<LeakyRelu>')
+      out = tensor(_apply(x.data), child=(self,))
       out._backward = backward.leaky_r_backward(x, out)
       return out
 

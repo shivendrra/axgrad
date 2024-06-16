@@ -23,7 +23,7 @@ class tensor:
 
   def __repr__(self) -> str:
     data_str = ',\n\t'.join([str(row) for row in self.data])
-    return f'tensor({data_str})'
+    return f'tensor({data_str}, requires_grad={self.requires_grad})'
 
   def __getitem__(self, index):
     return self.data[index]
@@ -121,7 +121,7 @@ class tensor:
       raise ValueError(f"invalid dimensions for addition. {self.shape} != {other.shape}")
 
     return out
-  
+
   def __radd__(self, other):
     return other + self
   
@@ -149,7 +149,7 @@ class tensor:
     return tensor(_neg(self.data), child=(self,))
 
   def __pow__(self, pow):
-    assert isinstance(pow, (int, float))
+    assert isinstance(pow, (int, float)), "Power exponent must be an integer or float"
     
     def _pow(data, pow):
       if isinstance(data, list):
@@ -207,24 +207,12 @@ class tensor:
     self.leaf = topo
     for node in reversed(topo):
       node._backward()
-
-  def _transpose(self, data, dim0, dim1):
-    if len(data) == 0:
-      return data
-    if len(self.shape) == 1:
-      return data
-    if len(self.shape) == 2:
-      if dim0 == 0 and dim1 == 1:
-        return [list(row) for row in zip(*data)]
-      elif dim0 == 1 and dim1 == 0:
-        return [list(row) for row in zip(*data)]
-    return re_transpose(data, dim0, dim1, len(self.shape))
   
   def transpose(self, dim0, dim1):
     if dim0 >= len(self.shape) or dim1 >= len(self.shape):
       raise ValueError("Transpose dimensions out of range")
-    out = self._transpose(self.data, dim0, dim1)
-    out = tensor(out, child=(self,), _ops='<transpose>')
+    out = re_transpose(self.data, dim0, dim1, self.ndim)
+    out = tensor(out, child=(self,))
     out.backward = backward.trans_back(self, dim0, dim1, out)
     return out
   
@@ -254,7 +242,7 @@ class tensor:
       raise IndexError(f'Dimension out of range (expected to be in range of {len(self.shape)} dimensions)')
     
     s_data = _squeeze(self.data, dim)
-    return tensor(s_data, child=(self,), _ops='<squeeze>')
+    return tensor(s_data, child=(self,))
 
   def sum(self, axis=None, keepdim=False):
     def _re_sum(data, axis):
@@ -279,5 +267,5 @@ class tensor:
     else:
       out = _flatten(out)
     out = tensor(out, child=(self,))
-    out._backward = backward.sum_back(self, out)
+    out._backward = backward.sum_back(self, axis, keepdim, out)
     return out

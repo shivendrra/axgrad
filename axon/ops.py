@@ -1,14 +1,16 @@
 from .tensor import tensor
 from .helpers.utils import zeros
 from .helpers.shape import transpose
-from .axgrad import backward
 
 def get_element(data, indices):
   for idx in indices:
     data = data[idx]
   return data
 
-def matmul(a, b):
+def _matmul(a, b):
+  a = a if isinstance(a, tensor) else tensor(a)
+  b = b if isinstance(b, tensor) else tensor(b)
+
   def _remul(a, b):
     if len(a.shape) == 2 and len(b.shape) == 2:
       out = zeros((len(a.data), len(b.data[0])))
@@ -26,11 +28,20 @@ def matmul(a, b):
 
   if a.shape[-1] != b.shape[-2]:
     raise ValueError("Matrices have incompatible dimensions for matmul")
+  return _remul(a, b)
 
-  a = a if isinstance(a, tensor) else tensor(a)
-  b = b if isinstance(b, tensor) else tensor(b)
-  out = tensor(_remul(a, b), child=(a, b), _ops='<matmul>')
-  out._backward = backward.matmul_back(a, b, out)
+def matmul(a, b):
+  def _backward():
+    if a.requires_grad:
+      a_t = transpose(b.data)
+      a.grad = [[sum(c * b for c, b in zip(out.grad[i], a_t_col)) for a_t_col in a_t] for i in range(len(out.grad))]
+        
+    if b.requires_grad:
+      b_t = transpose(a.data)
+      b.grad = [[sum(a * c for a, c in zip(a_row, out.grad[j])) for a_row in b_t] for j in range(len(out.grad[0]))]
+  
+  out = tensor(_matmul(a, b), child=(a, b))
+  out._backward = _backward
   return out
 
 def stack(array: tuple, axis: int=0) -> tensor:

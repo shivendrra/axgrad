@@ -26,12 +26,6 @@ def flatten(input_tensor, start_dim=0, end_dim=-1):
 def transpose(arr):
   return list(map(list, zip(*arr)))
 
-def re_transpose(data, dim0, dim1, ndim, depth=0):
-  if depth == ndim - 2:
-    return [list(row) for row in zip(*data)]
-  else:
-    return [re_transpose(sub_data, dim0, dim1, ndim, depth+1) for sub_data in data]
-
 def broadcasted_shape(shape1, shape2):
   res_shape = []
   if shape1 == shape2:
@@ -106,9 +100,6 @@ def _squeeze(data, dim):
       return data[0] if len(data) == 1 else data
     return [_squeeze(d, dim - 1) for d in data]
   return data
-
-def transpose(matrix):
-  return list(map(list, zip(*matrix)))
 
 def re_transpose(data, dim0, dim1, ndim, depth=0):
   if depth == ndim - 2:

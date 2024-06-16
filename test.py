@@ -1,29 +1,35 @@
+from axon import tensor, nn
+
+class MLP(nn.Module):
+  def __init__(self):
+    super().__init__()
+    self.fc1 = nn.Linear(3, 5)
+    self.relu = nn.ReLU()
+    self.fc2 = nn.Linear(5, 1)
+
+  def forward(self, x):
+    x = self.fc1(x)
+    x = self.relu(x)
+    x = self.fc2(x)
+    return x
+
 a = [[2, 3, 5], [6, 4, 9]]
-b = [[[1, 4, 6], [1, 5, 8]],
-     [[1, 4, 6], [1, 5, 8]],
-     [[1, 4, 6], [1, 5, 8]],
-     [[1, 4, 6], [1, 5, 8]]]
-c = [[1, 2, 3], [4, 5, 6]]
-import axon
-from axon import tensor
+y = tensor([[1], [-1]])
 
-a, b = tensor(a), tensor(b)
-c = tensor(c)
-c = a.copy()
-a[0][1] = 5
-print(c)
-print(a)
+model = MLP()
+# print("total params:", model.n_param())
 
-# arr1 = tensor([[1, 2], [3, 4]])
-# arr2 = tensor([[5, 6], [7, 8]])
+out = model(a)
+print("out.prev: ", out.prev)
+def mse_loss( trg, prd):
+  diff = trg - prd
+  sq = diff ** 2
+  loss = sq / len(prd.data)
+  return loss
 
-# out = axon.stack(arr1, arr2, arr1, arr2, axis=2)
-# print(out)
+loss = mse_loss(y, out)
+loss.backward()
 
-# import numpy as np
-
-# arr1 = np.array([[1, 2], [3, 4]])
-# arr2 = np.array([[5, 6], [7, 8]])
-
-# out = np.stack((arr1, arr2, arr1, arr2), axis=2)
-# print(out)
+print(loss.leaf)
+# for param in model.parameters():
+#   print(param.grad)

@@ -41,14 +41,14 @@ class backward:
     _back = PowBackward(one, out, exp)
     return _back
   
-  @staticmethod
-  def matmul_back(one:list, two:list, out:list):
-    _back = MatMulBackward(one, two, out)
-    return _back
+  # @staticmethod
+  # def matmul_back(one:list, two:list, out:list):
+  #   _back = MatMulBackward(one, two, out)
+  #   return _back
   
   @staticmethod
-  def sum_back(one:list, out:list):
-    _back = SumBackward(one, out)
+  def sum_back(input_tensor, axis, keepdim, out):
+    _back = SumBackward(input_tensor, axis, keepdim, out)
     return _back
   
   @staticmethod
