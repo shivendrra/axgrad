@@ -1,6 +1,7 @@
 import math
 from copy import deepcopy
 from typing import *
+from .utils.shapes import *
 
 int8 = 'int8'
 int16 = 'int16'
@@ -40,6 +41,7 @@ class tensor:
     self.prev = tuple(child) if child is not None else ()
     self._backward = lambda x: None
     self.ops = ops
+    self.T = self.transpose()
     if dtype is not None:
       self.dtype = self._convert_dtype(self.data, dtype)
   
@@ -73,3 +75,18 @@ class tensor:
   def __iter__(self) -> Iterator:
     for item in self.data:
       yield item
+  
+  def shape(self) -> list:
+    return get_shape(self.data)
+  
+  def swap_axes(self, dim0, dim1, depth=0) -> List['tensor']:
+    out = swap_axes(self.data, dim0, dim1, self.ndim, depth)
+    return out
+  
+  def transpose(self) -> list:
+    out = transpose(self.data)
+    return out
+  
+  def broadcast(self, shape:Union[tuple, list]) -> List['tensor']:
+    out = broadcast(self.data, shape)
+    return out
