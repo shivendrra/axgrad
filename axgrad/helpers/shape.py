@@ -18,13 +18,16 @@ def flatten_recursive(data:list, start_dim:int=0, end_dim:int=-1) -> list:
 def transpose(data:list) -> list:
   return list(map(list, zip(*data)))
 
+def transpose_recursive(data:list, dim:int) -> list:
+  raise NotImplementedError("not written")
+
 def swap_axes(data:list, dim0:int, dim1:int, ndim:int, depth:int=0) -> list:
   if depth == ndim - 2:
     return [list(row) for row in zip(*data)]
   else:
     return [swap_axes(sub_data, dim0, dim1, ndim, depth+1) for sub_data in data]
 
-def _broadcast_shape(shape1:tuple, shape2:tuple) -> tuple:
+def broadcast_shape(shape1:tuple, shape2:tuple) -> tuple:
   res_shape = []
   if shape1 == shape2:
     return shape1, False
@@ -44,6 +47,7 @@ def broadcast(data:list, shape:tuple) -> list:
   raise NotImplementedError("Not yet written")
 
 def reshape(data:list, new_shape:tuple) -> list:
+  
   raise NotImplementedError("Not yet written")
 
 def unsqueeze(data:list, dim:int) -> list:

@@ -1,47 +1,36 @@
-#ifndef TENSOR__H
-#define TENSOR__H
+#ifndef TENSOR_H
+#define TENSOR_H
 
-typedef struct {
-  float* data;
-  int* strides;
-  int* shape;
-  int ndim;
-  int size;
-  char* device;
-} Tensor;
+#include <vector>
+#include <numeric>
+#include <stdexcept>
+#include <algorithm>
 
-extern "C" {
-  Tensor* create_tensor(float* data, int* shape, int ndim, char* device);
-  void delete_tensor(Tensor* tensor);
-  void delete_strides(Tensor* tensor);
-  void delete_shape(Tensor* tensor);
-  void delete_device(Tensor* tensor);
-  float get_item(Tensor* tensor, int* indices);
-  Tensor* add_tensor(Tensor* tensor1, Tensor* tensor2);
-  Tensor* sum_tensor(Tensor* tensor, int axis, bool keepdims);
-  Tensor* max_tensor(Tensor* tensor, int axis, bool keepdim);
-  Tensor* min_tensor(Tensor* tensor, int axis, bool keepdim);
-  Tensor* sub_tensor(Tensor* tensor1, Tensor* tensor2);
-  Tensor* elementwise_mul_tensor(Tensor* tensor1, Tensor* tensor2);
-  Tensor* scalar_mul_tensor(Tensor* tensor, float scalar);
-  Tensor* scalar_div_tensor(float scalar, Tensor* tensor);
-  Tensor* tensor_div_scalar(Tensor* tensor, float scalar);
-  Tensor* tensor_div_tensor(Tensor* tensor1, Tensor* tensor2);
-  Tensor* reshape_tensor(Tensor* tensor, int* new_shape, int new_ndim);
-  Tensor* matmul_tensor(Tensor* tensor1, Tensor* tensor2);
-  Tensor* tensor_pow_scalar(Tensor* tensor, float exponent);
-  Tensor* scalar_pow_tensor(float base, Tensor* tensor);
-  Tensor* log_tensor(Tensor* tensor);
-  Tensor* equal_tensor(Tensor* tensor1, Tensor* tensor2);
-  Tensor* equal_broadcasted_tensor(Tensor* tensor1, Tensor* tensor2);
-  void to_device(Tensor* tensor, char* device);
-  Tensor* ones_like_tensor(Tensor* tensor);
-  Tensor* zeros_like_tensor(Tensor* tensor);
-  Tensor* sin_tensor(Tensor* tensor);
-  Tensor* cos_tensor(Tensor* tensor);
-  Tensor* transpose_tensor(Tensor* tensor);
-  Tensor* transpose_axes_tensor(Tensor* tensor, int axis1, int axis2);
-  void make_contiguous(Tensor* tensor);
-}
+class Tensor {
+public:
+  Tensor(const std::vector<float>& data, const std::vector<size_t>& shape);
+    
+  const std::vector<float>& get_data() const;
+  const std::vector<size_t>& get_shape() const;
+  size_t get_ndim() const;
+  size_t get_size() const;
+    
+  float get_item(const std::vector<size_t>& indices) const;
+  Tensor add(const Tensor& other) const;
+  Tensor multiply(const Tensor& other) const;
+  Tensor reshape(const std::vector<size_t>& new_shape) const;
+    
+private:
+  std::vector<float> data;
+  std::vector<size_t> shape;
+  std::vector<size_t> strides;
+  size_t ndim;
+  size_t size;
+    
+  size_t calculate_size(const std::vector<size_t>& shape) const;
+  std::vector<size_t> calculate_strides(const std::vector<size_t>& shape) const;
+  void verify_data_size() const;
+  size_t calculate_flat_index(const std::vector<size_t>& indices) const;
+};
 
 #endif

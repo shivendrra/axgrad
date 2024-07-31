@@ -1,4 +1,4 @@
-from .dtype import *
+from .dtypes import *
 
 def convert_dtype(data, dtype):
   if dtype == 'int8':
