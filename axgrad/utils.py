@@ -1,73 +1,24 @@
-from .tensor import tensor
-from .helpers.utils import zeros
-from .helpers.shape import get_element
+from .helpers.utils import _zeros, _ones, _randint, _randn, _arange, _zeros_like, _ones_like
+from .dtypes.convert import *
+from typing import *
 
-def stack(array: tuple, axis: int=0) -> tensor:
-  if not array:
-    raise ValueError("Need atleast one array to stack")
-  
-  # shape checking
-  base_shape = array[0].shape
-  for arr in array:
-    if arr.shape != base_shape:
-      raise ValueError("All inputs must be of same shape & size!")
-  
-  # new shape after stacking & initilization
-  new_shape = list(base_shape[:])
-  new_shape.insert(axis, len(array))
-  new_data = zeros(new_shape)
+def zeros(shape:tuple, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> list:
+  return handle_conversion(_zeros(shape), dtype if dtype is not None else 'float32')
 
-  def insert_data(new_data, arrays, axis, indices=[]):
-    if len(indices) == len(new_shape):
-      for idx, array in enumerate(arrays):
-        data_idx = indices[:]
-        data_idx[axis] = idx
-        sub_arr = new_data
-        for k in data_idx[:-1]:
-          sub_arr = sub_arr[k]
-        sub_arr[data_idx[-1]] = get_element(array.data, indices[:axis] + indices[axis+1:])
-      return
-      
-    for i in range(new_shape[len(indices)]):
-      insert_data(new_data, arrays, axis, indices + [i])
-    
-  insert_data(new_data, array, axis)
-  return tensor(new_data)
+def ones(shape:tuple, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> list:
+  return handle_conversion(_ones(shape), dtype if dtype is not None else 'float32')
 
-def concat(array: tuple, axis: int=0) -> tensor:
-  if not array:
-    raise ValueError("Need atleast one array to stack")
-  
-  # shape checking
-  base_shape = list(array[0].shape) # shape of first array for target array
-  for arr in array:
-    if list(arr.shape)[:axis] + list(arr.shape)[axis+1:] != base_shape[:axis] + base_shape[axis+1:]:
-      raise ValueError("All input arrays must have the same shape except for the concatenation axis")
-  
-  new_shape = base_shape[:]
-  new_shape[axis] *= len(array)
-  new_data = zeros(new_shape)
+def randint(low:int, high:int, size:int=None, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> list:
+  return handle_conversion(_randint(low, high, size), dtype if dtype is not None else 'float32')
 
-  def set_element(data, indices, value):
-    for idx in indices[:-1]:
-      data = data[idx]
-    data[indices[-1]] = value
+def arange(start:int=0, end:int=10, step:int=1) -> list:
+  return _arange(start, end, step)
 
-  def insert_data(new_data, arrays, axis, indices=[]):
-    if len(indices) == len(new_shape):
-      current_offset = 0
-      for array in arrays:
-        if current_offset <= indices[axis] < current_offset + array.shape[axis]:
-          local_indices = indices[:]
-          local_indices[axis] -= current_offset
-          ele = get_element(array.data, local_indices)
-          set_element(new_data, indices, ele)
-          break
-        current_offset += array.shape[axis]
-      return
-      
-    for i in range(new_shape[len(indices)]):
-      insert_data(new_data, arrays, axis, indices + [i])
-  
-  insert_data(new_data, array, axis)
-  return tensor(new_data)
+def randn(domain:tuple=(1, -1), shape:tuple=None, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> list:
+  return handle_conversion(_randn(domain, shape), dtype if dtype is not None else 'float32')
+
+def zeros_like(arr:list, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> list:
+  return handle_conversion(_zeros_like(arr), dtype if dtype is not None else 'float32')
+
+def ones_like(arr:list, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> list:
+  return handle_conversion(_ones_like(arr), dtype if dtype is not None else 'float32')
