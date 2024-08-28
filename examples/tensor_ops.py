@@ -1,5 +1,5 @@
-import axon
-from axon import tensor
+import axgrad
+from axgrad import tensor
 
 a = [[1, -4],
      [-2, 7]]
@@ -7,17 +7,17 @@ a = [[1, -4],
 b = [[5, 1],
      [-9, -5]]
 
-a, b = tensor(a), tensor(b)
+a, b = tensor(a, requires_grad=True), tensor(b, requires_grad=True)
 
 ''' element level '''
-print("add: ", a + b)
-print("sub: ", a - b)
-print("mul: ", a * b)
-print("div: ", a / b)
+print("add: ", a + [2, 0])
+print("mul: ", a * [2, 0])
+print("sub: ", a - [2, 0])
+print("div: ", a / [2, 0])
 print("pow: ", a ** 2)
 
 ''' more operations '''
 print("shape: ", a.shape)
-print("transpose", a.transpose())
+print("transpose", a.T)
 print("sum: ", a.sum())
-print("matmul: ", axon.matmul(a, b))
+print("matmul: ", axgrad.matmul(a, b))
