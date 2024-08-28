@@ -384,9 +384,17 @@ class tensor:
     return out
 
   def __sub__(self, other) -> List["tensor"]:
+    if isinstance(other, tensor):
+      other = other
+    else:
+      other = tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     return self + (-other)
 
   def __rsub__(self, other) -> List["tensor"]:
+    if isinstance(other, tensor):
+      other = other
+    else:
+      other = tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     return other + (-self)
   
   def __pow__(self, pow:Union[int, float], eps:float=1e6) -> List["tensor"]:
@@ -405,9 +413,17 @@ class tensor:
     return out
   
   def __truediv__(self, other) -> List["tensor"]:
+    if isinstance(other, tensor):
+      other = other
+    else:
+      other = tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     return self * (other ** -1)
   
   def __rtruediv__(self, other) -> List["tensor"]:
+    if isinstance(other, tensor):
+      other = other
+    else:
+      other = tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     return other * (self ** -1)
   
   def relu(self) -> List["tensor"]:

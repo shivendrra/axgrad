@@ -43,10 +43,10 @@ b = [[5, 1],
 a, b = tensor(a, requires_grad=True), tensor(b, requires_grad=True)
 
 ''' element level '''
-print("add: ", a + 2)
-print("mul: ", a * 2)
-print("sub: ", a - 2)
-print("div: ", a / 2)
+print("add: ", a + [2, 0])
+print("mul: ", a * [2, 0])
+print("sub: ", a - [2, 0])
+print("div: ", a / [2, 0])
 print("pow: ", a ** 2)
 
 ''' more operations '''
