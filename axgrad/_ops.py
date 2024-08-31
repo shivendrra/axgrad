@@ -1,3 +1,5 @@
+""" here are functions & ops directly accessible via axgrad """
+
 from .tensor import tensor
 from .helpers.utils import _zeros
 from .helpers.shape import squeeze, unsqueeze, get_shape

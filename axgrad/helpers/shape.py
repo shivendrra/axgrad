@@ -48,9 +48,6 @@ def transpose(data:list) -> list:
   
   return transposed
 
-def transpose_recursive(data:list, start_dim:int=0, end_dim:int=-1) -> list:
-  raise NotImplementedError("transpose function not written")
-
 def broadcast_shape(shape1:tuple, shape2:tuple) -> tuple:
   res_shape = []
   if shape1 == shape2:
@@ -94,30 +91,39 @@ def reshape(data:list, new_shape:tuple) -> list:
   assert type(new_shape) == tuple, "new shape must be a tuple"
   def _shape_numel(shape):
     numel = 1
-    for ele in shape:
-      numel *= ele
+    for dim in shape:
+      numel *= dim
     return numel
-  
-  if _shape_numel(new_shape) != _shape_numel(get_shape(data)):
-    raise ValueError(f"Shapes {new_shape} & {get_shape(data)} incompatible for reshaping")
-  else:
-    def _reshape(data, new_shape):
-      flatten_data = flatten(data)
-      target = _zeros(shape=new_shape)
-      idx = [0]
 
-      def __populate(target, shape):
-        if len(shape) == 1:
-          for i in range(shape[0]):
-            target[i] = flatten_data[idx[0]]
-            idx[0] += 1
-        else:
-          for i in range(shape[0]):
-            __populate(target[i], shape[1:])
+  def unflatten(flat, shape):
+    if len(shape) == 1:
+      return flat[:shape[0]]
+    size = shape[0]
+    return [unflatten(flat[i*int(len(flat)/size):(i+1)*int(len(flat)/size)], shape[1:]) for i in range(size)]
 
-      __populate(target, list(new_shape))
-      return target
-  return _reshape(data, new_shape)
+  def infer_shape(shape, total_size):
+    if shape.count(-1) > 1:
+      raise ValueError("Only one dimension can be -1")
+
+    unknown_dim, known_dims = shape.index(-1) if -1 in shape else None, [dim for dim in shape if dim != -1]  
+    known_size = 1
+    for dim in known_dims:
+      known_size *= dim      
+
+    if unknown_dim is not None:
+      inferred_size = total_size // known_size
+      if inferred_size * known_size != total_size:
+        raise ValueError(f"Cannot reshape array to shape {shape}")
+      shape = list(shape)
+      shape[unknown_dim] = inferred_size
+    return shape
+
+  original_size, new_shape, new_size = _shape_numel(get_shape(data)), infer_shape(new_shape, original_size), _shape_numel(new_shape)
+  if original_size != new_size:
+    raise ValueError(f"Cannot reshape array of size {original_size} to shape {new_shape}")
+
+  flat_data = flatten(data)
+  return unflatten(flat_data, new_shape)
 
 def unsqueeze(data:list, dim:int=0) -> list:
   if dim == 0:

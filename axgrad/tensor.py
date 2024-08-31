@@ -1,3 +1,5 @@
+""" here lies the main tensor class """
+
 from typing import *
 from .helpers.shape import *
 from .dtypes.convert import handle_conversion
@@ -206,8 +208,8 @@ class tensor:
     out.grad_fn = "<FlattenBackwards>"
     return out
   
-  def transpose(self, dim) -> List["tensor"]:
-    out = tensor(transpose_recursive(self.data, dim), requires_grad=self.requires_grad, dtype=self.dtype)
+  def transpose(self, dim1:int, dim2:int) -> List["tensor"]:
+    out = tensor(swap_axes(self.data, dim1, dim2), requires_grad=self.requires_grad, dtype=self.dtype)
     out.prev = set(self,)
     out.grad_fn = "<TransposeBackwards>"
     return out
@@ -501,7 +503,7 @@ class tensor:
         return LeakyRelu(data)
     out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
-    out.grad_fn = "<SigmoidBackward>"
+    out.grad_fn = "<LeakyReluBackward>"
     out._backward = backward.leaky_r_back(self, out)
     return out
 

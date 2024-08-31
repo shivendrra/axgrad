@@ -1,3 +1,5 @@
+""" here lies the functions to generate sample tensors """
+
 from .helpers.utils import _zeros, _ones, _randint, _randn, _arange, _zeros_like, _ones_like
 from .dtypes.convert import *
 from typing import *
