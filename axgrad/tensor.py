@@ -5,6 +5,7 @@ from .helpers.utils import _zeros, _ones
 from .helpers.ops import *
 from copy import deepcopy
 from .helpers.functionals import *
+from .autograd._backward import backward
 
 int8 = "int8"
 int16 = "int16"
@@ -480,3 +481,10 @@ class tensor:
     out.prev = (self, )
     out.grad_fn = "<SiluBackward>"
     return out
+  
+  def backward(self):
+    topo = backward.backward(self)
+    self.grad = _ones(self.shape, dtype=float)
+    self.leaf = topo
+    for node in reversed(topo):
+      node._backward()
