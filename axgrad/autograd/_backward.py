@@ -18,22 +18,27 @@ class backward:
 
   @staticmethod
   def tanh_back(one:list, out:list):
-    _back = tanhBackward(one, out)
+    _back = TanhBackward(one, out)
     return _back
   
   @staticmethod
   def sigmoid_back(one:list, out:list):
-    _back = sigmoidBackward(one, out)
+    _back = SigmoidBackward(one, out)
     return _back
   
   @staticmethod
   def gelu_back(one:list, out:list):
-    _back = geluBackward(one, out)
+    _back = GELUBackward(one, out)
     return _back
   
   @staticmethod
-  def leaky_r_backward(one:list, out:list):
-    _back = leakyreluBackward(one, out)
+  def leaky_r_back(one:list, out:list):
+    _back = LeakyRELUBackward(one, out)
+    return _back
+  
+  @staticmethod
+  def silu_back(one:list, out:list):
+    _back = SiluBackward(one, out)
     return _back
   
   @staticmethod

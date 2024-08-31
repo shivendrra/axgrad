@@ -16,7 +16,7 @@ class ReluBackward:
     self.first.grad = self.backward(self.first.grad, self.out.grad, self.first.data)
     return self.__call__
 
-class tanhBackward:
+class TanhBackward:
   def __init__(self, first, out):
     self.first = first
     self.out = out
@@ -31,7 +31,7 @@ class tanhBackward:
     self.first.grad = self.backward(self.first.grad, self.out.grad, self.first.data)
     return self.__call__
 
-class sigmoidBackward:
+class SigmoidBackward:
   def __init__(self, first, out):
     self.first = first
     self.out = out
@@ -46,7 +46,7 @@ class sigmoidBackward:
     self.first.grad = self.backward(self.first.grad, self.out.grad, self.first.data)
     return self.__call__
 
-class geluBackward:
+class GELUBackward:
   def __init__(self, first, out):
     self.first = first
     self.out = out
@@ -61,7 +61,7 @@ class geluBackward:
     self.first.grad = self.backward(self.first.grad, self.out.grad, self.first.data)
     return self.__call__
 
-class leakyreluBackward:
+class LeakyRELUBackward:
   def __init__(self, first, out):
     self.first = first
     self.out = out
@@ -69,6 +69,21 @@ class leakyreluBackward:
   def backward(self, grad, out, data):
     if not isinstance(grad, list):
       grad += LeakyRelu_derivative(data) * grad
+      return grad
+    return [self.backward(g, og, d) for g, og, d in zip(grad, out, data)]
+  
+  def __call__(self):
+    self.first.grad = self.backward(self.first.grad, self.out.grad, self.first.data)
+    return self.__call__
+  
+class SiluBackward:
+  def __init__(self, first, out):
+    self.first = first
+    self.out = out
+  
+  def backward(self, grad, out, data):
+    if not isinstance(grad, list):
+      grad += silu_derivative(data) * grad
       return grad
     return [self.backward(g, og, d) for g, og, d in zip(grad, out, data)]
   

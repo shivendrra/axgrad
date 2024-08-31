@@ -26,7 +26,27 @@ def flatten_recursive(data:list, start_dim:int=0, end_dim:int=-1) -> list:
   return _recurse_flatten(data, 0)
 
 def transpose(data:list) -> list:
-  return list(map(list, zip(*data)))
+  def fill_transposed(original, transposed, current_indices):
+    """Recursively fill the transposed array."""
+    if not isinstance(original, list):
+      transposed_ref = transposed
+      for i in range(len(current_indices) - 1):
+        transposed_ref = transposed_ref[current_indices[::-1][i]]
+      transposed_ref[current_indices[::-1][-1]] = original
+      return
+
+    for i in range(len(original)):
+      fill_transposed(original[i], transposed, current_indices + [i])
+
+  if not data or not isinstance(data, list):
+    raise ValueError("Input must be a non-empty n-dimensional list.")
+  
+  shape = get_shape(data)
+  transposed_shape = shape[::-1]
+  transposed = _zeros(transposed_shape)
+  fill_transposed(data, transposed, [])
+  
+  return transposed
 
 def transpose_recursive(data:list, start_dim:int=0, end_dim:int=-1) -> list:
   raise NotImplementedError("transpose function not written")
@@ -120,19 +140,31 @@ def squeeze(data:list, dim:Union[int, None]) -> list:
   return data
 
 def swap_axes(array:list, axis1:int, axis2:int) -> list:
-  def recursive_swap(sub_array, depth):
-    if depth == min(axis1, axis2):
-      sub_array = [list(x) for x in zip(*sub_array)]
-    if depth == max(axis1, axis2) - 1:
-      return sub_array
-    return [recursive_swap(sub, depth + 1) for sub in sub_array]
+  def fill_swapped(original, swapped, axis1, axis2, indices):
+    """Recursively fill the swapped array."""
+    if not isinstance(original, list):
+      swapped_ref = swapped
+      for i in range(len(indices) - 1):
+        swapped_ref = swapped_ref[indices[i] if i not in [axis1, axis2] else indices[axis2 if i == axis1 else axis1]]
+      swapped_ref[indices[-1] if len(indices) - 1 not in [axis1, axis2] else indices[axis2 if len(indices) - 1 == axis1 else axis1]] = original
+      return
 
-  ndim = len(get_shape(array))
+    for i in range(len(original)):
+      fill_swapped(original[i], swapped, axis1, axis2, indices + [i])
 
-  if axis1 < 0 or axis2 < 0 or axis1 >= ndim or axis2 >= ndim:
-    raise ValueError("Axis out of bounds")
-
-  if axis1 == axis2:
-    return array
-
-  return recursive_swap(array, 0)
+  if not array or not isinstance(array, list):
+    raise ValueError("Input must be a non-empty n-dimensional list.")
+  
+  shape = get_shape(array)
+  ndim = len(shape)
+  
+  if axis1 >= ndim or axis2 >= ndim:
+    raise ValueError(f"Axes {axis1} and {axis2} are out of bounds for array of dimension {ndim}.")
+  
+  new_shape = shape[:]
+  new_shape[axis1], new_shape[axis2] = new_shape[axis2], new_shape[axis1]
+  
+  swapped = _zeros(new_shape)
+  fill_swapped(array, swapped, axis1, axis2, [])
+  
+  return swapped
