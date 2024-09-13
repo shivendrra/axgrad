@@ -192,6 +192,7 @@ class tensor:
     out = tensor(out, dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<ReshapeBackwards>"
+    out._backward = backward.reshape_back(self, out, new_shape)
     return out
 
   def clip(self, min_value, max_value):
@@ -231,7 +232,7 @@ class tensor:
   
   def broadcast(self, other:List["tensor"]) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, dtype=self.dtype, requires_grad=self.requires_grad)
-    new_shape, needs_broadcasting = broadcast_shape(self.shape, other.shape)
+    new_shape, needs_broadcasting = broadcast_shape(self.shape, other.shape, ops=None)
     if needs_broadcasting:
       out = tensor(broadcast(other.data, new_shape), dtype=self.dtype, requires_grad=self.requires_grad)
       out.prev = (self, )
@@ -379,7 +380,7 @@ class tensor:
     out = tensor(matmul(self.data, other.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, other)
     out.grad_fn = "<MatmulBackward>"
-    out._backward = backward.matmul_back(self, other)
+    out._backward = backward.matmul_back(self, other, out)
     return out
 
   def __neg__(self) -> List["tensor"]:
@@ -395,14 +396,14 @@ class tensor:
     def neg_backward():
       def _neg(grad, out):
         if not isinstance(grad, list):
-          grad += -1 * out
-          return grad
-        return [self.backward(g, og) for g, og in zip(grad, out)]
-      self.grad = _neg(self.data, out.grad)
+          return -out
+        return [_neg(g, og) for g, og in zip(grad, out)]
+      
+      self.grad = _neg(self.grad, out.data)
 
-    out._backward = neg_backward()
+    out._backward = neg_backward
     return out
-
+    
   def __sub__(self, other) -> List["tensor"]:
     if isinstance(other, tensor):
       other = other

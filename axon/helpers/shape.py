@@ -48,19 +48,24 @@ def transpose(data:list) -> list:
   
   return transposed
 
-def broadcast_shape(shape1:tuple, shape2:tuple) -> tuple:
-  res_shape = []
+def broadcast_shape(shape1:tuple, shape2:tuple, ops:str=None) -> tuple:
   if shape1 == shape2:
     return shape1, False
   
-  max_len = max(len(shape1), len(shape2))
-  shape1 = [1] * (max_len - len(shape1)) + shape1
-  shape2 = [1] * (max_len - len(shape2)) + shape2
+  if ops is None:
+    max_len = max(len(shape1), len(shape2))
+  elif ops == "<MATMUL>":
+    max_len = max(len(shape1), len(shape2)) - 2
+  shape1 = [1] * (max_len - len(shape1)) + list(shape1)
+  shape2 = [1] * (max_len - len(shape2)) + list(shape2)
 
-  for dim1, dim2 in zip(shape1, shape2):
+  res_shape = []
+  for dim1, dim2 in zip(shape1[:-2], shape2[:-2]):
     if dim1 != dim2 and dim1 != 1 and dim2 != 1:
       raise ValueError(f"Shapes {shape1} and {shape2} are not compatible for broadcasting")
     res_shape.append(max(dim1, dim2))
+
+  res_shape += [shape1[-2], shape1[-1]]
   return tuple(res_shape), True
 
 def broadcast(array, target_shape):

@@ -1,5 +1,5 @@
-import axgrad
-from axgrad import tensor
+import axon
+from axon import tensor
 
 a = [[1, -4],
      [-2, 7]]
@@ -20,4 +20,4 @@ print("pow: ", a ** 2)
 print("shape: ", a.shape)
 print("transpose", a.T)
 print("sum: ", a.sum())
-print("matmul: ", axgrad.matmul(a, b))
+print("matmul: ", axon.matmul(a, b))

@@ -48,7 +48,7 @@ class backward:
   
   @staticmethod
   def matmul_back(one:list, two:list, out:list):
-    _back = MatMulBackward(one, two, out)
+    _back = MatmulBackward(one, two, out)
     return _back
   
   @staticmethod
@@ -59,6 +59,11 @@ class backward:
   @staticmethod
   def trans_back(one:list, dim0:int, dim1:int, out:list):
     _back = TransposeBackward(one, dim0, dim1, out)
+    return _back
+  
+  @staticmethod
+  def reshape_back(one:list, out:list, new_shape:tuple):
+    _back = ReshapeBackward(one, out, new_shape)
     return _back
   
   @staticmethod

@@ -1,13 +1,14 @@
 from ..tensor import tensor
 from .parameters import Parameter
 from .module import Module
+from ..helpers.utils import _randn
 
 class Linear(Module):
   def __init__(self, _in, _out, bias=False):
     super(Linear, self).__init__()
-    self.wei = Parameter(shape=(_in, _out))
+    self.wei = Parameter(_randn(shape=(_in, _out)))
     if bias:
-      self.bias = Parameter(shape=(1, _out))
+      self.bias = Parameter(_randn(shape=(1, _out)))
     else:
       self.bias = None
 
