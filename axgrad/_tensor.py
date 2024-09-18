@@ -14,6 +14,7 @@ import math
 from .helpers.shape import *
 from ._dtype import *
 from .helpers.utils import _zeros
+from .helpers.ops import *
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
@@ -123,6 +124,13 @@ class tensor:
     return out
   
   @property
+  def stride(self):
+    strides = [1]
+    for size in reversed(self.shape[:-1]):
+      strides.append(strides[-1] * size)
+    return tuple(reversed(strides))
+  
+  @property
   def T(self) -> List["tensor"]:
     out = tensor(transpose(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad, out.grad_fn = set(self, ), transpose(self.grad), "<TransposeBackwards>"
@@ -150,17 +158,35 @@ class tensor:
     return out
   
   def is_contiguous(self) -> List["tensor"]:
-    pass
+    # check if the tensor is contiguous or not
+    # return bool, accepts tensor
+    stride_check = 1
+    for size, stride in zip(reversed(tensor.shape), reversed(tensor.stride)):
+      if stride != stride_check:
+        return False
+      stride_check *= size
+    return True
 
   def contiguous(self) -> List["tensor"]:
-    pass
+    # if the tensor is already flat or non-nested, return it as is
+    if isinstance(self.data, list):
+      reshaped_data = reshape(self.data, self.shape)
+      self.data = reshaped_data
+    return self
 
   def view(self, *new_shape:Union[int, list, tuple]) -> List["tensor"]:
     if isinstance(new_shape[0], list) or isinstance(new_shape[0], tuple):
       new_shape = tuple(new_shape[0])
     elif isinstance(new_shape[0], int):
       new_shape = tuple(new_shape)
-    pass
+    self.contiguous()
+    flat_data = self.flatten()
+    total_elements = len(flat_data)
+    if total_elements != self.numel:
+      raise ValueError("Total elements in new shape must match the number of elements in the original tensor")
+    out = tensor(reshape(self.data, new_shape), requires_grad=self.requires_grad, dtype=self.dtype)
+    out.prev, out.grad_fn = set(self, ), "<ViewBackwards>"
+    return out
 
   def reshape(self, *new_shape:Union[int, list, tuple]) -> List["tensor"]:
     if isinstance(new_shape[0], list) or isinstance(new_shape[0], tuple):
@@ -169,5 +195,58 @@ class tensor:
       new_shape = tuple(new_shape)
     
     out = tensor(reshape(self.data, new_shape), self.requires_grad, self.dtype)
-    out.prev, out.grad, out.grad_fn = set(self, ), reshape(self.grad), "<ReshapeBackwards>"
+    out.prev, out.grad_fn = set(self, ),  "<ReshapeBackwards>"
+    return out
+  
+  def transpose(self) -> List["tensor"]:
+    out = tensor(transpose(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = set(self, ), "<TransposeBackwards>"
+    return out
+  
+  def swapaxes(self, dim0:int, dim1:int) -> List["tensor"]:
+    out = tensor(swap_axes(self.data, dim0, dim1), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = set(self, ), "<TransposeBackwards>"
+    return out
+  
+  def flatten(self, start_dim:int, end_dim:int) -> List["tensor"]:
+    out = tensor(flatten_recursive(self.data, start_dim, end_dim), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = set(self, ), "<FlattenBackwards>"
+    return out
+  
+  def unsqueeze(self, dim:int=0):
+    dim = dim if dim > 0 else self.ndim + dim
+    out = tensor(unsqueeze(self.data, dim), dtype=self.dtype, requires_grad=self.requires_grad)
+    out.prev, out.grad_fn = (self, ), "<UnsqueezeBackwards>"
+    return out
+  
+  def squeeze(self, dim:int=0):
+    if dim is not None and dim>=self.ndim:
+      raise IndexError(f"Dimension out of range (expected to be in range of {self.ndim} dimensions)")
+    dim = dim if dim > 0 else self.ndim + dim
+    out = tensor(squeeze(self.data, dim), dtype=self.dtype, requires_grad=self.requires_grad)
+    out.prev, out.grad_fn = (self, ), "<SqueezeBackwards>"
+    return out
+  
+  def sum(self, axis:Optional[int]=None, keepdims:bool=False):
+    if axis == None:
+      if keepdims:
+        out = [[sum(flatten(self.data))]]
+      else:
+        out = sum(flatten(self.data))
+    elif axis == 0:
+      out = sum_axis0(self.data)
+    else:
+      out = sum_axis(self.data, axis, keepdims)
+    out = tensor(out, self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = set(self, ), "<SumBackwards>"
+    return out
+  
+  def dot(self, other:List["tensor"]) -> List["tensor"]:
+    out = tensor(dot_product(self.data, other.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = set(self.data), "<DotBackwards>"
+    return out
+  
+  def det(self) -> List["tensor"]:
+    out = tensor(determinant(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = set(self, ), "<DetBackwards>"
     return out
