@@ -5,26 +5,12 @@ import sys
 import shutil
 
 class tqdm:
-  def __init__(
-    self,
-    iterable=None,
-    desc: str = "",
-    disable: bool = False,
-    unit: str = "it",
-    unit_scale: bool = False,
-    total: Optional[int] = None,
-    rate: int = 100,
-  ) -> None:
+  def __init__(self, iterable=None, desc: str = "", disable: bool = False, unit: str = "it", unit_scale: bool = False, total: Optional[int] = None, rate: int = 100) -> None:
     self.iterable = iterable
     self.desc = f"{desc}: " if desc else ""
     self.dis, self.unit, self.unit_scale = disable, unit, unit_scale
     self.st, self.rate = time.perf_counter(), rate
-    self.i, self.n, self.skip, self.t = (
-      -1,
-      0,
-      1,
-      getattr(iterable, "__len__", lambda: 0)() if total is None else total,
-    )
+    self.i, self.n, self.skip, self.t = (-1, 0, 1, getattr(iterable, "__len__", lambda: 0)() if total is None else total,)
     self.update(0)
 
   def __iter__(self):
@@ -49,54 +35,16 @@ class tqdm:
       self.skip = max(int(self.i / elapsed) // self.rate, 1)
     
     def HMS(t):
-      return ":".join(
-        f"{x:02d}" if i else str(x)
-        for i, x in enumerate(
-          [int(t) // 3600, int(t) % 3600 // 60, int(t) % 60]
-        )
-        if i or x
-      )
+      return ":".join(f"{x:02d}" if i else str(x) for i, x in enumerate([int(t) // 3600, int(t) % 3600 // 60, int(t) % 60]) if i or x)
     
     def SI(x):
-      return (
-        (
-          f"{x/1000**int(g:=math.log(x,1000)):.{int(3-3*math.fmod(g,1))}f}"[
-            :4
-          ].rstrip(".")
-          + " kMGTPEZY"[int(g)].strip()
-        )
-        if x
-        else "0.00"
-      )
-    
-    prog_text = (
-      f'{SI(self.n)}{f"/{SI(self.t)}" if self.t else self.unit}'
-      if self.unit_scale
-      else f'{self.n}{f"/{self.t}" if self.t else self.unit}'
-    )
-    
-    elapsed_text = HMS(elapsed) + (
-      f'<{HMS(elapsed/prog-elapsed) if self.n else "?"}' if self.t else ""
-    )
-
-    it_text = (
-      (SI(self.n / elapsed) if self.unit_scale else f"{self.n/elapsed:5.2f}")
-      if self.n
-      else "?"
-    )
-    
+      return ((f"{x/1000**int(g:=math.log(x,1000)):.{int(3-3*math.fmod(g,1))}f}"[:4].rstrip(".") + " kMGTPEZY"[int(g)].strip()) if x else "0.00")
+    prog_text = (f'{SI(self.n)}{f"/{SI(self.t)}" if self.t else self.unit}' if self.unit_scale else f'{self.n}{f"/{self.t}" if self.t else self.unit}')
+    elapsed_text = HMS(elapsed) + (f'<{HMS(elapsed/prog-elapsed) if self.n else "?"}' if self.t else "")
+    it_text = ((SI(self.n / elapsed) if self.unit_scale else f"{self.n/elapsed:5.2f}") if self.n else "?")
     suf = f"{prog_text} [{elapsed_text}, {it_text}{self.unit}/s]"
     sz = max(ncols - len(self.desc) - 3 - 2 - 2 - len(suf), 1)
-    bar = (
-      "\r"
-      + self.desc
-      + (
-        f'{100*prog:3.0f}%|{("█"*int(num:=sz*prog)+" ▏▎▍▌▋▊▉"[int(8*num)%8].strip()).ljust(sz," ")}| '
-        if self.t
-        else ""
-      )
-      + suf
-    )
+    bar = ("\r" + self.desc + (f'{100*prog:3.0f}%|{("█"*int(num:=sz*prog)+" ▏▎▍▌▋▊▉"[int(8*num)%8].strip()).ljust(sz," ")}| ' if self.t else "" ) + suf)
     print(bar[: ncols + 1], flush=True, end="\n" * close, file=sys.stderr)
 
 class trange(tqdm):

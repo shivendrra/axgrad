@@ -170,6 +170,6 @@ def det(data:Union[tensor, list]) -> tensor:
   data = data if isinstance(data, tensor) else tensor(data, requires_grad=False)
   return data.det()
 
-def swap_axes(data:Union[tensor, list], axis1:int, axis2:int) -> tensor:
+def swapaxes(data:Union[tensor, list], axis1:int, axis2:int) -> tensor:
   data = data if isinstance(data, tensor) else tensor(data, requires_grad=False)
-  return data.swap_axes(axis1, axis2)
+  return data.swapaxes(axis1, axis2)

@@ -15,6 +15,7 @@ from .helpers.shape import *
 from ._dtype import *
 from .helpers.utils import _zeros
 from .helpers.ops import *
+from .utils.contiguous import ContiguousOps
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
@@ -28,7 +29,8 @@ class tensor:
     self.data = Dtype.handle_conversion(data, self.dtype)
     self.shape, self.prev = self.shape(), set()
     self._backward = lambda: None
-    
+    self.stride = self.compute_stride(self.shape) # computing strides
+    self.contiguous_ops = ContiguousOps(self) # creating an instance of coniguousops that works with this tensor
     # only if requires_grad is true
     if requires_grad is True:
       self.requires_grad, self.grad, self.grad_fn = requires_grad, _zeros(self.size), "<NotSet>"
@@ -124,13 +126,6 @@ class tensor:
     return out
   
   @property
-  def stride(self):
-    strides = [1]
-    for size in reversed(self.shape[:-1]):
-      strides.append(strides[-1] * size)
-    return tuple(reversed(strides))
-  
-  @property
   def T(self) -> List["tensor"]:
     out = tensor(transpose(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad, out.grad_fn = set(self, ), transpose(self.grad), "<TransposeBackwards>"
@@ -141,6 +136,15 @@ class tensor:
     out = tensor(flatten(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad, out.grad_fn = set(self, ), flatten(self.grad), "<FlattenBackwards>"
     return out
+
+  def is_contiguous(self) -> bool:
+    return self.contiguous_ops.is_contiguous()
+  
+  def make_contiguous(self) -> None:
+    self.contiguous_ops.make_contiguous()
+  
+  def compute_stride(self, shape: List[int]) -> List[int]:
+    return self.contiguous_ops.compute_stride(shape)
   
   def tolist(self) -> list:
     # returns the data into a list
@@ -156,16 +160,6 @@ class tensor:
     out = tensor(new_data, self.requires_grad, self.dtype)
     out.prev, out.grad, out.grad_fn = self.prev, self.grad, self.grad_fn
     return out
-  
-  def is_contiguous(self) -> List["tensor"]:
-    # check if the tensor is contiguous or not
-    # return bool, accepts tensor
-    stride_check = 1
-    for size, stride in zip(reversed(tensor.shape), reversed(tensor.stride)):
-      if stride != stride_check:
-        return False
-      stride_check *= size
-    return True
 
   def contiguous(self) -> List["tensor"]:
     # if the tensor is already flat or non-nested, return it as is
