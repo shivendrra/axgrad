@@ -13,7 +13,8 @@ import math
 
 from .helpers.shape import *
 from ._dtype import *
-from .helpers.utils import _zeros
+from .helpers.utils import _zeros, _ones
+from .helpers.functionals import *
 from .helpers.ops import *
 from .utils.contiguous import ContiguousOps
 
@@ -21,7 +22,7 @@ int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
 
 class tensor:
-  int8, int16, int32, int64, long, float16, float32, float64, double = "int8", "int16", "int32", "int64", "long", "float16", "float32", "float64", "double"
+  int8, int16, int32, int64, long, float16, float32, float64, double = int8, int16, int32, int64, long, float16, float32, float64, double
   def __init__(self, data, requires_grad:bool=True, dtype:Optional[Literal["int8", "int16", "int32", "int64", "float16", "float32", "float64", "long", "double"]]=None) -> None:
     if data is not None and isinstance(data, list):
       data = list(data)
@@ -29,8 +30,8 @@ class tensor:
     self.data = Dtype.handle_conversion(data, self.dtype)
     self.shape, self.prev = self.shape(), set()
     self._backward = lambda: None
-    self.stride = self.compute_stride(self.shape) # computing strides
     self.contiguous_ops = ContiguousOps(self) # creating an instance of coniguousops that works with this tensor
+    self.stride = self.compute_stride(self.shape) # computing strides
     # only if requires_grad is true
     if requires_grad is True:
       self.requires_grad, self.grad, self.grad_fn = requires_grad, _zeros(self.size), "<NotSet>"
@@ -128,13 +129,13 @@ class tensor:
   @property
   def T(self) -> List["tensor"]:
     out = tensor(transpose(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad, out.grad_fn = set(self, ), transpose(self.grad), "<TransposeBackwards>"
+    out.prev, out.grad, out.grad_fn = (self, ), transpose(self.grad), "<TransposeBackwards>"
     return out
   
   @property
   def F(self) -> List["tensor"]:
     out = tensor(flatten(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad, out.grad_fn = set(self, ), flatten(self.grad), "<FlattenBackwards>"
+    out.prev, out.grad, out.grad_fn = (self, ), flatten(self.grad), "<FlattenBackwards>"
     return out
 
   def is_contiguous(self) -> bool:
@@ -161,25 +162,18 @@ class tensor:
     out.prev, out.grad, out.grad_fn = self.prev, self.grad, self.grad_fn
     return out
 
-  def contiguous(self) -> List["tensor"]:
-    # if the tensor is already flat or non-nested, return it as is
-    if isinstance(self.data, list):
-      reshaped_data = reshape(self.data, self.shape)
-      self.data = reshaped_data
-    return self
-
   def view(self, *new_shape:Union[int, list, tuple]) -> List["tensor"]:
     if isinstance(new_shape[0], list) or isinstance(new_shape[0], tuple):
       new_shape = tuple(new_shape[0])
     elif isinstance(new_shape[0], int):
       new_shape = tuple(new_shape)
-    self.contiguous()
+    self.make_contiguous()
     flat_data = self.flatten()
     total_elements = len(flat_data)
     if total_elements != self.numel:
       raise ValueError("Total elements in new shape must match the number of elements in the original tensor")
     out = tensor(reshape(self.data, new_shape), requires_grad=self.requires_grad, dtype=self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<ViewBackwards>"
+    out.prev, out.grad_fn = (self, ), "<ViewBackwards>"
     return out
 
   def reshape(self, *new_shape:Union[int, list, tuple]) -> List["tensor"]:
@@ -189,22 +183,22 @@ class tensor:
       new_shape = tuple(new_shape)
     
     out = tensor(reshape(self.data, new_shape), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ),  "<ReshapeBackwards>"
+    out.prev, out.grad_fn = (self, ),  "<ReshapeBackwards>"
     return out
   
   def transpose(self) -> List["tensor"]:
     out = tensor(transpose(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<TransposeBackwards>"
+    out.prev, out.grad_fn = (self, ), "<TransposeBackwards>"
     return out
   
   def swapaxes(self, dim0:int, dim1:int) -> List["tensor"]:
     out = tensor(swap_axes(self.data, dim0, dim1), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<TransposeBackwards>"
+    out.prev, out.grad_fn = (self, ), "<TransposeBackwards>"
     return out
   
   def flatten(self, start_dim:int, end_dim:int) -> List["tensor"]:
     out = tensor(flatten_recursive(self.data, start_dim, end_dim), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<FlattenBackwards>"
+    out.prev, out.grad_fn = (self, ), "<FlattenBackwards>"
     return out
   
   def unsqueeze(self, dim:int=0):
@@ -232,17 +226,17 @@ class tensor:
     else:
       out = sum_axis(self.data, axis, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<SumBackwards>"
+    out.prev, out.grad_fn = (self, ), "<SumBackwards>"
     return out
   
   def dot(self, other:List["tensor"]) -> List["tensor"]:
     out = tensor(dot_product(self.data, other.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self.data), "<DotBackwards>"
+    out.prev, out.grad_fn = (self.data), "<DotBackwards>"
     return out
   
   def det(self) -> List["tensor"]:
     out = tensor(determinant(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<DetBackwards>"
+    out.prev, out.grad_fn = (self, ), "<DetBackwards>"
     return out
 
   def mean(self, axis:Optional[int]=None, keepdims:bool=False) -> List["tensor"]:
@@ -255,7 +249,7 @@ class tensor:
     else:
       out = mean_axis(self.data, axis, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<MeanBackwards>"
+    out.prev, out.grad_fn = (self, ), "<MeanBackwards>"
     return out
   
   def var(self, axis:Optional[int]=None, ddof:int=0, keepdims:bool=False) -> List["tensor"]:
@@ -272,7 +266,7 @@ class tensor:
       mean_val = self.mean(axis=axis).data
       out = var_axis(self.data, mean_val, axis, ddof, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<VarBackwards>"
+    out.prev, out.grad_fn = (self, ), "<VarBackwards>"
     return out
   
   def std(self, axis:Optional[int]=None, ddof:int=0, keepdims:bool=False) -> List["tensor"]:
@@ -286,16 +280,13 @@ class tensor:
     else:
       out = _std(variance)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.requires_grad = set(self, ), "<StdBackwards>"
+    out.prev, out.requires_grad = (self, ), "<StdBackwards>"
     return out
 
   def __add__(self, other) -> List["tensor"]:
-    other = other if isinstance(other, tensor) else other = tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
+    other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     def _ops(a, b):
-      if isinstance(a, list):
-        return [_ops(_a, _b) for _a, _b in zip(a, b)]
-      else:
-        return a + b
+      return [_ops(_a, _b) for _a, _b in zip(a, b)] if isinstance(a, list) else a + b
     target_shape, requires_broadcasting = broadcast_shape(self.shape, other.shape)
     if requires_broadcasting:
       self.data, self.grad, self.shape = Dtype.handle_conversion(broadcast(self.data, target_shape), self.dtype), broadcast(self.grad, target_shape), get_shape(self.data)
@@ -308,12 +299,9 @@ class tensor:
     return out
   
   def __mul__(self, other) -> List["tensor"]:
-    other = other if isinstance(other, tensor) else other = tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
+    other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     def _ops(a, b):
-      if isinstance(a, list):
-        return [_ops(_a, _b) for _a, _b in zip(a, b)]
-      else:
-        return a * b
+      return [_ops(_a, _b) for _a, _b in zip(a, b)] if isinstance(a, list) else a * b
     target_shape, requires_broadcasting = broadcast_shape(self.shape, other.shape)
     if requires_broadcasting:
       self.data, self.grad, self.shape = Dtype.handle_conversion(broadcast(self.data, target_shape), self.dtype), broadcast(self.grad, target_shape), get_shape(self.data)
@@ -326,7 +314,7 @@ class tensor:
     return out
   
   def __matmul__(self, other) -> List["tensor"]:
-    other = other if isinstance(other, tensor) else other = tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
+    other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
 
     if self.size == other.size:
       out, self.grad, other.grad = matmul(self.data, other.data, self.grad, other.grad)
@@ -338,17 +326,13 @@ class tensor:
   
   def __neg__(self) -> List["tensor"]:
     def _ops(data):
-      if isinstance(data, list):
-        return [_ops(d) for d in data]
-      return -data
+      return [_ops(d) for d in data] if isinstance(data, list) else -data
     out = tensor(_ops(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<NegBackwards>"
+    out.prev, out.grad_fn = (self, ), "<NegBackwards>"
 
     def neg_backward():
       def _neg(grad, out):
-        if not isinstance(grad, list):
-          return -out
-        return [_neg(g, og) for g, og, in zip(grad, out)]
+        return -out if not isinstance(grad, list) else [_neg(g, og) for g, og, in zip(grad, out)]
       self.grad = _neg(self.grad, out.data)
     out._backward = neg_backward
     return out
@@ -371,7 +355,6 @@ class tensor:
   
   def __pow__(self, pow:Union[int, float], eps:float=1e6) -> List["tensor"]:
     assert isinstance(pow, (int, float)), "power exponent is of incompatible datatype"
-    other = other if isinstance(other, tensor) else tensor(other, self.requires_grad, self.dtype)
 
     def _ops(data, pow):
       if isinstance(data, list):
@@ -379,8 +362,8 @@ class tensor:
       if data == 0:
         data = eps
       return math.pow(data, pow)
-    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = set(self, ), "<PowBackwards>"
+    out = tensor(_ops(self.data, pow), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = (self, ), "<PowBackwards>"
     return out
   
   def __truediv__(self, other) -> List["tensor"]:
@@ -390,3 +373,53 @@ class tensor:
   def __rtruediv__(self, other) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, self.requires_grad, self.dtype)
     return other + (self ** -1)
+  
+  def relu(self) -> List["tensor"]:
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else relu(data)
+    out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = (self, ), "<ReluBackward>"
+    print(out)
+    return out
+
+  def gelu(self) -> List["tensor"]:
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else gelu(data)
+    out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = (self, ), "<GeluBackward>"
+    return out
+
+  def silu(self) -> List["tensor"]:
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else silu(data)
+    out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = (self, ), "<SiluBackward>"
+    return out
+
+  def sigmoid(self) -> List["tensor"]:
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else sigmoid(data)
+    out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = (self, ), "<SigmoidBackward>"
+    return out
+  
+  def tanh(self) -> List["tensor"]:
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else tanh(data)
+    out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn = (self, ), "<TanhBackward>"
+    return out
+
+  def backwards(self):
+    topo, visited = [], set()
+    def build_topo(v):
+      if v not in visited:
+        visited.add(v)
+        for child in v.prev:
+          build_topo(child)
+        topo.append(v)
+    build_topo(self)
+
+    self.grad = _ones(self.shape)
+    for node in reversed(topo):
+      node._backward()

@@ -1,3 +1,11 @@
+"""
+  @utils/contiguous.py main contiguous functions are here
+  @brief Contains contiguousOps class to compute strides, check & make tensor contiguous
+  @comments:
+  - not yet-tested
+  - imported in main `tensor` class
+"""
+
 from typing import List
 from ..helpers.shape import reshape
 
