@@ -111,17 +111,37 @@ def reshape(data:list, new_shape:tuple) -> list:
 
 # checks the broadcastability
 # creates new target shape for broadcasting
-def broadcast_shape(shape1:tuple, shape2:tuple) -> tuple:
-  res_shape = []
-  if shape1 == shape2:
-    return shape1, False # returns false if same shape
-  max_len = max(len(shape1), len(shape2))
-  shape1, shape2 = [1] * (max_len - len(shape1)) + shape1, [1] * (max_len - len(shape2)) + shape2
-  for dim1, dim2 in zip(shape1, shape2):
-    if dim1 != dim2 and dim1 != 1 and dim2 != 1:
-      raise ValueError(f"Shapes {shape1} and {shape2} are not compatible for broadcasting")
-    res_shape.append(max(dim1, dim2)) # appends max of the each axis/dim
-  return tuple(res_shape), True
+def broadcast_shape(shape1:tuple, shape2:tuple, ops=None) -> tuple:
+  if ops == "<MATMUL>":
+    if len(shape1) < 2 or len(shape2) < 2:
+      raise ValueError("Both tensors must have at least two dimensions for matmul")
+    if shape1[-1] != shape2[-2]:
+      raise ValueError(f"Shapes {shape1} and {shape2} are incompatible for matmul (dimensions must align)")
+    matmul_shape = (shape1[-2], shape2[-1]) # shape1[-2] x shape1[-1] and shape2[-2] x shape2[-1] -> result shape should be shape1[-2] x shape2[-1]
+    batch_shape1, batch_shape2 = shape1[:-2], shape2[:-2] # broadcast the remaining batch dimensions, excluding the last two dims
+    
+    # broadcast batch dimensions, if necessary
+    result_shape = []
+    max_len = max(len(batch_shape1), len(batch_shape2))
+    batch_shape1, batch_shape2 = [1] * (max_len - len(batch_shape1)) + batch_shape1, [1] * (max_len - len(batch_shape2)) + batch_shape2
+    
+    for dim1, dim2 in zip(batch_shape1, batch_shape2):
+      if dim1 != dim2 and dim1 != 1 and dim2 != 1:
+        raise ValueError(f"Shapes {shape1} and {shape2} are not compatible for broadcasting")
+      result_shape.append(max(dim1, dim2))
+    return tuple(result_shape + list(matmul_shape)), True
+
+  else:
+    res_shape = []
+    if shape1 == shape2:
+      return shape1, False # returns false if same shape
+    max_len = max(len(shape1), len(shape2))
+    shape1, shape2 = [1] * (max_len - len(shape1)) + shape1, [1] * (max_len - len(shape2)) + shape2
+    for dim1, dim2 in zip(shape1, shape2):
+      if dim1 != dim2 and dim1 != 1 and dim2 != 1:
+        raise ValueError(f"Shapes {shape1} and {shape2} are not compatible for broadcasting")
+      res_shape.append(max(dim1, dim2)) # appends max of the each axis/dim
+    return tuple(res_shape), True
 
 # main broadcasting function, broadcasts by copying data to match target shape
 def broadcast(array, target_shape):

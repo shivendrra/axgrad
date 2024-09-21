@@ -17,6 +17,7 @@ from .helpers.utils import _zeros, _ones
 from .helpers.functionals import *
 from .helpers.ops import *
 from .utils.contiguous import ContiguousOps
+from .autograd._backward import Backward
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
@@ -32,9 +33,10 @@ class tensor:
     self._backward = lambda: None
     self.contiguous_ops = ContiguousOps(self) # creating an instance of coniguousops that works with this tensor
     self.stride = self.compute_stride(self.shape) # computing strides
+    self.is_scalar = False
     # only if requires_grad is true
     if requires_grad is True:
-      self.requires_grad, self.grad, self.grad_fn = requires_grad, _zeros(self.size), "<NotSet>"
+      self.requires_grad, self.grad, self.grad_fn = requires_grad, _zeros(shape=self.size), "<NotSet>"
     else:
       self.grad, self.grad_fn, self.requires_grad = None, None, False
 
@@ -293,7 +295,7 @@ class tensor:
       other.data, other.grad, other.shape = Dtype.handle_conversion(broadcast(other.data, target_shape), other.dtype), broadcast(other.grad, target_shape), get_shape(other.data)
     if self.size == other.size:
       out = tensor(_ops(self.data, other.data), dtype=self.dtype, requires_grad=self.requires_grad)
-      out.prev, out.grad_fn = (self, other), "<AddBackwards>"
+      out.prev, out.grad_fn, out._backward = (self, other), "<AddBackwards>", Backward.add_backwards(out, self, other)
     else:
       raise ValueError("shapes are incompatible for operation")
     return out
@@ -308,7 +310,7 @@ class tensor:
       other.data, other.grad, other.shape = Dtype.handle_conversion(broadcast(other.data, target_shape), other.dtype), broadcast(other.grad, target_shape), get_shape(other.data)
     if self.size == other.size:
       out = tensor(_ops(self.data, other.data), dtype=self.dtype, requires_grad=self.requires_grad)
-      out.prev, out.grad_fn = (self, other), "<MulBackwards>"
+      out.prev, out.grad_fn, out._backward = (self, other), "<MulBackwards>", Backward.mul_backwards(out, self, other)
     else:
       raise ValueError("shapes are incompatible for operation")
     return out
@@ -319,7 +321,7 @@ class tensor:
     if self.size == other.size:
       out, self.grad, other.grad = matmul(self.data, other.data, self.grad, other.grad)
       out = tensor(out, dtype=self.dtype, requires_grad=self.requires_grad)
-      out.prev, out.grad_fn = (self, other), "<MatmulBackwards>"
+      out.prev, out.grad_fn, out._backward = (self, other), "<MatmulBackwards>", Backward.matmul_backwards(out, self, other)
     else:
       raise ValueError("shapes are incompatible for operation")
     return out
@@ -410,7 +412,7 @@ class tensor:
     out.prev, out.grad_fn = (self, ), "<TanhBackward>"
     return out
 
-  def backwards(self):
+  def backward(self):
     topo, visited = [], set()
     def build_topo(v):
       if v not in visited:
