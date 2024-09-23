@@ -53,3 +53,15 @@ class __MATMUL__:
     self.first.grad.data = self.backward(self.first.grad.data, grad_A)
     self.second.grad.data = self.backward(self.second.grad.data, grad_B)
     return self.__call__
+
+class __POW__:
+  def __init__(self, first, out, power) -> None: self.first, self.out, self.power = first, out, power
+  def backward(self, grad, out, power):
+    if not isinstance(grad, list):
+      grad += (power * out ** (power - 1)) * out
+      return grad
+    return [self.backward(g, og, power) for g, og in zip(grad, out)]
+  
+  def __call__(self):
+    self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data, self.power)
+    return self.__call__

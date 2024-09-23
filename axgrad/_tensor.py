@@ -360,7 +360,7 @@ class tensor:
         data = eps
       return math.pow(data, pow)
     out = tensor(_ops(self.data, pow), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<PowBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<PowBackwards>", Backward.pow_backwards(out, self, pow)
     return out
   
   def __truediv__(self, other) -> List["tensor"]:
@@ -375,39 +375,40 @@ class tensor:
     def _apply(data):
       return [_apply(d) for d in data] if isinstance(data, list) else relu(data)
     out = tensor(_apply(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<ReluBackward>"
-    print(out)
+    out.prev, out.grad_fn, out._backward = (self, ), "<ReluBackward>", Backward.relu_backwards(self, out)
     return out
 
   def gelu(self) -> List["tensor"]:
     def _apply(data):
       return [_apply(d) for d in data] if isinstance(data, list) else gelu(data)
     out = tensor(_apply(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<GeluBackward>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<GeluBackward>", Backward.gelu_backwards(self, out)
     return out
 
   def silu(self) -> List["tensor"]:
     def _apply(data):
       return [_apply(d) for d in data] if isinstance(data, list) else silu(data)
     out = tensor(_apply(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<SiluBackward>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<SiluBackward>", Backward.silu_backwards(self, out)
     return out
 
   def sigmoid(self) -> List["tensor"]:
     def _apply(data):
       return [_apply(d) for d in data] if isinstance(data, list) else sigmoid(data)
     out = tensor(_apply(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<SigmoidBackward>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<SigmoidBackward>", Backward.sigmoid_backwards(self, out)
     return out
   
   def tanh(self) -> List["tensor"]:
     def _apply(data):
       return [_apply(d) for d in data] if isinstance(data, list) else tanh(data)
     out = tensor(_apply(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<TanhBackward>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<TanhBackward>", Backward.tanh_backwards(self, out)
     return out
 
   def backward(self):
+    if self.requires_grad == False:
+      raise ValueError(f"tensor have ``requires_grad`` set to False, if you want to calculate grad, consider setting it to True in the inital tensor")
     topo, visited = [], set()
     def build_topo(v):
       if v not in visited:
@@ -416,8 +417,6 @@ class tensor:
           build_topo(child)
         topo.append(v)
     build_topo(self)
-
     self.grad = grads(data=_ones(self.shape), shape=None)
-    print("final: ", self)
     for node in reversed(topo):
       node._backward()
