@@ -1,5 +1,6 @@
-from .tensor import tensor, int8, int16, int32, int64, float16, float32, float64, double, long
-from .ops import *
-from .nn import *
+from ._tensor import tensor, int8, int16, int32, int64, float16, float32, float64, long, double
+from ._functions import *
+from ._ops import *
+from ._utils import *
 
-__all__ = ['tensor', 'int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64', 'double', 'long']
+__all__ = ['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64', 'long', 'double']

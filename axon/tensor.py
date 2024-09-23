@@ -1,3 +1,5 @@
+""" here lies the main tensor class """
+
 from typing import *
 from .helpers.shape import *
 from .dtypes.convert import handle_conversion
@@ -5,6 +7,7 @@ from .helpers.utils import _zeros, _ones
 from .helpers.ops import *
 from copy import deepcopy
 from .helpers.functionals import *
+from .autograd._backward import backward
 
 int8 = "int8"
 int16 = "int16"
@@ -189,6 +192,7 @@ class tensor:
     out = tensor(out, dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<ReshapeBackwards>"
+    out._backward = backward.reshape_back(self, out, new_shape)
     return out
 
   def clip(self, min_value, max_value):
@@ -205,8 +209,8 @@ class tensor:
     out.grad_fn = "<FlattenBackwards>"
     return out
   
-  def transpose(self, dim) -> List["tensor"]:
-    out = tensor(transpose_recursive(self.data, dim), requires_grad=self.requires_grad, dtype=self.dtype)
+  def transpose(self, dim1:int, dim2:int) -> List["tensor"]:
+    out = tensor(swap_axes(self.data, dim1, dim2), requires_grad=self.requires_grad, dtype=self.dtype)
     out.prev = set(self,)
     out.grad_fn = "<TransposeBackwards>"
     return out
@@ -228,7 +232,7 @@ class tensor:
   
   def broadcast(self, other:List["tensor"]) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, dtype=self.dtype, requires_grad=self.requires_grad)
-    new_shape, needs_broadcasting = broadcast_shape(self.shape, other.shape)
+    new_shape, needs_broadcasting = broadcast_shape(self.shape, other.shape, ops=None)
     if needs_broadcasting:
       out = tensor(broadcast(other.data, new_shape), dtype=self.dtype, requires_grad=self.requires_grad)
       out.prev = (self, )
@@ -318,14 +322,17 @@ class tensor:
     
     if requires_broadcasting:
       self.data = handle_conversion(broadcast(self.data, target_shape), self.dtype)
+      self.grad = broadcast(self.grad, target_shape)
       self.shape = get_shape(self.data)
       other.data = handle_conversion(broadcast(other.data, target_shape), other.dtype)
+      other.grad = broadcast(other.grad, target_shape)
       other.shape = get_shape(other.data)
     
     if self.size == other.size:
       out = tensor(_ops(self.data, other.data), dtype=self.dtype, requires_grad=self.requires_grad)
       out.prev = (self, other)
       out.grad_fn = "<AddBackward>"
+      out._backward = backward.add_back(self, other, out)
     else:
       raise ValueError("shapes are incompatible for operation")
     return out
@@ -346,14 +353,17 @@ class tensor:
 
     if requires_broadcasting:
       self.data = handle_conversion(broadcast(self.data, target_shape), self.dtype)
+      self.grad = broadcast(self.grad, target_shape)
       self.shape = get_shape(self.data)
       other.data = handle_conversion(broadcast(other.data, target_shape), other.dtype)
+      other.grad = broadcast(other.grad, target_shape)
       other.shape = get_shape(other.data)
     
     if self.size == other.size:
       out = tensor(_ops(self.data, other.data), dtype=self.dtype, requires_grad=self.requires_grad)
       out.prev = (self, other)
       out.grad_fn = "<MulBackward>"
+      out._backward = backward.mul_back(self, other, out)
     else:
       raise ValueError("shapes are incompatible for operation")
     return out
@@ -370,6 +380,7 @@ class tensor:
     out = tensor(matmul(self.data, other.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, other)
     out.grad_fn = "<MatmulBackward>"
+    out._backward = backward.matmul_back(self, other, out)
     return out
 
   def __neg__(self) -> List["tensor"]:
@@ -381,8 +392,18 @@ class tensor:
     out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = self.prev
     out.grad_fn = "<NegBackward>"
-    return out
+    
+    def neg_backward():
+      def _neg(grad, out):
+        if not isinstance(grad, list):
+          return -out
+        return [_neg(g, og) for g, og in zip(grad, out)]
+      
+      self.grad = _neg(self.grad, out.data)
 
+    out._backward = neg_backward
+    return out
+    
   def __sub__(self, other) -> List["tensor"]:
     if isinstance(other, tensor):
       other = other
@@ -410,6 +431,7 @@ class tensor:
     out = tensor(_ops(self.data, pow), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<PowBackward>"
+    out._backward = backward.pow_back(self, out, pow)
     return out
   
   def __truediv__(self, other) -> List["tensor"]:
@@ -435,6 +457,7 @@ class tensor:
     out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<ReluBackward>"
+    out._backward = backward.relu_back(self, out)
     return out
   
   def gelu(self) -> List["tensor"]:
@@ -446,6 +469,7 @@ class tensor:
     out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<GeluBackward>"
+    out._backward = backward.gelu_back(self, out)
     return out
 
   def tanh(self) -> List["tensor"]:
@@ -457,6 +481,7 @@ class tensor:
     out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<TanhBackward>"
+    out._backward = backward.tanh_back(self, out)
     return out
 
   def sigmoid(self) -> List["tensor"]:
@@ -468,6 +493,19 @@ class tensor:
     out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<SigmoidBackward>"
+    out._backward = backward.sigmoid_back(self, out)
+    return out
+  
+  def leakyRelu(self) -> List["tensor"]:
+    def _ops(data):
+      if isinstance(data, list):
+        return [_ops(_d) for _d in data]
+      else:
+        return LeakyRelu(data)
+    out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
+    out.prev = (self, )
+    out.grad_fn = "<LeakyReluBackward>"
+    out._backward = backward.leaky_r_back(self, out)
     return out
 
   def silu(self) -> List["tensor"]:
@@ -479,4 +517,12 @@ class tensor:
     out = tensor(_ops(self.data), dtype=self.dtype, requires_grad=self.requires_grad)
     out.prev = (self, )
     out.grad_fn = "<SiluBackward>"
+    out._backward = backward.silu_back(self, out)
     return out
+  
+  def backward(self):
+    topo = backward.backward(self)
+    self.grad = _ones(self.shape)
+    self.leaf = topo
+    for node in reversed(topo):
+      node._backward()

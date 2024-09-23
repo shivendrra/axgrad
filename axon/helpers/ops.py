@@ -1,13 +1,10 @@
-"""
-  @helpers/ops.py function file
-  @breif Code contains various functions for mathematical functions
-"""
-
-from .shape import get_shape, broadcast_shape, broadcast
+from .shape import transpose, get_shape, broadcast_shape, broadcast
+from .utils import _zeros
 
 def sum_axis0(data):
   if not isinstance(data[0], list):
     return sum(data)
+
   result = []
   for i in range(len(data[0])):
     result.append(sum_axis0([d[i] for d in data]))
@@ -16,6 +13,7 @@ def sum_axis0(data):
 def mean_axis0(data):
   if not isinstance(data[0], list):
     return sum(data) / len(data)
+
   result = []
   for i in range(len(data[0])):
     result.append(mean_axis0([d[i] for d in data]))
@@ -25,6 +23,7 @@ def var_axis0(data, ddof=0):
   mean_values = mean_axis0(data)
   if not isinstance(data[0], list):
     return sum((x - mean_values) ** 2 for x in data) / (len(data) - ddof)
+
   result = []
   for i in range(len(data[0])):
     result.append(var_axis0([d[i] for d in data], ddof))
@@ -65,24 +64,6 @@ def sum_axis(data, axis, keepdims):
   if keepdims:
     mean_vals = [mean_vals]
   return mean_vals
-
-# def matmul(A, B, self_grad, other_grad):
-#   def matmul_2d(A, B):
-#     assert len(A[0]) == len(B), "Incompatible dimensions for matrix multiplication"
-#     result = [[0] * len(B[0]) for _ in range(len(A))]
-#     for i in range(len(A)):
-#       for j in range(len(B[0])):
-#         for k in range(len(B)):
-#           result[i][j] += A[i][k] * B[k][j]
-#     return result
-
-#   if len(get_shape(A)) == 2 and len(get_shape(B)) == 2:
-#     return matmul_2d(A, B)
-#   target_shape, _ = broadcast_shape(get_shape(A), get_shape(B), ops="<MATMUL>")
-#   A, B, self_grad, other_grad = broadcast(A, target_shape), broadcast(B, target_shape), broadcast(self_grad, target_shape), broadcast(other_grad, target_shape)
-#   if len(get_shape(A)) > 2 or len(get_shape(B)) > 2:
-#     return [matmul(a, b) for a, b in zip(A, B)]
-#   return matmul_2d(A, B), self_grad, other_grad
 
 def matmul(A, B):
   def matmul_2d(A, B):
@@ -163,12 +144,18 @@ def determinant(data):
       return matrix[0][0]
     elif n == 0:
       return 1
+    
     det = 0
     for c in range(n):
       det += ((-1) ** c) * matrix[0][c] * determinant_nd(minor(matrix, 0, c))
     return det
+
   if not data:
     raise ValueError("Matrix is empty")
   if not all(len(row) == len(data) for row in data):
     raise ValueError("Matrix must be square (number of rows must equal number of columns)")
+
   return determinant_nd(data)
+
+def _abs(data:list) -> list:
+  pass

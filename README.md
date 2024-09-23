@@ -23,7 +23,7 @@ i'll be adding more things in future...
 | Loss                         | in progress | <ul><li>[ ] MSE</li><li>[ ] Cross Entropy</li><li>[ ] MAE</li></ul>    |
 | Language Transformer | in progress    | <ul><li>[x] Matmul</li><li>[ ] Embeddings</li></ul> |
 | Convolutional Neural Network | in progress    | <ul><li>[ ] Conv2d</li><li>[ ] MaxPool2d</li><li>[ ] Dropout</li></ul> |
-| Neural Network Components                  | in progress | <ul><li>[x] Module</li><li>[x] Sequential</li><li>[x] ModuleList</li><li>[x] Linear</li></ul>
+| Neural Network Components                  | in progress | <ul><li>[x] Module</li><li>[ ] Sequential</li><li>[ ] ModuleList</li><li>[x] Linear</li></ul>
 
 ## Usage
 This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to preform tensor operations and build a sample neural network
@@ -37,7 +37,7 @@ It's similar to NumPy, for now. I'm trying to add more functions/methods to make
 
 #### Tensor operations
 ```python
-from axon import tensor
+from axgrad import tensor
 
 # initializing 2-d matrices
 x = tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -49,14 +49,14 @@ print(z) # output: axon.tensor([10, 10, -4], [10, 0, 10], [10, 6, 8])
 
 #### Matrix Functions
 ```python
-import axon
+import axgrad
 
-zeros = axon.zeros([1, 4, 5]) # 3-d matrix containg zeros, (float)
-ones = axgon.ones([3, 4]) # 2-d matrix containing ones, (int)
+zeros = agrad.zeros([1, 4, 5]) # 3-d matrix containg zeros, (float)
+ones = axgrad.ones([3, 4]) # 2-d matrix containing ones, (int)
 
 x = tensor([[1, 4, 4], [1, 5, 6], [1, 5, 7]])
 z = tensor([[1, 1, 1, 1], [4, 5, 5, 4], [4, 6, 7, 5]])
-print(tensor.matmul(x, z)) # out: axon.tensor([33, 45, 49, 37], [45, 62, 68, 51], [49, 68, 75, 56])
+print(axgrad.matmul(x, z)) # out: axon.tensor([33, 45, 49, 37], [45, 62, 68, 51], [49, 68, 75, 56])
 ```
 
 ## Contribution

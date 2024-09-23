@@ -1,8 +1,3 @@
-"""
-  @helpers/functionals file
-  @brief Contains various activation functions, applies on single value
-"""
-
 import math
 from typing import *
 

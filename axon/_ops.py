@@ -1,16 +1,18 @@
+""" here are functions & ops directly accessible via axgrad """
+
 from .tensor import tensor
 from .helpers.utils import _zeros
 from .helpers.shape import squeeze, unsqueeze, get_shape
 from typing import *
 
 def matmul(a:Union[tensor, list], b:Union[tensor, list], dtype=None) -> tensor:
-  a = a if isinstance(a, tensor) else tensor(a, dtype=dtype)
-  b = b if isinstance(b, tensor) else tensor(b, dtype=dtype)
+  a = a if isinstance(a, tensor) else tensor(a, requires_grad=False, dtype=dtype)
+  b = b if isinstance(b, tensor) else tensor(b, requires_grad=False, dtype=dtype)
   return (a @ b)
 
 def dot(a:Union[tensor, list], b:Union[tensor, list]) -> tensor:
-  a = a if isinstance(a, tensor) else tensor(a)
-  b = b if isinstance(b, tensor) else tensor(b)
+  a = a if isinstance(a, tensor) else tensor(a, requires_grad=False)
+  b = b if isinstance(b, tensor) else tensor(b, requires_grad=False)
   return a.dot(b)
 
 def stack(data: tuple[tensor, tensor], axis: int=0) -> tensor:
@@ -122,15 +124,15 @@ def split(data:Union[tensor, list], idx:int, axis:Optional[int]=None) -> list:
     return [list(col) for col in zip(*result)]
   
 def mean(data:Union[tensor, list], axis:Optional[int]=None, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None, keepdims:bool=False) -> Union[list, float, int]:
-  data = data if isinstance(data, tensor) else tensor(data, dtype)
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
   return data.mean(axis=axis, keepdims=keepdims)
 
 def var(data:Union[tensor, list], axis:Optional[int]=None, ddof:int=0, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None, keepdims:bool=False) -> Union[list, float, int]:
-  data = data if isinstance(data, tensor) else tensor(data, dtype)
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
   return data.var(axis=axis, ddof=ddof, keepdims=keepdims)
 
 def std(data:Union[tensor, list], axis:Optional[int]=None, ddof:int=0, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None, keepdims:bool=False) -> Union[list, float, int]:
-  data = data if isinstance(data, tensor) else tensor(data, dtype)
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
   return data.std(axis=axis, ddof=ddof, keepdims=keepdims)
 
 def squeeze(*data, dim:int=0) -> tensor:
@@ -147,7 +149,7 @@ def unsqueeze(*data, dim:int=0):
     return unsqueeze(_data, dim)
 
 def clip(data:Union[tensor, list], min, max, out=None) -> tensor:
-  data = data if isinstance(data, tensor) else tensor(data)
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False)
   if out is not None:
     return data.clip(min_value=min, max_value=max)
   else:
@@ -155,13 +157,13 @@ def clip(data:Union[tensor, list], min, max, out=None) -> tensor:
     return out
 
 def reshape(data:Union[tensor, list], new_shape:tuple) -> tensor:
-  data = data if isinstance(data, tensor) else tensor(data)
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False)
   return data.reshape(new_shape)
 
 def det(data:Union[tensor, list]) -> tensor:
-  data = data if isinstance(data, tensor) else tensor(data)
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False)
   return data.det()
 
 def swap_axes(data:Union[tensor, list], axis1:int, axis2:int) -> tensor:
-  data = data if isinstance(data, tensor) else tensor(data)
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False)
   return data.swap_axes(axis1, axis2)
