@@ -1,5 +1,11 @@
 from ...helpers.ops import matmul
-from ...helpers.shape import transpose
+from ...helpers.shape import transpose, get_shape
+
+def sum_to_shape(grad, shape):
+  for i, (grad_dim, shape_dim) in enumerate(zip(get_shape(grad), shape)):
+    if grad_dim > shape_dim:
+      grad = sum(grad, axis=i)
+  return grad
 
 class __ADD__:
   def __init__(self, first, second, out) -> None: self.first, self.second, self.out = first, second, out
@@ -10,8 +16,8 @@ class __ADD__:
     return [self.backward(g, og) for g, og, in zip(grad, out)]
   
   def __call__(self):
-    self.first.grad = self.backward(self.first.grad, self.out.grad)
-    self.second.grad = self.backward(self.second.grad, self.out.grad)
+    self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
+    self.second.grad.data = self.backward(self.second.grad.data, self.out.grad.data)
     return self.__call__
 
 class __MUL__:
@@ -23,19 +29,27 @@ class __MUL__:
     return [self.backward(g, og, m) for g, og, m in zip(grad, out, mul)]
 
   def __call__(self):
-    self.first.grad = self.backward(self.first.grad, self.out.grad, self.second.data)
-    self.second.grad = self.backward(self.second.grad, self.out.grad, self.first.data)
+    self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data, self.second.data)
+    self.second.grad.data = self.backward(self.second.grad.data, self.out.grad.data, self.first.data)
     return self.__call__
 
 class __MATMUL__:
   def __init__(self, first, second, out) -> None: self.first, self.second, self.out = first, second, out
-  def backward(self, grad, out, mul):
+  def backward(self, grad, out):
     if not isinstance(grad, list):
-      grad += out * mul
+      grad += out
       return grad
-    return [self.backward(g, og, m) for g, og, m in zip(grad, out, mul)]
+    return [self.backward(g, og) for g, og in zip(grad, out)]
 
   def __call__(self):
-    self.first.grad = self.backward(self.first.grad, self.out.grad, self.second.data)
-    self.second.grad = self.backward(self.second.grad, self.out.grad, self.first.data)
+    grad_A = matmul(self.out.grad.data, transpose(self.second.data))
+    grad_B = matmul(transpose(self.first.data), self.out.grad.data)
+
+    if get_shape(self.first.data) != get_shape(grad_A):
+      grad_A = sum_to_shape(grad_A, get_shape(self.first.data))
+    if get_shape(self.second.data) != get_shape(grad_B):
+      grad_B = sum_to_shape(grad_B, get_shape(self.second.data))
+
+    self.first.grad.data = self.backward(self.first.grad.data, grad_A)
+    self.second.grad.data = self.backward(self.second.grad.data, grad_B)
     return self.__call__

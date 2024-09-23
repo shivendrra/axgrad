@@ -13,11 +13,12 @@ import math
 
 from .helpers.shape import *
 from ._dtype import *
-from .helpers.utils import _zeros, _ones
 from .helpers.functionals import *
+from .helpers.utils import _ones
 from .helpers.ops import *
 from .utils.contiguous import ContiguousOps
 from .autograd._backward import Backward
+from ._grad import grads
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
@@ -36,7 +37,7 @@ class tensor:
     self.is_scalar = False
     # only if requires_grad is true
     if requires_grad is True:
-      self.requires_grad, self.grad, self.grad_fn = requires_grad, _zeros(shape=self.size), "<NotSet>"
+      self.requires_grad, self.grad, self.grad_fn = requires_grad, grads(shape=(get_shape(self.data))), "<NotSet>"
     else:
       self.grad, self.grad_fn, self.requires_grad = None, None, False
 
@@ -59,14 +60,8 @@ class tensor:
       if self.dtype == float32:
         return f"{element:.3f}"
       return f"{element:.4f}"
-
     formatted_data = format_element(self.data)
-
-    def truncate_list(data, max_items=8):
-      if len(data) > max_items:
-        return data[:max_items // 2] + ['...'] + data[-max_items // 2:]
-      return data
-
+    def truncate_list(data, max_items=8): return data[:max_items//2] + ["..."] + data[-max_items//2:] if len(data) > max_items else data
     def format_data(data, level=0):
       if isinstance(data[0], list):
         if len(data) > 8:
@@ -77,7 +72,6 @@ class tensor:
         # Truncate individual row elements if they exceed 8
         data = truncate_list(data)
         return "[" + ", ".join(data) + "]"
-
     formatted_str = format_data(formatted_data, 0)
     formatted_str = formatted_str.replace("\t", " ")
     return f"tensor({formatted_str}, grad_fn={self.grad_fn})\n"  if self.requires_grad else f"tensor({formatted_str}, dtype={self.dtype})\n"
@@ -131,7 +125,7 @@ class tensor:
   @property
   def T(self) -> List["tensor"]:
     out = tensor(transpose(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad, out.grad_fn = (self, ), transpose(self.grad), "<TransposeBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<TransposeBackwards>", Backward.transpose_backwards(self, out)
     return out
   
   @property
@@ -185,17 +179,17 @@ class tensor:
       new_shape = tuple(new_shape)
     
     out = tensor(reshape(self.data, new_shape), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ),  "<ReshapeBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<ReshapeBackwards>", Backward.reshape_backwards(self, out, new_shape)
     return out
   
   def transpose(self) -> List["tensor"]:
     out = tensor(transpose(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<TransposeBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<TransposeBackwards>", Backward.transpose_backwards(self, out)
     return out
   
   def swapaxes(self, dim0:int, dim1:int) -> List["tensor"]:
     out = tensor(swap_axes(self.data, dim0, dim1), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<TransposeBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<TransposeBackwards>", Backward.swapaxes_backwards(self, out, dim0, dim1)
     return out
   
   def flatten(self, start_dim:int, end_dim:int) -> List["tensor"]:
@@ -318,8 +312,9 @@ class tensor:
   def __matmul__(self, other) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
 
-    if self.size == other.size:
-      out, self.grad, other.grad = matmul(self.data, other.data, self.grad, other.grad)
+    if self.size[-1] == other.size[-2]:
+      # out, self.grad, other.grad = matmul(self.data, other.data, self.grad, other.grad)
+      out = matmul(self.data, other.data)
       out = tensor(out, dtype=self.dtype, requires_grad=self.requires_grad)
       out.prev, out.grad_fn, out._backward = (self, other), "<MatmulBackwards>", Backward.matmul_backwards(out, self, other)
     else:
@@ -422,6 +417,7 @@ class tensor:
         topo.append(v)
     build_topo(self)
 
-    self.grad = _ones(self.shape)
+    self.grad = grads(data=_ones(self.shape), shape=None)
+    print("final: ", self)
     for node in reversed(topo):
       node._backward()

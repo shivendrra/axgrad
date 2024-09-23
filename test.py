@@ -22,12 +22,18 @@ a, b = tensor(randn(shape=(2, 4))), tensor(randn(shape=(2, 4)))
 
 print(a)
 print(b)
-print(a.grad)
-print(b.grad)
+# print(a.grad)
+# print(b.grad)
 
 c = a + b
 d = c * a
-d.backward()
+e = d.transpose()
+g = e * b.transpose()
+e.backward()
 
-print(a.grad)
-print(b.grad)
+print("a-grad: ", a.grad)
+print("b-grad:", b.grad)
+print(c.grad)
+print(d.grad)
+print(e.grad)
+print(g.grad)

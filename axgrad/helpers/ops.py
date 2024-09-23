@@ -66,23 +66,47 @@ def sum_axis(data, axis, keepdims):
     mean_vals = [mean_vals]
   return mean_vals
 
-def matmul(A, B, self_grad, other_grad):
+# def matmul(A, B, self_grad, other_grad):
+#   def matmul_2d(A, B):
+#     assert len(A[0]) == len(B), "Incompatible dimensions for matrix multiplication"
+#     result = [[0] * len(B[0]) for _ in range(len(A))]
+#     for i in range(len(A)):
+#       for j in range(len(B[0])):
+#         for k in range(len(B)):
+#           result[i][j] += A[i][k] * B[k][j]
+#     return result
+
+#   if len(get_shape(A)) == 2 and len(get_shape(B)) == 2:
+#     return matmul_2d(A, B)
+#   target_shape, _ = broadcast_shape(get_shape(A), get_shape(B), ops="<MATMUL>")
+#   A, B, self_grad, other_grad = broadcast(A, target_shape), broadcast(B, target_shape), broadcast(self_grad, target_shape), broadcast(other_grad, target_shape)
+#   if len(get_shape(A)) > 2 or len(get_shape(B)) > 2:
+#     return [matmul(a, b) for a, b in zip(A, B)]
+#   return matmul_2d(A, B), self_grad, other_grad
+
+def matmul(A, B):
   def matmul_2d(A, B):
     assert len(A[0]) == len(B), "Incompatible dimensions for matrix multiplication"
     result = [[0] * len(B[0]) for _ in range(len(A))]
+
     for i in range(len(A)):
       for j in range(len(B[0])):
         for k in range(len(B)):
           result[i][j] += A[i][k] * B[k][j]
+          
     return result
 
   if len(get_shape(A)) == 2 and len(get_shape(B)) == 2:
     return matmul_2d(A, B)
+
   target_shape, _ = broadcast_shape(get_shape(A), get_shape(B), ops="<MATMUL>")
-  A, B, self_grad, other_grad = broadcast(A, target_shape), broadcast(B, target_shape), broadcast(self_grad, target_shape), broadcast(other_grad, target_shape)
+  A = broadcast(A, target_shape)
+  B = broadcast(B, target_shape)
+
   if len(get_shape(A)) > 2 or len(get_shape(B)) > 2:
     return [matmul(a, b) for a, b in zip(A, B)]
-  return matmul_2d(A, B), self_grad, other_grad
+  
+  return matmul_2d(A, B)
 
 def dot_product(a, b):
   def dot_product_1d(v1, v2):
