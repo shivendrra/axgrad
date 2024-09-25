@@ -103,7 +103,8 @@ def reshape(data:list, new_shape:tuple) -> list:
       shape = list(shape)
       shape[unknown_dim] = inferred_size
     return shape
-  original_size, new_shape, new_size = _shape_numel(get_shape(data)), infer_shape(new_shape, original_size), _shape_numel(new_shape)
+  original_size = _shape_numel(get_shape(data))
+  new_shape, new_size = infer_shape(new_shape, original_size), _shape_numel(new_shape)
   if original_size != new_size:
     raise ValueError(f"Cannot reshape array of size {original_size} to shape {new_shape}")
   flat_data = flatten(data)

@@ -5,7 +5,9 @@ a, b = tensor(randn(shape=(2, 4))), tensor(randn(shape=(2, 4)))
 c = a + b
 d = c * a
 e = d.transpose()
-g = e.gelu()
+f = e.gelu()
+g = f.sum()
+
 g.backward()
 
 print("a:\ndata:", a ,"grad: ", a.grad, "\n")

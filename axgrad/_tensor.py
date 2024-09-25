@@ -131,7 +131,7 @@ class tensor:
   @property
   def F(self) -> List["tensor"]:
     out = tensor(flatten(self.data), self.requires_grad, self.dtype)
-    out.prev, out.grad, out.grad_fn = (self, ), flatten(self.grad), "<FlattenBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<FlattenBackwards>", Backward.flatten_backwards(self, out, None, None)
     return out
 
   def is_contiguous(self) -> bool:
@@ -169,7 +169,7 @@ class tensor:
     if total_elements != self.numel:
       raise ValueError("Total elements in new shape must match the number of elements in the original tensor")
     out = tensor(reshape(self.data, new_shape), requires_grad=self.requires_grad, dtype=self.dtype)
-    out.prev, out.grad_fn = (self, ), "<ViewBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<ViewBackwards>", Backward.view_backwards(self, out, self.shape)
     return out
 
   def reshape(self, *new_shape:Union[int, list, tuple]) -> List["tensor"]:
@@ -194,13 +194,13 @@ class tensor:
   
   def flatten(self, start_dim:int, end_dim:int) -> List["tensor"]:
     out = tensor(flatten_recursive(self.data, start_dim, end_dim), self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<FlattenBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<FlattenBackwards>", Backward.flatten_backwards(self, out, start_dim, end_dim)
     return out
   
   def unsqueeze(self, dim:int=0):
     dim = dim if dim > 0 else self.ndim + dim
     out = tensor(unsqueeze(self.data, dim), dtype=self.dtype, requires_grad=self.requires_grad)
-    out.prev, out.grad_fn = (self, ), "<UnsqueezeBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<UnsqueezeBackwards>", Backward.unsqeeze_backwards(self, out, dim)
     return out
   
   def squeeze(self, dim:int=0):
@@ -208,7 +208,7 @@ class tensor:
       raise IndexError(f"Dimension out of range (expected to be in range of {self.ndim} dimensions)")
     dim = dim if dim > 0 else self.ndim + dim
     out = tensor(squeeze(self.data, dim), dtype=self.dtype, requires_grad=self.requires_grad)
-    out.prev, out.grad_fn = (self, ), "<SqueezeBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<SqueezeBackwards>", Backward.sqeeze_backwards(self, out, dim)
     return out
   
   def sum(self, axis:Optional[int]=None, keepdims:bool=False):
@@ -216,13 +216,14 @@ class tensor:
       if keepdims:
         out = [[sum(flatten(self.data))]]
       else:
-        out = sum(flatten(self.data))
+        out = [sum(flatten(self.data))]
     elif axis == 0:
       out = sum_axis0(self.data)
     else:
       out = sum_axis(self.data, axis, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<SumBackwards>"
+    out.is_scalar = True if out.shape == [1] else False
+    out.prev, out.grad_fn, out._backward = (self, ), "<SumBackwards>", Backward.sum_backwards(out, self, axis, keepdims)
     return out
   
   def dot(self, other:List["tensor"]) -> List["tensor"]:
@@ -409,6 +410,8 @@ class tensor:
   def backward(self):
     if self.requires_grad == False:
       raise ValueError(f"tensor have ``requires_grad`` set to False, if you want to calculate grad, consider setting it to True in the inital tensor")
+    if self.is_scalar == False:
+      raise ValueError(f"Grads can be computed only via scalar value, this value isn't a scalar")
     topo, visited = [], set()
     def build_topo(v):
       if v not in visited:

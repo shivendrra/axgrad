@@ -9,7 +9,7 @@
 from typing import Literal, Callable
 from ..helpers.functionals import *
 from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__
-from .functions.uniary_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__
+from .functions.uniary_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SUM__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__
 from .functions.activations import __GELU__, __RELU__, __SIGMOID__, __SILU__, __TANH__, __LRELU__
 from ..helpers.shape import *
 
@@ -32,6 +32,10 @@ class Backward:
     return _back
 
   ## unary ops backwards:
+  def sum_backwards(out: Literal["tensor"], first: Literal["tensor"], axis: Optional[int], keepdims: bool) -> Callable:
+    _back = __SUM__(first, out, axis, keepdims)
+    return _back
+
   def transpose_backwards(first:Literal["tensor"], out:Literal["tensor"]) -> Callable:
     _back = __TRANSPOSE__(first, out)
     return _back
@@ -44,6 +48,22 @@ class Backward:
     _back = __RESHAPE__(first, out, new_shape)
     return _back
   
+  def view_backwards(first, out, original_shape) -> Callable:
+    _back = __VIEW__(first, out, original_shape)
+    return _back
+  
+  def unsqeeze_backwards(first, out, dim) -> Callable:
+    _back = __UNSQUEEZE__(first, out, dim)
+    return _back
+
+  def sqeeze_backwards(first, out, dim) -> Callable:
+    _back = __SQUEEZE__(first, out, dim)
+    return _back
+
+  def flatten_backwards(first, out, startdim, enddim) -> Callable:
+    _back = __FLATTEN__(first, out, startdim, enddim)
+    return _back
+
   ## activation functions backwards:
   def relu_backwards(first, out) -> Callable:
     _back = __RELU__(first, out)
