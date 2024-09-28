@@ -8,6 +8,7 @@
 
 from collections import OrderedDict
 from ._parameters import Parameter
+import pickle
 
 class Module:
   def __init__(self) -> None: super().__init__(); self._modules, self._params, self._grads, self.training = OrderedDict(), OrderedDict(), OrderedDict(), True
@@ -43,3 +44,37 @@ class Module:
       module_str += '  (' + key + '): Parameters: ' + str(param.tolist()) + '\n'
     module_str += ')'
     return module_str
+  
+  def train(self):
+    self.training = True
+    for param in self.parameters():
+      param.requires_grad = True
+  
+  def eval(self):
+    self.training = True
+    for param in self.parameters():
+      param.requires_grad = False
+
+  def save_dict(self):
+    state = OrderedDict()
+    for name, param in self._params.items():
+      state[name] = param.tolist()
+    for name, module in self._modules.items():
+      state[name] = module.save_dict()
+    return state
+
+  def save(self, filename='model.pickle'):
+    with open(filename, 'wb') as f:
+      pickle.dump(self.save_dict(), f)
+
+  def load(self, filename='model.pickle'):
+    with open(filename, 'rb') as f:
+      state = pickle.load(f)
+    self.load_dict(state)
+
+  def load_dict(self, state):
+    for name, value in state.items():
+      if isinstance(value, dict):
+        self._modules[name].load_dict(value)
+      else:
+        self._params[name].data = value
