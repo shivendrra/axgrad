@@ -1,33 +1,21 @@
+"""
+  @nn/_module.py main module file for all nn blocks
+  @brief main parent class for manipulating, storing all the parameters & nn building classes/functions
+  @comments:
+  - works like torch.nn.Module
+  - can be used to inherit to build new nn blocks
+"""
+
 from collections import OrderedDict
-from .parameters import Parameter
+from ._parameters import Parameter
 import pickle
 
 class Module:
-  def __init__(self) -> None:
-    super().__init__()
-    self._modules = OrderedDict()
-    self._params = OrderedDict()
-    self._grads = OrderedDict()
-    self.training = True
-  
-  def forward(self, *inputs, **kwargs):
-    raise NotImplementedError("forward not written")
-  
-  def __call__(self, *inputs, **kwargs):
-    return self.forward(*inputs, **kwargs)
-  
-  def train(self):
-    self.training = True
-    for param in self.parameters():
-      param.requires_grad = True
-  
-  def eval(self):
-    self.training = True
-    for param in self.parameters():
-      param.requires_grad = False
-  
-  def modules(self):
-    yield from self._modules.values()
+  def __init__(self) -> None: super().__init__(); self._modules, self._params, self._grads, self.training = OrderedDict(), OrderedDict(), OrderedDict(), True
+  def forward(self, *inputs, **kwargs): raise NotImplementedError("forward not written")  
+  def __call__(self, *inputs, **kwargs): return self.forward(*inputs, **kwargs)
+  def modules(self): yield from self._modules.values()
+  def n_param(self): return sum(param.numel() for param in self.parameters())
 
   def zero_grad(self):
     for param in self.parameters():
@@ -57,11 +45,15 @@ class Module:
     module_str += ')'
     return module_str
   
-  def n_param(self):
-    total = 0
+  def train(self):
+    self.training = True
     for param in self.parameters():
-      total += param.numel()
-    return total
+      param.requires_grad = True
+  
+  def eval(self):
+    self.training = True
+    for param in self.parameters():
+      param.requires_grad = False
 
   def save_dict(self):
     state = OrderedDict()

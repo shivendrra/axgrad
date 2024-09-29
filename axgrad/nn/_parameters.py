@@ -1,5 +1,11 @@
-from ..tensor import tensor
-from ..helpers.utils import _randn
+"""
+  @nn/_paramters.py generates parameter for nn blocks
+  @brief inputs a tensor and converts it into a axgrad.tensor with ``requires_grad = true``
+  @comments:
+  - none...
+"""
+
+from .._tensor import tensor
 from ..helpers.shape import flatten
 
 class Parameter(tensor):
@@ -8,7 +14,7 @@ class Parameter(tensor):
     super().__init__(data, dtype='float32', requires_grad=True)
   
   def zero_grad(self) -> None:
-    self.grad = 0
+    self.grad = None
   
   def tolist(self) -> list:
     return super().tolist()

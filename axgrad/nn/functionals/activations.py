@@ -1,7 +1,7 @@
+from ..._tensor import tensor
+from ...autograd._backward import Backward
+from .._module import Module
 from ...helpers.functionals import *
-from ...autograd._backward import *
-from ...tensor import tensor
-from ..module import Module
 
 class ReLU(Module):
   def __init__(self, inplace=False):
@@ -9,22 +9,14 @@ class ReLU(Module):
     self.inplace = inplace
 
   def forward(self, x:tensor):
-    def _apply(x):
-      if isinstance(x, list):
-        return [_apply(d) for d in x]
-      else:
-        return relu(x)
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else relu(data)
     if self.inplace:
-      x.data = _apply(x.data)
-      x.prev = (self, )
-      x.grad_fn = "<ReluBackward>"
-      x._backward = backward.relu_back(x, x)
+      x.data, x.prev, x.grad_fn, x._backward = _apply(x.data), (self, ), "<ReluBackwards>", Backward.relu_backwards(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), requires_grad=True, dtype='float32')
-      out.prev = (self, )
-      out.grad_fn = "<ReluBackward>"
-      out._backward = backward.relu_back(x, out)
+      out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+      out.prev, out.grad_fn, out._backward = (self, ), "<ReluBackward>", Backward.relu_backwards(self, out)
       return out
 
   def __call__(self, x:tensor):
@@ -40,22 +32,14 @@ class Tanh(Module):
     self.inplace = inplace
 
   def forward(self, x:tensor):
-    def _apply(x):
-      if isinstance(x, list):
-        return [_apply(d) for d in x]
-      else:
-        return tanh(x)
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else tanh(data)
     if self.inplace:
-      x.data = _apply(x.data)
-      x.prev = (self, )
-      x.grad_fn = "<TanhBackward>"
-      x._backward = backward.tanh_back(x, x)
+      x.data, x.prev, x.grad_fn, x._backward = _apply(x.data), (self, ), "<TanhBackwards>", Backward.tanh_backwards(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), requires_grad=True, dtype='float32')
-      out.prev = (self, )
-      out.grad_fn = "<TanhBackward>"
-      out._backward = backward.tanh_back(x, out)
+      out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+      out.prev, out.grad_fn, out._backward = (self, ), "<TanhBackward>", Backward.tanh_backwards(self, out)
       return out
 
   def __call__(self, x:tensor):
@@ -71,22 +55,14 @@ class Sigmoid(Module):
     self.inplace = inplace
 
   def forward(self, x:tensor):
-    def _apply(x):
-      if isinstance(x, list):
-        return [_apply(d) for d in x]
-      else:
-        return sigmoid(x)
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else sigmoid(data)
     if self.inplace:
-      x.data = _apply(x.data)
-      x.prev = (self, )
-      x.grad_fn = "<SigmoidBackward>"
-      x._backward = backward.sigmoid_back(x, x)
+      x.data, x.prev, x.grad_fn, x._backward = _apply(x.data), (self, ), "<SigmoidBackwards>", Backward.sigmoid_backwards(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), requires_grad=True, dtype='float32')
-      out.prev = (self, )
-      out.grad_fn = "<SigmoidBackward>"
-      out._backward = backward.sigmoid_back(x, out)
+      out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+      out.prev, out.grad_fn, out._backward = (self, ), "<SigmoidBackward>", Backward.sigmoid_backwards(self, out)
       return out
 
   def __call__(self, x:tensor):
@@ -96,28 +72,20 @@ class Sigmoid(Module):
   def __repr__(self):
     return f"<Sigmoid(inplace={self.inplace})>"
 
-class GELU(Module):
+class ReLU(Module):
   def __init__(self, inplace=False):
     super().__init__()
     self.inplace = inplace
 
   def forward(self, x:tensor):
-    def _apply(x):
-      if isinstance(x, list):
-        return [_apply(d) for d in x]
-      else:
-        return gelu(x)
+    def _apply(data):
+      return [_apply(d) for d in data] if isinstance(data, list) else gelu(data)
     if self.inplace:
-      x.data = _apply(x.data)
-      x.prev = (self, )
-      x.grad_fn = "<GeluBackward>"
-      x._backward = backward.gelu_back(x, x)
+      x.data, x.prev, x.grad_fn, x._backward = _apply(x.data), (self, ), "<ReluBackwards>", Backward.gelu_backwards(x, x)
       return x
     else:
-      out = tensor(_apply(x.data), requires_grad=True, dtype='float32')
-      out.prev = (self, )
-      out.grad_fn = "<GeluBackward>"
-      out._backward = backward.gelu_back(x, out)
+      out = tensor(_apply(self.data), self.requires_grad, self.dtype)
+      out.prev, out.grad_fn, out._backward = (self, ), "<GeluBackward>", Backward.gelu_backwards(self, out)
       return out
 
   def __call__(self, x:tensor):
@@ -125,7 +93,7 @@ class GELU(Module):
     return self.forward(x)
   
   def __repr__(self):
-    return f"<GELU(inplace={self.inplace})>"
+    return f"<Gelu(inplace={self.inplace})>"
 
 class LeakyRELU(Module):
   def __init__(self, inplace=False):
@@ -142,13 +110,13 @@ class LeakyRELU(Module):
       x.data = _apply(x.data)
       x.prev = (self, )
       x.grad_fn = "<LeakyReluBackward>"
-      x._backward = backward.leaky_r_back(x, x)
+      x._backward = Backward.lrelu_backwards(x, x)
       return x
     else:
       out = tensor(_apply(x.data), requires_grad=True, dtype='float32')
       out.prev = (self, )
       out.grad_fn = "<LeakyReluBackward>"
-      out._backward = backward.leaky_r_back(x, out)
+      out._backward = Backward.lrelu_backwards(x, out)
       return out
 
   def __call__(self, x:tensor):
@@ -173,13 +141,13 @@ class SiLU(Module):
       x.data = _apply(x.data)
       x.prev = (self, )
       x.grad_fn = "<SiluBackward>"
-      x._backward = backward.silu_back(x, x)
+      x._backward = Backward.silu_backwards(x, x)
       return x
     else:
       out = tensor(_apply(x.data), requires_grad=True, dtype='float32')
       out.prev = (self, )
       out.grad_fn = "<SiluBackward>"
-      out._backward = backward.silu_back(x, out)
+      out._backward = Backward.silu_backwards(x, out)
       return out
 
   def __call__(self, x:tensor):

@@ -54,8 +54,5 @@ void convert_dtype(const void* data, void* result, const char* dtype) {
 }
 
 void handle_conversion(const void* data, void* result, const char* dtype) {
-    // Assuming data is a flattened array of elements
-    // This function needs to recursively convert data
-    // For simplicity, we'll assume the data is a 1D array
   convert_dtype(data, result, dtype);
 }
