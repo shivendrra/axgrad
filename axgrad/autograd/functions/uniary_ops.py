@@ -2,50 +2,31 @@ from typing import Callable
 from ...helpers.shape import *
 from ...helpers.utils import _ones, _ones_like
 
-class __TRANSPOSE__:
-  def __init__(self, first, out) -> None: self.first, self.out = first, out
-  def __call__(self) -> Callable:
-    self.first.grad.data = transpose(self.out.grad.data)
-    return self.__call__
+def elementwise_mul(a, b):
+  if isinstance(a, list) and isinstance(b, list):
+    return [elementwise_mul(a_elem, b_elem) for a_elem, b_elem in zip(a, b)]
+  elif isinstance(a, list) and isinstance(b, (int, float)):
+    return [elementwise_mul(a_elem, b) for a_elem in a]
+  elif isinstance(a, (int, float)) and isinstance(b, list):
+    return [elementwise_mul(a, b_elem) for b_elem in b]
+  else:
+    return a * b
 
-class __RESHAPE__:
-  def __init__(self, first, out, new_shape) -> None: self.first, self.out, self.new_shape = first, out, new_shape
-  def __call__(self) -> Callable:
-    self.first.grad.data = reshape(self.out.grad.data, self.new_shape)
-    return self.__call__
+def elementwise_sub(a, b):
+  if isinstance(a, list) and isinstance(b, list):
+    return [elementwise_sub(a_elem, b_elem) for a_elem, b_elem in zip(a, b)]
+  elif isinstance(a, list) and isinstance(b, (int, float)):
+    return [elementwise_sub(a_elem, b) for a_elem in a]
+  elif isinstance(a, (int, float)) and isinstance(b, list):
+    return [elementwise_sub(a, b_elem) for b_elem in b]
+  else:
+    return a - b
 
-class __UNSQUEEZE__:
-  def __init__(self, first, out, dim) -> None: self.out, self.first, self.dim = out, first, dim
-  def __call__(self) -> Callable:
-    self.first.grad.data = unsqueeze(self.out.grad.data, self.dim)
-    return self.__call__
-
-class __SQUEEZE__:
-  def __init__(self, first, out, dim) -> None: self.out, self.first, self.dim = out, first, dim
-  def __call__(self) -> Callable:
-    self.first.grad.data = squeeze(self.out.grad.data, self.dim)
-    return self.__call__
-
-class __FLATTEN__:
-  def __init__(self, first, out, startdim=None, enddim=None) -> None: self.first, self.out, self.startdim, self.enddim = first, out, startdim, enddim
-  def __call__(self) -> Callable:
-    if self.startdim == None and self.enddim == None:
-      self.first.grad.data = flatten(self.out.grad.data)
-    else: self.first.grad.data = flatten_recursive(self.out.grad.data, self.startdim, self.enddim)
-    return self.__call__
-
-class __SWAPAXES__:
-  def __init__(self, first, out, axis1, axis2) -> None: self.first, self.out, self.axis1, self.axis2 = first, out, axis1, axis2
-  def __call__(self) -> Callable:
-    self.first.grad.data = swap_axes(self.out.grad.data, self.axis1, self.axis2)
-    return self.__call__
-
-class __VIEW__:
-  def __init__(self, first, out, original_shape) -> None: self.first, self.out, self.original_shape = first, out, original_shape
-  def __call__(self) -> Callable:
-    reshaped_grad = reshape(self.out.grad.data, self.original_shape)
-    self.first.grad.data = reshaped_grad
-    return self.__call__
+def _div_scalar(tensor, scalar):
+  if isinstance(tensor, list):
+    return [_div_scalar(elem, scalar) for elem in tensor]
+  else:
+    return tensor / scalar
 
 class __SUM__:
   def __init__(self, first, out, axis=None, keepdims=False) -> None: self.first, self.out, self.axis, self.keepdims = first, out, axis, keepdims
@@ -66,8 +47,78 @@ class __SUM__:
     self.first.grad.data = reshape(mul_grad(expanded_grad, self.out.grad.data), tuple(grad_shape))
     return self.__call__
 
-class __BROADCAST__:
-  def __init__(self, first, out, new_shape) -> None: self.first, self.out, self.new_shape = first, out, new_shape
+class __MEAN__:
+  def __init__(self, first, out, axis=None, keepdims=False) -> None: self.first, self.out, self.axis, self.keepdims = first, out, axis, keepdims
   def __call__(self) -> Callable:
-    self.first.grad.data = broadcast(self.out.grad.data, self.new_shape)
+    grad_shape = get_shape(self.first.data)
+    if self.axis is None:
+      grad_broadcast = _ones_like(self.first.data)
+      factor = self.first.numel
+    else:
+      if not self.keepdims:
+        new_shape = list(grad_shape)
+        new_shape[self.axis] = 1
+        grad_broadcast = _ones(new_shape)
+      else:
+        grad_broadcast = _ones_like(self.out.grad.data)
+
+      factor = grad_shape[self.axis]
+    scaled_grad = _div_scalar(grad_broadcast, factor)
+    expanded_grad = broadcast(scaled_grad, grad_shape)
+    self.first.grad.data = elementwise_mul(expanded_grad, self.out.grad.data)
+    return self.__call__
+
+class __VAR__:
+  def __init__(self, first, out, axis=None, ddof=0, keepdims=False) -> None: self.first, self.out, self.axis, self.ddof, self.keepdims = first, out, axis, 0, keepdims
+  def __call__(self) -> Callable:
+    N = self.first.numel if self.axis is None else get_shape(self.first.data)[self.axis]
+    grad_shape = get_shape(self.first.data)
+
+    if self.axis is None:
+      grad_broadcast = _ones_like(self.first.data)
+    else:
+      if not self.keepdims:
+        new_shape = list(grad_shape)
+        new_shape[self.axis] = 1
+        grad_broadcast = _ones(new_shape)
+      else:
+        grad_broadcast = _ones_like(self.out.grad.data)
+    mean_val = self.first.mean(self.axis, keepdims=True).data
+    mean_broadcast = broadcast(mean_val, grad_shape)
+
+    scaled_grad = _div_scalar(grad_broadcast, N - self.ddof)
+    expanded_grad = broadcast(scaled_grad, grad_shape)
+    diff = elementwise_sub(self.first.data, mean_broadcast)
+    grad_contrib = elementwise_mul(2 * diff, expanded_grad)
+    self.first.grad.data = elementwise_mul(grad_contrib, self.out.grad.data)
+    return self.__call__
+
+class __STD__:
+  def __init__(self, first, out, axis=None, ddof=0, keepdims=False) -> None: self.first, self.out, self.axis, self.ddof, self.keepdims = first, out, axis, 0, keepdims
+  def __call__(self) -> Callable:
+    N = self.first.numel if self.axis is None else get_shape(self.first.data)[self.axis]
+    grad_shape = get_shape(self.first.data)
+
+    if self.axis is None:
+      grad_broadcast = _ones_like(self.first.data)
+    else:
+      if not self.keepdims:
+        new_shape = list(grad_shape)
+        new_shape[self.axis] = 1
+        grad_broadcast = _ones(new_shape)
+      else:
+        grad_broadcast = _ones_like(self.out.grad.data)
+    mean_val = self.first.mean(self.axis, keepdims=True).data
+    mean_broadcast = broadcast(mean_val, grad_shape)
+    scaled_grad = _div_scalar(grad_broadcast, N - self.ddof)
+    expanded_grad = broadcast(scaled_grad, grad_shape)
+    diff = elementwise_sub(self.first.data, mean_broadcast)
+    grad_contrib = elementwise_mul(2 * diff, expanded_grad)
+
+    # Chain rule: std = sqrt(var) => dstd/dx = (1 / (2 * std)) * dvar/dx
+    std_val = self.out.data
+    std_broadcast = broadcast(std_val, grad_shape)
+    std_grad_contrib = _div_scalar(grad_contrib, 2 * std_broadcast)
+    self.first.grad.data = elementwise_mul(std_grad_contrib, self.out.grad.data)
+    
     return self.__call__

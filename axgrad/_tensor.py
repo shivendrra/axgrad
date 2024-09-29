@@ -255,7 +255,7 @@ class tensor:
     else:
       out = mean_axis(self.data, axis, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<MeanBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<MeanBackwards>", Backward.mean_backwards(out, self, axis, keepdims)
     return out
   
   def var(self, axis:Optional[int]=None, ddof:int=0, keepdims:bool=False) -> List["tensor"]:
@@ -272,7 +272,7 @@ class tensor:
       mean_val = self.mean(axis=axis).data
       out = var_axis(self.data, mean_val, axis, ddof, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.grad_fn = (self, ), "<VarBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<VarBackwards>", Backward.var_backwards(out, self, axis, ddof, keepdims)
     return out
   
   def std(self, axis:Optional[int]=None, ddof:int=0, keepdims:bool=False) -> List["tensor"]:
@@ -286,7 +286,7 @@ class tensor:
     else:
       out = _std(variance)
     out = tensor(out, self.requires_grad, self.dtype)
-    out.prev, out.requires_grad = (self, ), "<StdBackwards>"
+    out.prev, out.grad_fn, out._backward = (self, ), "<StdBackwards>", Backward.std_backwards(out, self, axis, ddof, keepdims)
     return out
 
   def __add__(self, other) -> List["tensor"]:

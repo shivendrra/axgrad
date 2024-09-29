@@ -9,7 +9,8 @@
 from typing import Literal, Callable
 from ..helpers.functionals import *
 from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__
-from .functions.uniary_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SUM__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
+from .functions.shape_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
+from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__
 from .functions.activations import __GELU__, __RELU__, __SIGMOID__, __SILU__, __TANH__, __LRELU__
 from ..helpers.shape import *
 
@@ -36,6 +37,19 @@ class Backward:
     _back = __SUM__(first, out, axis, keepdims)
     return _back
 
+  def mean_backwards(out: Literal["tensor"], first: Literal["tensor"], axis: Optional[int], keepdims: bool) -> Callable:
+    _back = __MEAN__(first, out, axis, keepdims)
+    return _back
+
+  def var_backwards(out: Literal["tensor"], first: Literal["tensor"], axis: Optional[int], ddof:int, keepdims: bool) -> Callable:
+    _back = __VAR__(first, out, axis, ddof, keepdims)
+    return _back
+  
+  def std_backwards(out: Literal["tensor"], first: Literal["tensor"], axis: Optional[int], ddof:int, keepdims: bool) -> Callable:
+    _back = __STD__(first, out, axis, ddof, keepdims)
+    return _back
+
+  ## shape ops backwards:
   def transpose_backwards(first:Literal["tensor"], out:Literal["tensor"]) -> Callable:
     _back = __TRANSPOSE__(first, out)
     return _back
