@@ -65,3 +65,9 @@ class __SUM__:
       return [grad[0] * item for item in flatten]
     self.first.grad.data = reshape(mul_grad(expanded_grad, self.out.grad.data), tuple(grad_shape))
     return self.__call__
+
+class __BROADCAST__:
+  def __init__(self, first, out, new_shape) -> None: self.first, self.out, self.new_shape = first, out, new_shape
+  def __call__(self) -> Callable:
+    self.first.grad.data = broadcast(self.out.grad.data, self.new_shape)
+    return self.__call__

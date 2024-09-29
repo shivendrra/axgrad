@@ -211,6 +211,15 @@ class tensor:
     out.prev, out.grad_fn, out._backward = (self, ), "<SqueezeBackwards>", Backward.sqeeze_backwards(self, out, dim)
     return out
   
+  def broadcast(self, other):
+    other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
+    new_shape, needs_broadcasting = broadcast_shape(self.shape, other.shape, ops=None)
+    if needs_broadcasting:
+      out = tensor(broadcast(other.data, new_shape), other.requires_grad, other.dtype)
+      out.prev, out.grad_fn, out._backward = (self, ), "<BroadcastBackwards>", Backward.broadcast_backwards(self, out, new_shape)
+      return out
+    else: None
+
   def sum(self, axis:Optional[int]=None, keepdims:bool=False):
     if axis == None:
       if keepdims:

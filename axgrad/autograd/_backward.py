@@ -9,7 +9,7 @@
 from typing import Literal, Callable
 from ..helpers.functionals import *
 from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__
-from .functions.uniary_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SUM__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__
+from .functions.uniary_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SUM__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
 from .functions.activations import __GELU__, __RELU__, __SIGMOID__, __SILU__, __TANH__, __LRELU__
 from ..helpers.shape import *
 
@@ -62,6 +62,10 @@ class Backward:
 
   def flatten_backwards(first, out, startdim, enddim) -> Callable:
     _back = __FLATTEN__(first, out, startdim, enddim)
+    return _back
+  
+  def broadcast_backwards(first, out, new_shape) -> Callable:
+    _back = __BROADCAST__(first, out, new_shape)
     return _back
 
   ## activation functions backwards:
