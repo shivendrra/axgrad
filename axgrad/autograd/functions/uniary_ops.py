@@ -122,3 +122,49 @@ class __STD__:
     self.first.grad.data = elementwise_mul(std_grad_contrib, self.out.grad.data)
     
     return self.__call__
+
+class __SQRT__:
+  def __init__(self, first, out) -> None:
+    self.first, self.out = first, out
+
+  def backward(self, grad, out):
+    if not isinstance(grad, list):
+      # Gradient for sqrt: 0.5 * (x ** -0.5)
+      grad += (0.5 * (out ** -1)) * out
+      return grad
+    return [self.backward(g, og) for g, og in zip(grad, out)]
+
+  def __call__(self):
+    self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
+    return self.__call__
+
+
+class __EXP__:
+  def __init__(self, first, out) -> None:
+    self.first, self.out = first, out
+
+  def backward(self, grad, out):
+    if not isinstance(grad, list):
+      grad += out * out
+      return grad
+    return [self.backward(g, og) for g, og in zip(grad, out)]
+
+  def __call__(self):
+    self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
+    return self.__call__
+
+
+class __RSQRT__:
+  def __init__(self, first, out) -> None:
+    self.first, self.out = first, out
+
+  def backward(self, grad, out):
+    if not isinstance(grad, list):
+      # Gradient for rsqrt: -0.5 * x^(-1.5)
+      grad += (-0.5 * (out ** -1.5)) * out
+      return grad
+    return [self.backward(g, og) for g, og in zip(grad, out)]
+
+  def __call__(self):
+    self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
+    return self.__call__

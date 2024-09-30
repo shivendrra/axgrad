@@ -10,7 +10,7 @@ from typing import Literal, Callable
 from ..helpers.functionals import *
 from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__
 from .functions.shape_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
-from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__
+from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__, __EXP__, __RSQRT__, __SQRT__
 from .functions.activations import __GELU__, __RELU__, __SIGMOID__, __SILU__, __TANH__, __LRELU__
 from ..helpers.shape import *
 
@@ -26,6 +26,18 @@ class Backward:
   
   def pow_backwards(out:Literal["tensor"], first:Literal["tensor"], power:Union[int, float]) -> Callable:
     _back = __POW__(first, out, power)
+    return _back
+
+  def exp_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __EXP__(first, out)
+    return _back
+  
+  def rsqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __RSQRT__(first, out)
+    return _back
+  
+  def sqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __SQRT__(first, out)
     return _back
 
   def matmul_backwards(out:Literal["tensor"], first:Literal["tensor"], second:Literal["tensor"]) -> Callable:
