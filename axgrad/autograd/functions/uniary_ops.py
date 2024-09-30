@@ -138,6 +138,17 @@ class __SQRT__:
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
     return self.__call__
 
+class __CLIP__:
+  def __init__(self, first, out, _min, _max) -> None: self.first, self.out, self._max, self._min = first, out, _max, _min
+
+  def backward(self, grad, input_data, _min, _max):
+    if isinstance(grad, list):
+      return [self.backward(g, idata, _min, _max) for g, idata in zip(grad, input_data)]
+    return grad if _min <= input_data <= _max else 0.0
+
+  def __call__(self):
+    self.first.grad.data = self.backward(self.out.grad.data, self.out.data, self._min, self._max)
+    return self.__call__
 
 class __EXP__:
   def __init__(self, first, out) -> None:
@@ -152,7 +163,6 @@ class __EXP__:
   def __call__(self):
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
     return self.__call__
-
 
 class __RSQRT__:
   def __init__(self, first, out) -> None:

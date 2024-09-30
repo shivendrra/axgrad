@@ -214,6 +214,16 @@ class tensor:
     out.prev, out.grad_fn, out._backward = (self, ), "<SqueezeBackwards>", Backward.sqeeze_backwards(self, out, dim)
     return out
   
+  def clip(self, _min, _max) -> List["tensor"]:
+    def _clip(data, min_value, max_value):
+      if isinstance(data, list):
+        return [_clip(d, min_value, max_value) for d in data]
+      return max(min(data, max_value), min_value)
+    
+    out = tensor(_clip(self.data, _min, _max), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<ClipBackwards>", Backward.clip_backwards(self, out, _min, _max)
+    return out
+  
   def broadcast(self, other):
     other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     new_shape, needs_broadcasting = broadcast_shape(self.shape, other.shape, ops=None)
@@ -422,9 +432,6 @@ class tensor:
     out = tensor(_apply(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<TanhBackward>", Backward.tanh_backwards(self, out)
     return out
-  
-  def pow(self, exp):
-    return self ** exp
   
   def sqrt(self, eps:float=1e-6) -> List["tensor"]:
     def _ops(data):
