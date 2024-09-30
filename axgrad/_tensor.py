@@ -34,10 +34,13 @@ class tensor:
     self._backward = lambda: None
     self.contiguous_ops = ContiguousOps(self) # creating an instance of coniguousops that works with this tensor
     self.stride = self.compute_stride(self.shape) # computing strides
-    self.is_scalar = False
+    self.is_scalar = True if self.size == (1) else False
     # only if requires_grad is true
     if requires_grad is True:
-      self.requires_grad, self.grad, self.grad_fn = requires_grad, grads(shape=(get_shape(self.data))), "<NotSet>"
+      if self.is_scalar:
+        self.grad = grads(data=[0])
+      self.grad = grads(shape=(get_shape(self.data)))
+      self.requires_grad, self.grad_fn = requires_grad, "<NotSet>"
     else:
       self.grad, self.grad_fn, self.requires_grad = None, None, False
 
@@ -211,6 +214,16 @@ class tensor:
     out.prev, out.grad_fn, out._backward = (self, ), "<SqueezeBackwards>", Backward.sqeeze_backwards(self, out, dim)
     return out
   
+  def clip(self, _min, _max) -> List["tensor"]:
+    def _clip(data, min_value, max_value):
+      if isinstance(data, list):
+        return [_clip(d, min_value, max_value) for d in data]
+      return max(min(data, max_value), min_value)
+    
+    out = tensor(_clip(self.data, _min, _max), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<ClipBackwards>", Backward.clip_backwards(self, out, _min, _max)
+    return out
+  
   def broadcast(self, other):
     other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
     new_shape, needs_broadcasting = broadcast_shape(self.shape, other.shape, ops=None)
@@ -333,15 +346,19 @@ class tensor:
   
   def __neg__(self) -> List["tensor"]:
     def _ops(data):
-      return [_ops(d) for d in data] if isinstance(data, list) else -data
+      if isinstance(data, list):
+        return [_ops(d) for d in data]
+      return - data
     out = tensor(_ops(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad_fn = (self, ), "<NegBackwards>"
 
     def neg_backward():
-      def _neg(grad, out):
-        return -out if not isinstance(grad, list) else [_neg(g, og) for g, og, in zip(grad, out)]
-      self.grad = _neg(self.grad, out.data)
-    out._backward = neg_backward
+      def _neg(grad):
+        if isinstance(grad, list):
+          return [_neg(g) for g in grad]
+        return -grad
+      self.grad = _neg(self.grad.data)
+    out._backward = neg_backward 
     return out
 
   def __radd__(self, other) -> List["tensor"]:
@@ -414,6 +431,35 @@ class tensor:
       return [_apply(d) for d in data] if isinstance(data, list) else tanh(data)
     out = tensor(_apply(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<TanhBackward>", Backward.tanh_backwards(self, out)
+    return out
+  
+  def sqrt(self, eps:float=1e-6) -> List["tensor"]:
+    def _ops(data):
+      if isinstance(data, list):
+        return [_ops(d) for d in data]
+      if data == 0:
+        data = eps
+      return math.sqrt(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<SqrtBackwards>", Backward.sqrt_backwards(out, self)
+    return out
+  
+  def exp(self) -> List["tensor"]:
+    def _ops(data):
+      return [_ops(d) for d in data] if isinstance(data, list) else math.exp(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<ExpBackwards>", Backward.exp_backwards(out, self)
+    return out
+
+  def rsqrt(self, eps:float=1e-6) -> List["tensor"]:
+    def _ops(data):
+      if isinstance(data, list):
+        return [_ops(d) for d in data]
+      if data == 0:
+        data = eps
+      return 1.0 / math.sqrt(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<RsqrtBackwards>", Backward.rsqrt_backwards(out, self)
     return out
 
   def backward(self):

@@ -1,5 +1,5 @@
-import axon
-from axon import tensor
+import axgrad
+from axgrad import tensor, randn
 
 a = [[1, -4],
      [-2, 7]]
@@ -20,4 +20,21 @@ print("pow: ", a ** 2)
 print("shape: ", a.shape)
 print("transpose", a.T)
 print("sum: ", a.sum())
-print("matmul: ", axon.matmul(a, b))
+print("matmul: ", axgrad.matmul(a, b))
+
+a, b = tensor(randn(shape=(2, 4))), tensor(randn(shape=(2, 4)))
+
+c = a + b
+d = c * a
+e = d.transpose()
+f = e.sum(axis=-1)
+g = f.sum()
+
+g.backward()
+
+print("a:\ndata:", a ,"grad: ", a.grad, "\n")
+print("b:\ndata:", b ,"grad:", b.grad, "\n")
+print("c:\ndata:", c ,"grad:", c.grad, "\n")
+print("d:\ndata:", d ,"grad: ", d.grad, "\n")
+print("e:\ndata:", e ,"grad: ", e.grad, "\n")
+print("g:\ndata:", g ,"grad: ", g.grad, "\n")

@@ -56,7 +56,7 @@ def stack(data: tuple[tensor, tensor], axis: int=0) -> tensor:
       insert_data(new_data, tensors, axis, indices + [i])
   
   insert_data(new_data, data, axis)
-  return tensor(new_data, dtype=data[0].dtype)
+  return tensor(new_data, data[0].requires_grad, dtype=data[0].dtype)
 
 def concat(data: tuple[tensor, tensor], axis: int=0) -> tensor:
   if not data:
@@ -99,7 +99,7 @@ def concat(data: tuple[tensor, tensor], axis: int=0) -> tensor:
       insert_data(new_data, tensors, axis, indices + [i])
   
   insert_data(new_data, data, axis)
-  return tensor(new_data, dtype=data[0].dtype)
+  return tensor(new_data, data[0].requires_grad, dtype=data[0].dtype)
 
 def split(data:Union[tensor, list], idx:int, axis:Optional[int]=None) -> list:
   def _get_slices(start_idx, end_idx, data):
@@ -117,7 +117,7 @@ def split(data:Union[tensor, list], idx:int, axis:Optional[int]=None) -> list:
     indices = [i*step for i in range(1, N)]
   else:
     indices = idx
-  
+
   start_idx = [0] + indices
   end_idx = indices + [len(data) if axis==0 else len(data)]
 
@@ -140,6 +140,22 @@ def var(data:Union[tensor, list], axis:Optional[int]=None, ddof:int=0, dtype:Opt
 def std(data:Union[tensor, list], axis:Optional[int]=None, ddof:int=0, dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None, keepdims:bool=False) -> Union[list, float, int]:
   data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
   return data.std(axis=axis, ddof=ddof, keepdims=keepdims)
+
+def pow(data:Union[tensor, list], exp:Union[int, float], dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> tensor:
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
+  return data ** exp
+
+def exp(data:Union[tensor, list], dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> tensor:
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
+  return data.exp()
+
+def sqrt(data:Union[tensor, list], dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> tensor:
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
+  return data.sqrt()
+
+def rsqrt(data:Union[tensor, list], dtype:Optional[Literal['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']]=None) -> tensor:
+  data = data if isinstance(data, tensor) else tensor(data, requires_grad=False, dtype=dtype)
+  return data.rsqrt()
 
 def squeeze(*data, dim:int=0) -> tensor:
   for _data in data:
