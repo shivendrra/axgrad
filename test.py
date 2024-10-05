@@ -1,9 +1,3 @@
-# X = axgrad.randn(shape=(4, 4))
-# Y = axgrad.tensor(axgrad.randn(shape=(4, 1)))
-# out = model(X)
-# loss = ((Y - out) ** 2).sum()
-# loss.backward()
-
 # class SGD:
 #   def __init__(self, parameters, lr=0.01):
 #     self.parameters = parameters
@@ -52,27 +46,14 @@ model = MLP(4, 10, 1)
 X = axgrad.tensor(axgrad.randn(shape=(4, 4)), requires_grad=True)  # Input tensor of shape (batch_size=4, features=4)
 Y = axgrad.tensor(axgrad.randn(shape=(4, 1)), requires_grad=True)  # Target tensor of shape (batch_size=4, 1)
 
-out = model.forward(X)
-print(f"Output: {out}")
-loss = ((Y - out) ** 2).sum()
-print(f"Initial loss: {loss}")
-
-loss.backward()
-
+epoch = 100
 lr = 0.01
-for param in model.parameters():
-  if param.grad is not None:
-    param.data = (param - (param.grad * lr).data).data
-
-model.zero_grad()
-
-out = model.forward(X)
-print(f"Output: {out}")
-loss = ((Y - out) ** 2).sum()
-print(f"Initial loss: {loss}")
-
-loss.backward()
-lr = 0.01
-for param in model.parameters():
-  if param.grad is not None:
-    param.data = (param - (param.grad * lr).data).data
+for n in range(epoch):
+  out = model.forward(X)
+  loss = ((Y - out) ** 2).sum() / axgrad.tensor([Y.numel], requires_grad=True)
+  model.zero_grad()
+  loss.backward()
+  for param in model.parameters():
+    if param.grad is not None:
+      param.data = (param - (param.grad * lr).data).data
+  print(f"{n+1}th step, loss: {loss.data[0]:.6f}")

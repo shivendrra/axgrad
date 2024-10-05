@@ -1,11 +1,15 @@
 import random
 
 def _zeros(shape):
+  if not shape:
+    return [0]
   if len(shape) == 1:
     return [0] * shape[0]
   return [_zeros(shape[1:]) for _ in range(shape[0])]
 
 def _ones(shape):
+  if not shape:  # If shape is empty or None, return a scalar 0 or empty list
+    return [1]
   if len(shape) == 1:
     return [1] * shape[0]
   return [_ones(shape[1:]) for _ in range(shape[0])]

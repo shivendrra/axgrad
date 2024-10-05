@@ -1,7 +1,7 @@
-from ..._tensor import tensor
-from ...autograd._backward import Backward
-from .._module import Module
-from ...helpers.functionals import *
+from .._tensor import tensor
+from ..autograd._backward import Backward
+from ._module import Module
+from ..helpers.functionals import *
 
 class ReLU(Module):
   def __init__(self, inplace=False):
