@@ -3,7 +3,7 @@
   @brief contains grad class for maintaining grads
 """
 from .helpers.utils import _zeros
-from typing import Any, Iterator
+from typing import Any, Iterator, List, Union
 
 class grads:
   def __init__(self, data=None, shape=None) -> None: self.data = data if data is not None else _zeros(shape=shape) if shape is not None else _zeros(shape=(1,1))
@@ -47,3 +47,17 @@ class grads:
     else: self.data[index] = value
 
   def __iter__(self) -> Iterator: yield from self.data
+
+  def __mul__(self, scalar):
+    def _ops(data):
+      if isinstance(data, list):
+        return [_ops(_d) for _d in data]
+      return data * scalar
+    return grads(data=_ops(self.data), shape=None)
+
+  def __sub__(self, other):
+    def _ops(data, other_data):
+      if isinstance(data, list):
+        return [_ops(_d, _od) for _d, _od in zip(data, other_data)]
+      return data - other_data
+    return grads(data=_ops(self.data, other.data), shape=None)

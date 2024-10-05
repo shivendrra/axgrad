@@ -78,3 +78,14 @@ class Module:
         self._modules[name].load_dict(value)
       else:
         self._params[name].data = value
+
+  def display_grads(self):
+    """ Display gradients for all parameters in the module. """
+    print(f"Displaying gradients for module: {self.__class__.__name__}")
+    for name, param in self._params.items():
+      grad = param.grad if param.grad is not None else "None"
+      print(f"Parameter: {name} -> Gradient: {grad}")
+      
+    for module_name, module in self._modules.items():
+      print(f"\nSubmodule: {module_name}")
+      module.display_grads()

@@ -81,11 +81,11 @@ class GELU(Module):
     def _apply(data):
       return [_apply(d) for d in data] if isinstance(data, list) else gelu(data)
     if self.inplace:
-      x.data, x.prev, x.grad_fn, x._backward = _apply(x.data), (self, ), "<TanhBackwards>", Backward.gelu_backwards(x, x)
+      x.data, x.prev, x.grad_fn, x._backward = _apply(x.data), (self, ), "<GeluBackwards>", Backward.gelu_backwards(x, x)
       return x
     else:
       out = tensor(_apply(x.data), x.requires_grad, x.dtype)
-      out.prev, out.grad_fn, out._backward = (x, ), "<TanhBackwards>", Backward.gelu_backwards(x, out)
+      out.prev, out.grad_fn, out._backward = (x, ), "<GeluBackwards>", Backward.gelu_backwards(x, out)
       return out
 
   def __call__(self, x:tensor):

@@ -7,6 +7,7 @@
 
 from .._tensor import tensor
 from ..helpers.shape import flatten
+from ..helpers.utils import _zeros
 
 class Parameter(tensor):
   def __init__(self, data) -> None:
@@ -14,7 +15,7 @@ class Parameter(tensor):
     super().__init__(data, dtype='float32', requires_grad=True)
   
   def zero_grad(self) -> None:
-    self.grad = None
+    self.grad.data = _zeros(self.shape)
   
   def tolist(self) -> list:
     return super().tolist()

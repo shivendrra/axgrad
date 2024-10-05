@@ -334,9 +334,7 @@ class tensor:
   
   def __matmul__(self, other) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
-
     if self.size[-1] == other.size[-2]:
-      # out, self.grad, other.grad = matmul(self.data, other.data, self.grad, other.grad)
       out = matmul(self.data, other.data)
       out = tensor(out, dtype=self.dtype, requires_grad=self.requires_grad)
       out.prev, out.grad_fn, out._backward = (self, other), "<MatmulBackwards>", Backward.matmul_backwards(out, self, other)
@@ -353,12 +351,13 @@ class tensor:
     out.prev, out.grad_fn = (self, ), "<NegBackwards>"
 
     def neg_backward():
-      def _neg(grad):
+      def _neg(grad, out):
         if isinstance(grad, list):
-          return [_neg(g) for g in grad]
-        return -grad
-      self.grad = _neg(self.grad.data)
-    out._backward = neg_backward 
+          return [_neg(g, og) for g, og in zip(grad, out)]
+        grad -= out
+        return grad
+      self.grad.data = _neg(self.grad.data, out.grad.data)
+    out._backward = neg_backward
     return out
 
   def __radd__(self, other) -> List["tensor"]:
