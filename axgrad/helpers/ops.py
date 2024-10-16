@@ -84,6 +84,8 @@ def sum_axis(data, axis, keepdims):
 #     return [matmul(a, b) for a, b in zip(A, B)]
 #   return matmul_2d(A, B), self_grad, other_grad
 
+def dedup(x): return list(dict.fromkeys(x))
+
 def matmul(A, B):
   def matmul_2d(A, B):
     assert len(A[0]) == len(B), "Incompatible dimensions for matrix multiplication"

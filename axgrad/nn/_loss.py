@@ -11,7 +11,7 @@ def absolute(value):
 
 class MSE:
   def __init__(self, outputs:Union[tensor, list], truth:Union[tensor, list]) -> None: self.truth, self.outputs = truth, outputs
-  def __call__(self) -> tensor[float]:
+  def __call__(self) -> tensor:
     ## mse = sum((y - y') ** 2) / total_elements
     loss = ((self.truth - self.outputs) ** 2)
     loss = loss.sum() / tensor([self.truth.numel], requires_grad=True, dtype=self.truth.dtype)
@@ -19,7 +19,7 @@ class MSE:
 
 class MAE:
   def __init__(self, outputs:Union[tensor, list], truth:Union[tensor, list]) -> None: self.truth, self.outputs = truth, outputs
-  def __call__(self) -> tensor[float]:
+  def __call__(self) -> tensor:
     ## mae = sum(|y - y'|) / total_elements
     loss = absolute((self.truth - self.outputs) ** 2)
     loss = loss.sum() / tensor([self.truth.numel], requires_grad=True, dtype=self.truth.dtype)
@@ -27,7 +27,7 @@ class MAE:
 
 class HuberLoss:
   def __init__(self, outputs: Union[tensor, list], truth: Union[tensor, list], delta: float = 1.0) -> None:self.outputs, self.truth, self.delta = outputs, truth, delta
-  def __call__(self) -> tensor[float]:
+  def __call__(self) -> tensor:
     ## loss += 0.5 * r^2
     ## loss += delta * (|r| - 0.5 * delta)
     ## loss += loss / total_elements

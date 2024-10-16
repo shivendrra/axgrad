@@ -10,7 +10,7 @@ from typing import Literal, Callable
 from ..helpers.functionals import *
 from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__
 from .functions.shape_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
-from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__, __EXP__, __RSQRT__, __SQRT__
+from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__, __EXP__, __RSQRT__, __SQRT__, __LOG__, __CLIP__
 from .functions.activations import __GELU__, __RELU__, __SIGMOID__, __SILU__, __TANH__, __LRELU__
 from ..helpers.shape import *
 
@@ -38,6 +38,10 @@ class Backward:
   
   def sqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
     _back = __SQRT__(first, out)
+    return _back
+
+  def log_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __LOG__(first, out)
     return _back
 
   def matmul_backwards(out:Literal["tensor"], first:Literal["tensor"], second:Literal["tensor"]) -> Callable:
@@ -84,6 +88,10 @@ class Backward:
 
   def sqeeze_backwards(first, out, dim) -> Callable:
     _back = __SQUEEZE__(first, out, dim)
+    return _back
+  
+  def clip_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __CLIP__(first, out)
     return _back
 
   def flatten_backwards(first, out, startdim, enddim) -> Callable:
