@@ -1,31 +1,16 @@
 import axgrad
-import axgrad.nn as nn
 
-class MLP(nn.Module):
-  def __init__(self, _in, _hid, _out, bias=False) -> None:
-    super().__init__()
-    self.layer1 = nn.Linear(_in, _hid, bias)
-    self.gelu = nn.GELU()
-    self.layer2 = nn.Linear(_hid, _out, bias)
-  
-  def forward(self, x):
-    out = self.layer1(x)
-    out = self.gelu(out)
-    out = self.layer2(out)
-    return out
+# Example usage
+t1 = axgrad.tensor([1, 2, 3], requires_grad=True)
+t2 = axgrad.tensor([4, 5, 6], requires_grad=True)
 
-model = MLP(4, 10, 1)
+stacked = axgrad.stack([t1, t2], axis=0)
+# d = stacked.tanh()
+# out = d.sum()
+# print(out)  # Should print the stacked tensor
 
-X = axgrad.tensor(axgrad.randn(shape=(4, 4)), requires_grad=True)  # Input tensor of shape (batch_size=4, features=4)
-Y = axgrad.tensor(axgrad.randn(shape=(4, 1)), requires_grad=True)  # Target tensor of shape (batch_size=4, 1)
-
-optimizer = nn.Optim.SGD(parameters=model.parameters(), lr=0.001)
-epoch = 100
-lr = 0.1
-for n in range(epoch):
-  out = model.forward(X)
-  loss = ((Y - out) ** 2).sum() / axgrad.tensor([Y.numel], requires_grad=True)
-  model.zero_grad()
-  loss.backward()
-  optimizer.step()
-  print(f"{n+1}th step, loss: {loss.data[0]:.6f}")
+# out.backward()
+# print(out.grad)
+# print(d.grad)
+# print(t1.grad)  # Should show gradients for t1
+# print(t2.grad)  # Should show gradients for t2

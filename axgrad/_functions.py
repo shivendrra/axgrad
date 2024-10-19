@@ -2,9 +2,6 @@ from typing import Any, Optional, List, Union
 from ._tensor import tensor
 from .helpers.functionals import *
 
-class Functionals(tensor):
-  pass
-
 class ReLU:
   def __init__(self) -> None: pass
 

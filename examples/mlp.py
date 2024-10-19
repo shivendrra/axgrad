@@ -1,5 +1,6 @@
 import axgrad
 import axgrad.nn as nn
+from axgrad.nn import functional as F
 
 class MLP(nn.Module):
   def __init__(self, _in, _hid, _out, bias=False) -> None:
@@ -24,7 +25,7 @@ epoch = 100
 lr = 0.1
 for n in range(epoch):
   out = model.forward(X)
-  loss = ((Y - out) ** 2).sum() / axgrad.tensor([Y.numel], requires_grad=True)
+  loss = F.mse(out, Y)
   model.zero_grad()
   loss.backward()
   optimizer.step()

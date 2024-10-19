@@ -7,8 +7,9 @@
 """
 
 from ._tensor import tensor
-from .helpers.utils import _zeros
+from .helpers.utils import _zeros, _ones_like
 from .helpers.shape import squeeze, unsqueeze, get_shape
+from .helpers.ops import _stack
 from typing import *
 
 def matmul(a:Union[tensor, list], b:Union[tensor, list], dtype=None) -> tensor:
@@ -21,42 +22,30 @@ def dot(a:Union[tensor, list], b:Union[tensor, list]) -> tensor:
   b = b if isinstance(b, tensor) else tensor(b, requires_grad=False)
   return a.dot(b)
 
-def stack(data: tuple[tensor, tensor], axis: int=0) -> tensor:
-  if not data:
-    raise ValueError("Need atleast one tensor to stack")
+class stack(tensor):
+  def __init__(self, tensors: list[tensor], axis: int = 0):
+    if not tensors:
+      raise ValueError("Need at least one tensor to stack")
+    stacked_data = _stack(tuple(tensors), axis=axis)
+    super().__init__(stacked_data, tensors[0].requires_grad, tensors[0].dtype)
+    self.axis, self.tensors, self.prev = axis, tensors, (tensors)
+    print(self.prev)
 
-  def get_element(data, indices):
-    for idx in indices:
-      data = data[idx]
-    return data
+  def backward(self, grad=None):
+    if grad is None: grad = _ones_like(self.data)  # create a tensor of ones with the same shape
+    grads = self._split_grad(grad)
+    for tensor, grad_part in zip(self.tensors, grads):
+      tensor.backward(grad_part)
 
-  # shape checking
-  base_shape = data[0].shape
-  for d in data:
-    if d.shape != base_shape:
-      raise ValueError("All inputs must be of same shape & size!")
-  
-  # new shape after stacking & initilization
-  new_shape = list(base_shape[:])
-  new_shape.insert(axis, len(data))
-  new_data = _zeros(new_shape)
-
-  def insert_data(new_data, tensors, axis, indices=[]):
-    if len(indices) == len(new_shape):
-      for idx, tensor in enumerate(tensors):
-        data_idx = indices[:]
-        data_idx[axis] = idx
-        sub_arr = new_data
-        for k in data_idx[:-1]:
-          sub_arr = sub_arr[k]
-        sub_arr[data_idx[-1]] = get_element(tensor.data, indices[:axis] + indices[axis+1:])
-      return
-      
-    for i in range(new_shape[len(indices)]):
-      insert_data(new_data, tensors, axis, indices + [i])
-  
-  insert_data(new_data, data, axis)
-  return tensor(new_data, data[0].requires_grad, dtype=data[0].dtype)
+  def _split_grad(self, grad):
+    def get_element(data, indices):
+      for idx in indices:
+        data = data[idx]
+      return data
+    return [
+      tensor(get_element(grad, [i] if self.axis == 0 else [slice(None)] + [i]))
+      for i in range(len(self.tensors))
+    ]
 
 def concat(data: tuple[tensor, tensor], axis: int=0) -> tensor:
   if not data:

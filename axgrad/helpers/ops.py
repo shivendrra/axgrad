@@ -4,6 +4,7 @@
 """
 
 from .shape import get_shape, broadcast_shape, broadcast
+from .utils import _zeros
 
 def sum_axis0(data):
   if not isinstance(data[0], list):
@@ -66,25 +67,44 @@ def sum_axis(data, axis, keepdims):
     mean_vals = [mean_vals]
   return mean_vals
 
-# def matmul(A, B, self_grad, other_grad):
-#   def matmul_2d(A, B):
-#     assert len(A[0]) == len(B), "Incompatible dimensions for matrix multiplication"
-#     result = [[0] * len(B[0]) for _ in range(len(A))]
-#     for i in range(len(A)):
-#       for j in range(len(B[0])):
-#         for k in range(len(B)):
-#           result[i][j] += A[i][k] * B[k][j]
-#     return result
-
-#   if len(get_shape(A)) == 2 and len(get_shape(B)) == 2:
-#     return matmul_2d(A, B)
-#   target_shape, _ = broadcast_shape(get_shape(A), get_shape(B), ops="<MATMUL>")
-#   A, B, self_grad, other_grad = broadcast(A, target_shape), broadcast(B, target_shape), broadcast(self_grad, target_shape), broadcast(other_grad, target_shape)
-#   if len(get_shape(A)) > 2 or len(get_shape(B)) > 2:
-#     return [matmul(a, b) for a, b in zip(A, B)]
-#   return matmul_2d(A, B), self_grad, other_grad
-
 def dedup(x): return list(dict.fromkeys(x))
+
+def _stack(data, axis: int=0) -> list:
+  if not data:
+    raise ValueError("Need atleast one tensor to stack")
+
+  def get_element(data, indices):
+    for idx in indices:
+      data = data[idx]
+    return data
+
+  # shape checking
+  base_shape = data[0].shape
+  for d in data:
+    if d.shape != base_shape:
+      raise ValueError("All inputs must be of same shape & size!")
+  
+  # new shape after stacking & initilization
+  new_shape = list(base_shape[:])
+  new_shape.insert(axis, len(data))
+  new_data = _zeros(new_shape)
+
+  def insert_data(new_data, tensors, axis, indices=[]):
+    if len(indices) == len(new_shape):
+      for idx, tensor in enumerate(tensors):
+        data_idx = indices[:]
+        data_idx[axis] = idx
+        sub_arr = new_data
+        for k in data_idx[:-1]:
+          sub_arr = sub_arr[k]
+        sub_arr[data_idx[-1]] = get_element(tensor.data, indices[:axis] + indices[axis+1:])
+      return
+      
+    for i in range(new_shape[len(indices)]):
+      insert_data(new_data, tensors, axis, indices + [i])
+  
+  insert_data(new_data, data, axis)
+  return new_data
 
 def matmul(A, B):
   def matmul_2d(A, B):

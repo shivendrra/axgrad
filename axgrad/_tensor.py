@@ -469,6 +469,13 @@ class tensor:
     out = tensor(_ops(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<LogBackwards>", Backward.log_backwards(out, self)
     return out
+  
+  def abs(self) -> List["tensor"]:
+    def _ops(data):
+      return [_ops(d) for d in data] if isinstance(data, list) else abs(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<AbsBackwards>", Backward.abs_backwards(out, self)
+    return out
 
   def backward(self):
     if self.requires_grad == False:

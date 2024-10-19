@@ -183,3 +183,15 @@ class __LOG__:
   def __call__(self) -> Callable:
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
     return self.__call__
+
+class __ABS__:
+  def __init__(self, first, out) -> None: self.first, self.out = first, out
+  def backward(self, grad, out):
+    if not isinstance(grad, list):
+      grad += (1 if out > 0 else -1) * grad
+      return grad
+    return [self.backward(g, og) for g, og in zip(grad, out)]
+
+  def __call__(self) -> Callable:
+    self.first.grad.data = self.backward(self.first.grad.data, self.out.data)
+    return self.__call__
