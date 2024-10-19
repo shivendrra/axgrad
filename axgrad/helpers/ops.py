@@ -3,7 +3,7 @@
   @breif Code contains various functions for mathematical functions
 """
 
-from .shape import get_shape, broadcast_shape, broadcast
+from .shape import get_shape, broadcast_shape, broadcast, get_element, set_element
 from .utils import _zeros
 
 def sum_axis0(data):
@@ -73,11 +73,6 @@ def _stack(data, axis: int=0) -> list:
   if not data:
     raise ValueError("Need atleast one tensor to stack")
 
-  def get_element(data, indices):
-    for idx in indices:
-      data = data[idx]
-    return data
-
   # shape checking
   base_shape = data[0].shape
   for d in data:
@@ -98,6 +93,39 @@ def _stack(data, axis: int=0) -> list:
         for k in data_idx[:-1]:
           sub_arr = sub_arr[k]
         sub_arr[data_idx[-1]] = get_element(tensor.data, indices[:axis] + indices[axis+1:])
+      return
+      
+    for i in range(new_shape[len(indices)]):
+      insert_data(new_data, tensors, axis, indices + [i])
+  
+  insert_data(new_data, data, axis)
+  return new_data
+
+def _concat(data, axis) -> list:
+  if not data:
+    raise ValueError("Need atleast one tensor to stack")
+  
+  # shape checking
+  base_shape = list(data[0].shape) # shape of first tensor for target tensor
+  for arr in data:
+    if list(arr.shape)[:axis] + list(arr.shape)[axis+1:] != base_shape[:axis] + base_shape[axis+1:]:
+      raise ValueError("All input tensors must have the same shape except for the concatenation axis")
+  
+  new_shape = base_shape[:]
+  new_shape[axis] *= len(data)
+  new_data = _zeros(new_shape)
+
+  def insert_data(new_data, tensors, axis, indices=[]):
+    if len(indices) == len(new_shape):
+      current_offset = 0
+      for tensor in tensors:
+        if current_offset <= indices[axis] < current_offset + tensor.shape[axis]:
+          local_indices = indices[:]
+          local_indices[axis] -= current_offset
+          ele = get_element(tensor.data, local_indices)
+          set_element(new_data, indices, ele)
+          break
+        current_offset += tensor.shape[axis]
       return
       
     for i in range(new_shape[len(indices)]):

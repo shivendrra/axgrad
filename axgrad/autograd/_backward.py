@@ -8,7 +8,7 @@
 
 from typing import Literal, Callable
 from ..helpers.functionals import *
-from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__
+from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__, __STACK__, __CONCAT__
 from .functions.shape_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
 from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__, __EXP__, __RSQRT__, __SQRT__, __LOG__, __CLIP__, __ABS__
 from .functions.activations import __GELU__, __RELU__, __SIGMOID__, __SILU__, __TANH__, __LRELU__
@@ -28,29 +28,17 @@ class Backward:
     _back = __POW__(first, out, power)
     return _back
 
-  def exp_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
-    _back = __EXP__(first, out)
-    return _back
-  
-  def rsqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
-    _back = __RSQRT__(first, out)
-    return _back
-  
-  def sqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
-    _back = __SQRT__(first, out)
-    return _back
-
-  def log_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
-    _back = __LOG__(first, out)
-    return _back
-  
-  def abs_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
-    _back = __ABS__(first, out)
-    return _back
-
   def matmul_backwards(out:Literal["tensor"], first:Literal["tensor"], second:Literal["tensor"]) -> Callable:
     _back = __MATMUL__(first, second, out)
     return _back
+  
+  def stack_backwards(out:Literal["tensor"], tensors:Literal["tensor"], axis:int) -> Callable:
+   _back = __STACK__(out, tensors, axis)
+   return _back
+  
+  def concat_backwards(out:Literal["tensor"], tensors:Literal["tensor"], axis:int) -> Callable:
+   _back = __CONCAT__(out, tensors, axis)
+   return _back
 
   ## unary ops backwards:
   def sum_backwards(out: Literal["tensor"], first: Literal["tensor"], axis: Optional[int], keepdims: bool) -> Callable:
@@ -67,6 +55,26 @@ class Backward:
   
   def std_backwards(out: Literal["tensor"], first: Literal["tensor"], axis: Optional[int], ddof:int, keepdims: bool) -> Callable:
     _back = __STD__(first, out, axis, ddof, keepdims)
+    return _back
+  
+  def log_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __LOG__(first, out)
+    return _back
+  
+  def abs_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __ABS__(first, out)
+    return _back
+  
+  def exp_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __EXP__(first, out)
+    return _back
+  
+  def rsqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __RSQRT__(first, out)
+    return _back
+  
+  def sqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
+    _back = __SQRT__(first, out)
     return _back
 
   ## shape ops backwards:

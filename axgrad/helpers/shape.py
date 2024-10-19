@@ -5,6 +5,16 @@
 
 from .utils import _zeros
 
+def get_element(data, indices):
+  for idx in indices:
+    data = data[idx]
+  return data
+
+def set_element(data, indices, value):
+  for idx in indices[:-1]:
+    data = data[idx]
+  data[indices[-1]] = value
+
 # computes the shape of a tensor
 def get_shape(data):
   if isinstance(data, list):

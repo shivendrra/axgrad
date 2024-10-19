@@ -1,5 +1,7 @@
+from typing import Callable
 from ...helpers.ops import matmul
 from ...helpers.shape import transpose, get_shape
+from ...helpers.utils import _ones_like
 
 def sum_to_shape(grad, shape):
   for i, (grad_dim, shape_dim) in enumerate(zip(get_shape(grad), shape)):
@@ -15,7 +17,7 @@ class __ADD__:
       return grad
     return [self.backward(g, og) for g, og, in zip(grad, out)]
   
-  def __call__(self):
+  def __call__(self) -> Callable:
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
     self.second.grad.data = self.backward(self.second.grad.data, self.out.grad.data)
     return self.__call__
@@ -28,7 +30,7 @@ class __MUL__:
       return grad
     return [self.backward(g, og, m) for g, og, m in zip(grad, out, mul)]
 
-  def __call__(self):
+  def __call__(self) -> Callable:
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data, self.second.data)
     self.second.grad.data = self.backward(self.second.grad.data, self.out.grad.data, self.first.data)
     return self.__call__
@@ -41,7 +43,7 @@ class __MATMUL__:
       return grad
     return [self.backward(g, og) for g, og in zip(grad, out)]
 
-  def __call__(self):
+  def __call__(self) -> Callable:
     grad_A = matmul(self.out.grad.data, transpose(self.second.data))
     grad_B = matmul(transpose(self.first.data), self.out.grad.data)
 
@@ -62,6 +64,40 @@ class __POW__:
       return grad
     return [self.backward(g, og, power) for g, og in zip(grad, out)]
   
-  def __call__(self):
+  def __call__(self) -> Callable:
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data, self.power)
     return self.__call__
+
+class __STACK__:
+  def __init__(self, out, tensors, axis): self.out, self.tensors, self.axis = out, tensors, axis
+  def __call__(self) -> Callable:
+    split_grads = self._split_grad(self.out.grad.data)
+    for tensor, grad_part in zip(self.tensors, split_grads):
+      if tensor.grad is None:
+        tensor.grad = grad_part
+      else:
+        tensor.grad += grad_part
+
+  def _split_grad(self, grad):
+    return [
+      grad[i] if self.axis == 0 else grad[(slice(None),) * self.axis + (i,)]
+      for i in range(len(self.tensors))
+    ]
+
+class __CONCAT__:
+  def __init__(self, out, tensors, axis): self.out, self.tensors, self.axis = out, tensors, axis
+  def __call__(self):
+    split_grads = self._split_grad(self.out.grad.data)
+    for tensor, grad_part in zip(self.tensors, split_grads):
+      if tensor.grad is None:
+        tensor.grad = grad_part
+      else:
+        tensor.grad += grad_part
+
+  def _split_grad(self, grad):
+    split_grads, current_index = [], 0
+    for tensor in self.tensors:
+      tensor_size = tensor.shape[self.axis]
+      split_grads.append(grad[current_index:current_index + tensor_size])
+      current_index += tensor_size
+    return split_grads
