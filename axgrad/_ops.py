@@ -7,9 +7,8 @@
 """
 
 from ._tensor import tensor
-from .helpers.utils import _ones_like
 from .helpers.shape import squeeze, unsqueeze, get_shape
-from .helpers.ops import _stack, _concat
+from .helpers.ops import _stack, _concat, _conv2d, _apply_padding
 from typing import *
 from .autograd._backward import Backward
 
@@ -23,13 +22,23 @@ def dot(a:Union[tensor, list], b:Union[tensor, list]) -> tensor:
   b = b if isinstance(b, tensor) else tensor(b, requires_grad=False)
   return a.dot(b)
 
+class conv2d(tensor):
+  def __init__(self, input_tensor:Union[tensor, list], kernel:Union[tensor, list], stride:int = 1, padding:int = 0):
+    if input_tensor.ndim != 2 or kernel.ndim != 2:
+      raise ValueError("Both input and kernel must be 2D tensors")
+    padded_input = _apply_padding(input_tensor.data, padding)
+    output_data = _conv2d(padded_input, kernel.data, stride)
+    super().__init__(output_data, input_tensor.requires_grad, input_tensor.dtype)
+    self.prev, self.grad_fn = (input_tensor, kernel), "<Conv2DBackwards>"
+    self._backward = Backward.conv2d_backwards(self, input_tensor, kernel, stride, padding)
+
 class stack(tensor):
   def __init__(self, tensors: list[tensor], axis: int = 0):
     if not tensors:
       raise ValueError("Need at least one tensor to stack")
     stacked_data = _stack(tuple(tensors), axis=axis)
     super().__init__(stacked_data, tensors[0].requires_grad, tensors[0].dtype)
-    self.prev = tuple(tensors)
+    self.prev, self.grad_fn = tuple(tensors), "<StackBackwards>"
     self._backward = Backward.stack_backwards(self, tensors, axis)
 
 class concat(tensor):
@@ -38,7 +47,7 @@ class concat(tensor):
       raise ValueError("Need at least one tensor to concat")
     concat_data = _concat(tuple(tensors), axis=axis)
     super().__init__(concat_data, tensors[0].requires_grad, tensors[0].dtype)
-    self.prev = tuple(tensors)
+    self.prev, self.grad_fn = tuple(tensors), "<ConcatBackwards>"
     self._backward = Backward.concat_backwards(self, tensors, axis)
 
 def split(data:Union[tensor, list], idx:int, axis:Optional[int]=None) -> list:

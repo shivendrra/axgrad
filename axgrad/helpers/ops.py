@@ -158,6 +158,30 @@ def matmul(A, B):
   
   return matmul_2d(A, B)
 
+def _conv2d(input_data, kernel_data, stride):
+  input_h, input_w = len(input_data), len(input_data[0])
+  kernel_h, kernel_w = len(kernel_data), len(kernel_data[0])
+  output_h, output_w = (input_h - kernel_h) // stride + 1, (input_w - kernel_w) // stride + 1
+  output = _zeros((output_h, output_w))
+  for i in range(0, output_h):
+    for j in range(0, output_w):
+      for m in range(kernel_h):
+        for n in range(kernel_w):
+          output[i][j] += (
+            input_data[i * stride + m][j * stride + n] * kernel_data[m][n]
+          )
+  return output
+
+def _apply_padding(input_data, padding):
+  if padding == 0:
+    return input_data
+  padded_shape = (len(input_data) + 2 * padding, len(input_data[0]) + 2 * padding)
+  padded_input = _zeros(padded_shape)
+  for i in range(len(input_data)):
+    for j in range(len(input_data[0])):
+      padded_input[i + padding][j + padding] = input_data[i][j]
+  return padded_input
+
 def dot_product(a, b):
   def dot_product_1d(v1, v2):
     if len(v1) != len(v2):

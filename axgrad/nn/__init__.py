@@ -4,4 +4,5 @@ from ._parameters import Parameter
 from ._activations import *
 from ._functional import functional
 from ._optim import Optim
+from ._conv import Conv2d
 from ._loss import MSE, MAE
