@@ -7,9 +7,10 @@
 """
 
 from ._tensor import tensor
-from .helpers.utils import _zeros
 from .helpers.shape import squeeze, unsqueeze, get_shape
+from .helpers.ops import _stack, _concat, _conv2d, _apply_padding
 from typing import *
+from .autograd._backward import Backward
 
 def matmul(a:Union[tensor, list], b:Union[tensor, list], dtype=None) -> tensor:
   a = a if isinstance(a, tensor) else tensor(a, requires_grad=False, dtype=dtype)
@@ -21,85 +22,33 @@ def dot(a:Union[tensor, list], b:Union[tensor, list]) -> tensor:
   b = b if isinstance(b, tensor) else tensor(b, requires_grad=False)
   return a.dot(b)
 
-def stack(data: tuple[tensor, tensor], axis: int=0) -> tensor:
-  if not data:
-    raise ValueError("Need atleast one tensor to stack")
+class conv2d(tensor):
+  def __init__(self, input_tensor:Union[tensor, list], kernel:Union[tensor, list], stride:int = 1, padding:int = 0):
+    if input_tensor.ndim != 2 or kernel.ndim != 2:
+      raise ValueError("Both input and kernel must be 2D tensors")
+    padded_input = _apply_padding(input_tensor.data, padding)
+    output_data = _conv2d(padded_input, kernel.data, stride)
+    super().__init__(output_data, input_tensor.requires_grad, input_tensor.dtype)
+    self.prev, self.grad_fn = (input_tensor, kernel), "<Conv2DBackwards>"
+    self._backward = Backward.conv2d_backwards(self, input_tensor, kernel, stride, padding)
 
-  def get_element(data, indices):
-    for idx in indices:
-      data = data[idx]
-    return data
+class stack(tensor):
+  def __init__(self, tensors: list[tensor], axis: int = 0):
+    if not tensors:
+      raise ValueError("Need at least one tensor to stack")
+    stacked_data = _stack(tuple(tensors), axis=axis)
+    super().__init__(stacked_data, tensors[0].requires_grad, tensors[0].dtype)
+    self.prev, self.grad_fn = tuple(tensors), "<StackBackwards>"
+    self._backward = Backward.stack_backwards(self, tensors, axis)
 
-  # shape checking
-  base_shape = data[0].shape
-  for d in data:
-    if d.shape != base_shape:
-      raise ValueError("All inputs must be of same shape & size!")
-  
-  # new shape after stacking & initilization
-  new_shape = list(base_shape[:])
-  new_shape.insert(axis, len(data))
-  new_data = _zeros(new_shape)
-
-  def insert_data(new_data, tensors, axis, indices=[]):
-    if len(indices) == len(new_shape):
-      for idx, tensor in enumerate(tensors):
-        data_idx = indices[:]
-        data_idx[axis] = idx
-        sub_arr = new_data
-        for k in data_idx[:-1]:
-          sub_arr = sub_arr[k]
-        sub_arr[data_idx[-1]] = get_element(tensor.data, indices[:axis] + indices[axis+1:])
-      return
-      
-    for i in range(new_shape[len(indices)]):
-      insert_data(new_data, tensors, axis, indices + [i])
-  
-  insert_data(new_data, data, axis)
-  return tensor(new_data, data[0].requires_grad, dtype=data[0].dtype)
-
-def concat(data: tuple[tensor, tensor], axis: int=0) -> tensor:
-  if not data:
-    raise ValueError("Need atleast one tensor to stack")
-  
-  # shape checking
-  base_shape = list(data[0].shape) # shape of first tensor for target tensor
-  for arr in data:
-    if list(arr.shape)[:axis] + list(arr.shape)[axis+1:] != base_shape[:axis] + base_shape[axis+1:]:
-      raise ValueError("All input tensors must have the same shape except for the concatenation axis")
-  
-  new_shape = base_shape[:]
-  new_shape[axis] *= len(data)
-  new_data = _zeros(new_shape)
-
-  def set_element(data, indices, value):
-    for idx in indices[:-1]:
-      data = data[idx]
-    data[indices[-1]] = value
-
-  def get_element(data, indices):
-    for idx in indices:
-      data = data[idx]
-    return data
-
-  def insert_data(new_data, tensors, axis, indices=[]):
-    if len(indices) == len(new_shape):
-      current_offset = 0
-      for tensor in tensors:
-        if current_offset <= indices[axis] < current_offset + tensor.shape[axis]:
-          local_indices = indices[:]
-          local_indices[axis] -= current_offset
-          ele = get_element(tensor.data, local_indices)
-          set_element(new_data, indices, ele)
-          break
-        current_offset += tensor.shape[axis]
-      return
-      
-    for i in range(new_shape[len(indices)]):
-      insert_data(new_data, tensors, axis, indices + [i])
-  
-  insert_data(new_data, data, axis)
-  return tensor(new_data, data[0].requires_grad, dtype=data[0].dtype)
+class concat(tensor):
+  def __init__(self, tensors: list[tensor], axis: int = 0):
+    if not tensors:
+      raise ValueError("Need at least one tensor to concat")
+    concat_data = _concat(tuple(tensors), axis=axis)
+    super().__init__(concat_data, tensors[0].requires_grad, tensors[0].dtype)
+    self.prev, self.grad_fn = tuple(tensors), "<ConcatBackwards>"
+    self._backward = Backward.concat_backwards(self, tensors, axis)
 
 def split(data:Union[tensor, list], idx:int, axis:Optional[int]=None) -> list:
   def _get_slices(start_idx, end_idx, data):

@@ -34,12 +34,13 @@ class tensor:
     self._backward = lambda: None
     self.contiguous_ops = ContiguousOps(self) # creating an instance of coniguousops that works with this tensor
     self.stride = self.compute_stride(self.shape) # computing strides
-    self.is_scalar = True if self.size == (1) else False
+    self.is_scalar = True if self.size == (1) or self.size == (1,1) or self.size == (1,) else False
     # only if requires_grad is true
     if requires_grad is True:
       if self.is_scalar:
         self.grad = grads(data=[0])
-      self.grad = grads(shape=(get_shape(self.data)))
+      else:
+        self.grad = grads(shape=(get_shape(self.data)))
       self.requires_grad, self.grad_fn = requires_grad, "<NotSet>"
     else:
       self.grad, self.grad_fn, self.requires_grad = None, None, False
@@ -121,9 +122,10 @@ class tensor:
   
   @property
   def numel(self) -> int:
-    out = 1
-    out *= [dim for dim in self.size]
-    return out
+      out = 1
+      for dim in self.size:
+          out *= dim
+      return out
   
   @property
   def T(self) -> List["tensor"]:
@@ -334,9 +336,7 @@ class tensor:
   
   def __matmul__(self, other) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, requires_grad=self.requires_grad, dtype=self.dtype)
-
     if self.size[-1] == other.size[-2]:
-      # out, self.grad, other.grad = matmul(self.data, other.data, self.grad, other.grad)
       out = matmul(self.data, other.data)
       out = tensor(out, dtype=self.dtype, requires_grad=self.requires_grad)
       out.prev, out.grad_fn, out._backward = (self, other), "<MatmulBackwards>", Backward.matmul_backwards(out, self, other)
@@ -353,12 +353,13 @@ class tensor:
     out.prev, out.grad_fn = (self, ), "<NegBackwards>"
 
     def neg_backward():
-      def _neg(grad):
+      def _neg(grad, out):
         if isinstance(grad, list):
-          return [_neg(g) for g in grad]
-        return -grad
-      self.grad = _neg(self.grad.data)
-    out._backward = neg_backward 
+          return [_neg(g, og) for g, og in zip(grad, out)]
+        grad -= out
+        return grad
+      self.grad.data = _neg(self.grad.data, out.grad.data)
+    out._backward = neg_backward
     return out
 
   def __radd__(self, other) -> List["tensor"]:
@@ -392,11 +393,11 @@ class tensor:
   
   def __truediv__(self, other) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, self.requires_grad, self.dtype)
-    return self + (other ** -1)
+    return self * (other ** -1)
   
   def __rtruediv__(self, other) -> List["tensor"]:
     other = other if isinstance(other, tensor) else tensor(other, self.requires_grad, self.dtype)
-    return other + (self ** -1)
+    return other * (self ** -1)
   
   def relu(self) -> List["tensor"]:
     def _apply(data):
@@ -460,6 +461,20 @@ class tensor:
       return 1.0 / math.sqrt(data)
     out = tensor(_ops(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<RsqrtBackwards>", Backward.rsqrt_backwards(out, self)
+    return out
+  
+  def log(self) -> List["tensor"]:
+    def _ops(data):
+      return [_ops(d) for d in data] if isinstance(data, list) else math.log(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<LogBackwards>", Backward.log_backwards(out, self)
+    return out
+  
+  def abs(self) -> List["tensor"]:
+    def _ops(data):
+      return [_ops(d) for d in data] if isinstance(data, list) else abs(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<AbsBackwards>", Backward.abs_backwards(out, self)
     return out
 
   def backward(self):

@@ -3,7 +3,8 @@
   @breif Code contains various functions for mathematical functions
 """
 
-from .shape import get_shape, broadcast_shape, broadcast
+from .shape import get_shape, broadcast_shape, broadcast, get_element, set_element
+from .utils import _zeros
 
 def sum_axis0(data):
   if not isinstance(data[0], list):
@@ -66,23 +67,72 @@ def sum_axis(data, axis, keepdims):
     mean_vals = [mean_vals]
   return mean_vals
 
-# def matmul(A, B, self_grad, other_grad):
-#   def matmul_2d(A, B):
-#     assert len(A[0]) == len(B), "Incompatible dimensions for matrix multiplication"
-#     result = [[0] * len(B[0]) for _ in range(len(A))]
-#     for i in range(len(A)):
-#       for j in range(len(B[0])):
-#         for k in range(len(B)):
-#           result[i][j] += A[i][k] * B[k][j]
-#     return result
+def dedup(x): return list(dict.fromkeys(x))
 
-#   if len(get_shape(A)) == 2 and len(get_shape(B)) == 2:
-#     return matmul_2d(A, B)
-#   target_shape, _ = broadcast_shape(get_shape(A), get_shape(B), ops="<MATMUL>")
-#   A, B, self_grad, other_grad = broadcast(A, target_shape), broadcast(B, target_shape), broadcast(self_grad, target_shape), broadcast(other_grad, target_shape)
-#   if len(get_shape(A)) > 2 or len(get_shape(B)) > 2:
-#     return [matmul(a, b) for a, b in zip(A, B)]
-#   return matmul_2d(A, B), self_grad, other_grad
+def _stack(data, axis: int=0) -> list:
+  if not data:
+    raise ValueError("Need atleast one tensor to stack")
+
+  # shape checking
+  base_shape = data[0].shape
+  for d in data:
+    if d.shape != base_shape:
+      raise ValueError("All inputs must be of same shape & size!")
+  
+  # new shape after stacking & initilization
+  new_shape = list(base_shape[:])
+  new_shape.insert(axis, len(data))
+  new_data = _zeros(new_shape)
+
+  def insert_data(new_data, tensors, axis, indices=[]):
+    if len(indices) == len(new_shape):
+      for idx, tensor in enumerate(tensors):
+        data_idx = indices[:]
+        data_idx[axis] = idx
+        sub_arr = new_data
+        for k in data_idx[:-1]:
+          sub_arr = sub_arr[k]
+        sub_arr[data_idx[-1]] = get_element(tensor.data, indices[:axis] + indices[axis+1:])
+      return
+      
+    for i in range(new_shape[len(indices)]):
+      insert_data(new_data, tensors, axis, indices + [i])
+  
+  insert_data(new_data, data, axis)
+  return new_data
+
+def _concat(data, axis) -> list:
+  if not data:
+    raise ValueError("Need atleast one tensor to stack")
+  
+  # shape checking
+  base_shape = list(data[0].shape) # shape of first tensor for target tensor
+  for arr in data:
+    if list(arr.shape)[:axis] + list(arr.shape)[axis+1:] != base_shape[:axis] + base_shape[axis+1:]:
+      raise ValueError("All input tensors must have the same shape except for the concatenation axis")
+  
+  new_shape = base_shape[:]
+  new_shape[axis] *= len(data)
+  new_data = _zeros(new_shape)
+
+  def insert_data(new_data, tensors, axis, indices=[]):
+    if len(indices) == len(new_shape):
+      current_offset = 0
+      for tensor in tensors:
+        if current_offset <= indices[axis] < current_offset + tensor.shape[axis]:
+          local_indices = indices[:]
+          local_indices[axis] -= current_offset
+          ele = get_element(tensor.data, local_indices)
+          set_element(new_data, indices, ele)
+          break
+        current_offset += tensor.shape[axis]
+      return
+      
+    for i in range(new_shape[len(indices)]):
+      insert_data(new_data, tensors, axis, indices + [i])
+  
+  insert_data(new_data, data, axis)
+  return new_data
 
 def matmul(A, B):
   def matmul_2d(A, B):
@@ -107,6 +157,30 @@ def matmul(A, B):
     return [matmul(a, b) for a, b in zip(A, B)]
   
   return matmul_2d(A, B)
+
+def _conv2d(input_data, kernel_data, stride):
+  input_h, input_w = len(input_data), len(input_data[0])
+  kernel_h, kernel_w = len(kernel_data), len(kernel_data[0])
+  output_h, output_w = (input_h - kernel_h) // stride + 1, (input_w - kernel_w) // stride + 1
+  output = _zeros((output_h, output_w))
+  for i in range(0, output_h):
+    for j in range(0, output_w):
+      for m in range(kernel_h):
+        for n in range(kernel_w):
+          output[i][j] += (
+            input_data[i * stride + m][j * stride + n] * kernel_data[m][n]
+          )
+  return output
+
+def _apply_padding(input_data, padding):
+  if padding == 0:
+    return input_data
+  padded_shape = (len(input_data) + 2 * padding, len(input_data[0]) + 2 * padding)
+  padded_input = _zeros(padded_shape)
+  for i in range(len(input_data)):
+    for j in range(len(input_data[0])):
+      padded_input[i + padding][j + padding] = input_data[i][j]
+  return padded_input
 
 def dot_product(a, b):
   def dot_product_1d(v1, v2):
