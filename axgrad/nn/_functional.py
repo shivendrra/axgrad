@@ -1,5 +1,5 @@
 from typing import *
-from ._loss import MAE, MSE
+from ._loss import MAE, MSE, HuberLoss
 from .._tensor import tensor
 
 class functional:
@@ -12,6 +12,10 @@ class functional:
 
   def mae(outputs:Union[tensor, list], truths:Union[tensor, list]) -> tensor:
     loss = MAE(outputs, truths)
+    return loss()
+  
+  def huber(outputs:Union[tensor, list], truths:Union[tensor, list]) -> tensor:
+    loss = HuberLoss(outputs, truths)
     return loss()
 
   def softmax(data, dim:int):

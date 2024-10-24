@@ -67,13 +67,12 @@ class __CONV2D__:
   def __call__(self) -> Callable:
     padded_input = _apply_padding(self.input_tensor.data, self.padding)
 
-    # calculate gradients for input and kernel
     grad_input = self._conv2d_backprop_input(self.out.grad.data, self.kernel.data)
     grad_kernel = self._conv2d_backprop_kernel(padded_input, self.out.grad.data)
 
-    if get_shape(self.input_tensor.data) != get_shape(grad_input):
+    if get_shape(grad_input) != get_shape(self.input_tensor.data):
       grad_input = sum_to_shape(grad_input, get_shape(self.input_tensor.data))
-    if get_shape(self.kernel.data) != get_shape(grad_kernel):
+    if get_shape(grad_kernel) != get_shape(self.kernel.data):
       grad_kernel = sum_to_shape(grad_kernel, get_shape(self.kernel.data))
 
     self.input_tensor.grad.data = self.backward(self.input_tensor.grad.data, grad_input)
@@ -82,24 +81,24 @@ class __CONV2D__:
     return self.__call__
 
   def _conv2d_backprop_input(self, grad_output, kernel):
-    # flip the kernel horizontally and vertically
     flipped_kernel = [row[::-1] for row in kernel[::-1]]
-    # perform full convolution (input gradient computation)
     grad_input = _conv2d(grad_output, flipped_kernel, stride=1)
     return grad_input
 
   def _conv2d_backprop_kernel(self, padded_input, grad_output):
-    # compute the gradient with respect to the kernel
     grad_kernel = _zeros_like(self.kernel.data)
     kernel_h, kernel_w = len(grad_kernel), len(grad_kernel[0])
 
     for i in range(kernel_h):
       for j in range(kernel_w):
-        for m in range(grad_output.shape[0]):
-          for n in range(grad_output.shape[1]):
-            grad_kernel[i][j] += (
-              padded_input[i + m * self.stride][j + n * self.stride] * grad_output[m][n]
-            )
+        for m in range(len(grad_output)):
+          for n in range(len(grad_output[0])):
+            padded_i = i + m * self.stride
+            padded_j = j + n * self.stride
+            if padded_i < len(padded_input) and padded_j < len(padded_input[0]):
+              grad_kernel[i][j] += (
+                padded_input[padded_i][padded_j] * grad_output[m][n]
+              )
     return grad_kernel
 
 class __POW__:

@@ -15,11 +15,12 @@ def set_element(data, indices, value):
     data = data[idx]
   data[indices[-1]] = value
 
-# computes the shape of a tensor
 def get_shape(data):
-  if isinstance(data, list):
-    return [len(data), ] + get_shape(data[0])
-  return []
+  if not isinstance(data, list):  # Base case: not a list, return empty shape.
+    return []
+  if len(data) == 0:  # Handle empty lists.
+    return [0]
+  return [len(data)] + get_shape(data[0])
 
 # returns a flatten tensor by appending elements recursively
 def flatten(data):
