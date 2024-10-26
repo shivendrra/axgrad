@@ -1,32 +1,21 @@
-# import axgrad
-# import axgrad.nn as nn
+import axgrad
+import axgrad.nn as nn
 
-# # t1 = axgrad.tensor([1, 2, 3], requires_grad=True)
-# # t2 = axgrad.tensor([4, 5, 6], requires_grad=True)
+# Example tensor
+t = axgrad.tensor([[[3, -4, 5], [1, 5, 6], [-1, 5, 0]], [[3, -4, 5], [1, 5, 6], [-1, 5, 0]]])
 
-# # stacked = axgrad.concat([t1, t2], axis=0)
-# # d = stacked.tanh()
-# # out = d.sum()
-# # print(out)
-# # print(stacked)
+# Create a norm instance
+l2_norm = axgrad.norm(t, p=2)
+# Access the computed norm value
+print(f"L2 Norm: {l2_norm}")
 
-# # out.backward()
-# # print(out.grad)
-# # print(d.grad)
-# # print(stacked.grad)
-# # print(t1.grad)  # Should show gradients for t1
-# # print(t2.grad)  # Should show gradients for t2
+# Create an L1 norm instance
+l1_norm = axgrad.norm(t, p=1)
+print(f"L1 Norm: {l1_norm}")
 
-# input_tensor = axgrad.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-# conv = nn.Conv2d(in_channels=1, out_channels=2, kernel_size=2, stride=1, padding=0)
-# output = conv(input_tensor)
-# d = output.sum()
-
-# d.backward()
-# print(d.grad)
-# print(output.grad)
-# for p in conv.parameters():
-#   print(p, p.grad)
+# Create an L3 norm instance
+l3_norm = axgrad.norm(t, p=3)
+print(f"L3 Norm: {l3_norm}")
 
 import axgrad
 import axgrad.nn as nn

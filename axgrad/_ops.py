@@ -8,7 +8,7 @@
 
 from ._tensor import tensor
 from .helpers.shape import squeeze, unsqueeze, get_shape
-from .helpers.ops import _stack, _concat, _conv2d, _apply_padding
+from .helpers.ops import _stack, _concat, _conv2d, _apply_padding, compute_norm
 from typing import *
 from .autograd._backward import Backward
 
@@ -31,6 +31,12 @@ class conv2d(tensor):
     super().__init__(output_data, input_tensor.requires_grad, input_tensor.dtype)
     self.prev, self.grad_fn = (input_tensor, kernel), "<Conv2DBackwards>"
     self._backward = Backward.conv2d_backwards(self, input_tensor, kernel, stride, padding)
+
+class norm(tensor):
+  def __init__(self, data:tensor, p:int=2, requires_grad = True, dtype = None):
+    assert isinstance(data, tensor), f"only tensors can be normalized, not supported with dtype {type(data)}"
+    super().__init__([compute_norm(data.data, p)], requires_grad, dtype)
+    self.prev, self.grad_fn = tuple(data, ), "<NormBackwards>"
 
 class stack(tensor):
   def __init__(self, tensors: list[tensor], axis: int = 0):

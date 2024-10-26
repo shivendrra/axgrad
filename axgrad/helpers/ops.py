@@ -3,7 +3,7 @@
   @breif Code contains various functions for mathematical functions
 """
 
-from .shape import get_shape, broadcast_shape, broadcast, get_element, set_element
+from .shape import get_shape, broadcast_shape, broadcast, get_element, set_element, flatten
 from .utils import _zeros
 
 def sum_axis0(data):
@@ -66,6 +66,45 @@ def sum_axis(data, axis, keepdims):
   if keepdims:
     mean_vals = [mean_vals]
   return mean_vals
+
+def _l1_norm(zeros, data):
+  if isinstance(data, list):
+    for d in data:
+      zeros = _l1_norm(zeros, d)
+  else:
+    zeros += abs(data)
+  return zeros
+
+def _l2_norm(zeros, data):
+  if isinstance(data, list):
+    for d in data:
+      zeros = _l2_norm(zeros, d)
+  else:
+    zeros += data * data
+  return zeros
+
+def _l3_norm(zeros, data):
+  if isinstance(data, list):
+    for d in data:
+      zeros = _l3_norm(zeros, d)
+  else:
+    zeros += abs(data) ** 3
+  return zeros
+
+def compute_norm(data, p: int = 2):
+  if data is None:
+    raise ValueError("Data is None.")
+  if p < 1:
+    raise ValueError("p must be greater than or equal to 1.")
+
+  norm_value = 0.0
+  if p == 1:
+    norm_value = _l1_norm(norm_value, data)
+  elif p == 2:
+    norm_value = _l2_norm(norm_value, data) ** 0.5
+  else:
+    norm_value = _l3_norm(norm_value, data) ** (1 / 3)
+  return norm_value
 
 def dedup(x): return list(dict.fromkeys(x))
 
