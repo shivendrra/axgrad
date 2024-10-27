@@ -1,23 +1,68 @@
 import axgrad
 import axgrad.nn as nn
+from axgrad.nn import functional as F
+import matplotlib.pyplot as plt
 
-# t1 = axgrad.tensor([1, 2, 3], requires_grad=True)
-# t2 = axgrad.tensor([4, 5, 6], requires_grad=True)
+class MLP(nn.Module):
+  def __init__(self, _in, _hid, _out, bias=False) -> None:
+    super().__init__()
+    self.layer1 = nn.Linear(_in, _hid, bias)
+    self.gelu = nn.GELU()
+    self.layer2 = nn.Linear(_hid, _out, bias)
+  
+  def forward(self, x):
+    out = self.layer1(x)
+    out = self.gelu(out)
+    out = self.layer2(out)
+    return out
 
-# stacked = axgrad.concat([t1, t2], axis=0)
-# d = stacked.tanh()
-# out = d.sum()
-# print(out)
-# print(stacked)
+model = MLP(20, 30, 1)
 
-# out.backward()
-# print(out.grad)
-# print(d.grad)
-# print(stacked.grad)
-# print(t1.grad)  # Should show gradients for t1
-# print(t2.grad)  # Should show gradients for t2
+# Generate random input and target tensors
+X = axgrad.tensor(axgrad.randn(shape=(15, 20)), requires_grad=True)  # Input tensor of shape (batch_size=15, features=10)
+Y = axgrad.tensor(axgrad.randn(shape=(15, 1)), requires_grad=True)  # Target tensor of shape (batch_size=15, 1)
 
-input_tensor = axgrad.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-conv = nn.Conv2d(in_channels=1, out_channels=2, kernel_size=2, stride=1, padding=0)
-output = conv(input_tensor)
-print(output)
+optimizer = nn.SGD(parameters=model.parameters(), lr=2e-5)
+epoch = 6000
+losses = []
+steps = []
+
+for n in range(1, epoch + 1):
+  out = model.forward(X)
+  loss = F.mse(out, Y)
+  
+  optimizer.zero_grad()
+  loss.backward()
+  optimizer.step()
+  
+  # Store loss and step only for multiples of 100 or 200
+  if n % 300 == 0:
+    losses.append(loss.data[0])  # Store the loss
+    steps.append(n)  # Store the step
+    print(f"{n}th step, loss: {loss.data[0]:.6f}")
+
+# Plotting the learning curve
+plt.figure(figsize=(12, 5))
+
+# Learning curve
+plt.subplot(1, 2, 1)
+plt.plot(steps, losses, marker='o', linestyle='-', color='b')
+plt.title('Learning Curve')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.grid()
+plt.xticks(steps)
+
+# Predictions vs Targets
+plt.subplot(1, 2, 2)
+# Scatter plot for actual values (Y) and predicted values (out)
+plt.scatter(range(len(Y.F.data)), Y.F.data, color='b', label='Actual Values')  # Actual values in blue
+plt.scatter(range(len(out.F.data)), out.F.data, color='r', label='Predicted Values')  # Predicted values in red
+plt.title('Predictions vs Targets')
+plt.xlabel('Sample Index')
+plt.ylabel('Value')
+plt.legend()
+plt.grid()
+
+plt.tight_layout()
+plt.show()

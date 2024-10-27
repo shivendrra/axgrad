@@ -21,7 +21,7 @@ class MAE:
   def __init__(self, outputs:Union[tensor, list], truth:Union[tensor, list]) -> None: self.truth, self.outputs = truth, outputs
   def __call__(self) -> tensor:
     ## mae = sum(|y - y'|) / total_elements
-    loss = absolute((self.truth - self.outputs) ** 2)
+    loss = ((self.truth - self.outputs) ** 2).abs()
     loss = loss.sum() / tensor([self.truth.numel], requires_grad=True, dtype=self.truth.dtype)
     return loss
 
@@ -32,9 +32,9 @@ class HuberLoss:
     ## loss += delta * (|r| - 0.5 * delta)
     ## loss += loss / total_elements
     diff = self.truth - self.outputs
-    abs_diff = absolute(diff)
-    squared_loss = 0.5 * (diff ** 2)
-    linear_loss = self.delta * (abs_diff - 0.5 * self.delta)
+    abs_diff = diff.abs()
+    squared_loss = (diff ** 2) / tensor([2])
+    linear_loss = (abs_diff - tensor([0.5 * self.delta])) * tensor([self.delta])
 
     loss_data = []
     for i in range(len(abs_diff)):

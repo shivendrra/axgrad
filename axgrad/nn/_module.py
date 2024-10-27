@@ -17,10 +17,6 @@ class Module:
   def modules(self): yield from self._modules.values()
   def n_param(self): return sum(param.numel() for param in self.parameters())
 
-  def zero_grad(self):
-    for param in self.parameters():
-      param.zero_grad()
-
   def parameters(self):
     params = []
     for param in self._params.values():
@@ -28,6 +24,12 @@ class Module:
     for module in self._modules.values():
       params.extend(module.parameters())
     return params
+  
+  def train(self):
+    self.training_mode = True
+
+  def eval(self):
+    self.training_mode = False
 
   def __setattr__(self, key, value):
     if isinstance(value, Module):
@@ -44,16 +46,6 @@ class Module:
       module_str += '  (' + key + '): Parameters: ' + str(param.tolist()) + '\n'
     module_str += ')'
     return module_str
-  
-  def train(self):
-    self.training = True
-    for param in self.parameters():
-      param.requires_grad = True
-  
-  def eval(self):
-    self.training = True
-    for param in self.parameters():
-      param.requires_grad = False
 
   def save_dict(self):
     state = OrderedDict()

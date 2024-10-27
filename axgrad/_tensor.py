@@ -24,6 +24,7 @@ int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
 
 class tensor:
+  training_mode = True
   int8, int16, int32, int64, long, float16, float32, float64, double = int8, int16, int32, int64, long, float16, float32, float64, double
   def __init__(self, data, requires_grad:bool=True, dtype:Optional[Literal["int8", "int16", "int32", "int64", "float16", "float32", "float64", "long", "double"]]=None) -> None:
     if data is not None and isinstance(data, list):
@@ -138,6 +139,19 @@ class tensor:
     out = tensor(flatten(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<FlattenBackwards>", Backward.flatten_backwards(self, out, None, None)
     return out
+  
+  def training(self, mode: bool = True) -> None:
+    """
+    sets the training mode of the tensor. when in training mode, gradients are tracked.
+    args:
+      mode (bool): True for training mode, False for inference mode.
+    """
+    tensor.training_mode = mode  # toggle the global training mode
+    self.requires_grad = mode 
+
+  def evalutation(self) -> None:
+    """switches to evaluation mode (no gradient tracking)."""
+    self.training(mode=False)
 
   def is_contiguous(self) -> bool:
     return self.contiguous_ops.is_contiguous()
@@ -284,7 +298,7 @@ class tensor:
     elif axis == 0:
       out = var_axis0(self.data)
     else:
-      mean_val = self.mean(axis=axis).data
+      mean_val = self.mean(axis=axis, keepdims=keepdims).data
       out = var_axis(self.data, mean_val, axis, ddof, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<VarBackwards>", Backward.var_backwards(out, self, axis, ddof, keepdims)

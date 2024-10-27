@@ -188,7 +188,7 @@ class __ABS__:
   def __init__(self, first, out) -> None: self.first, self.out = first, out
   def backward(self, grad, out):
     if not isinstance(grad, list):
-      grad += (1 if out > 0 else -1) * grad
+      grad += (1 if out > 0 else -1) * out
       return grad
     return [self.backward(g, og) for g, og in zip(grad, out)]
 

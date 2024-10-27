@@ -48,13 +48,13 @@ class grads:
 
   def __iter__(self) -> Iterator: yield from self.data
 
-  def __mul__(self, scalar):
+  def __mul__(self, other):
     other = other if isinstance(other, grads) else grads(data=other, shape=None)
-    def _ops(data):
+    def _ops(data, other_data):
       if isinstance(data, list):
-        return [_ops(_d) for _d in data]
-      return data * scalar
-    return grads(data=_ops(self.data), shape=None)
+        return [_ops(_d, _od) for _d, _od in zip(data, other_data)]
+      return data * other_data
+    return grads(data=_ops(self.data, other.data), shape=None)
 
   def __sub__(self, other):
     other = other if isinstance(other, grads) else grads(data=other, shape=None)
@@ -71,3 +71,24 @@ class grads:
         return [_ops(_d, _od) for _d, _od in zip(data, other_data)]
       return data + other_data
     return grads(data=_ops(self.data, other.data), shape=None)
+  
+  def __radd__(self, other):
+    return self + other
+  
+  def __rsub__(self, other):
+    other = other if isinstance(other, grads) else grads(data=other, shape=None)
+    def _ops(data, other_data):
+      if isinstance(data, list):
+        return [_ops(_d, _od) for _d, _od in zip(data, other_data)]
+      return other_data - data
+    return grads(data=_ops(self.data, other.data), shape=None)
+  
+  def __rmul__(self, other):
+    return self * other
+  
+  def _scalar_mul(self, scalar):
+    def _ops(data):
+      if isinstance(data, list):
+        return [_ops(_d) for _d in data]
+      return data * scalar
+    return grads(data=_ops(self.data), shape=None)
