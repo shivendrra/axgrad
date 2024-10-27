@@ -298,7 +298,7 @@ class tensor:
     elif axis == 0:
       out = var_axis0(self.data)
     else:
-      mean_val = self.mean(axis=axis).data
+      mean_val = self.mean(axis=axis, keepdims=keepdims).data
       out = var_axis(self.data, mean_val, axis, ddof, keepdims)
     out = tensor(out, self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<VarBackwards>", Backward.var_backwards(out, self, axis, ddof, keepdims)

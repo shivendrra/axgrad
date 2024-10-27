@@ -40,7 +40,8 @@ def mean_axis(data, axis, keepdims):
   else:
     mean_vals = [mean_axis(d, axis - 1, keepdims) if isinstance(d[0], list) else sum(d) / len(d) for d in data]
   if keepdims:
-    mean_vals = [mean_vals]
+    for _ in range(axis):
+      mean_vals = [mean_vals]
   return mean_vals
 
 def var_axis(data, mean_values, axis, ddof, keepdims):
@@ -52,7 +53,8 @@ def var_axis(data, mean_values, axis, ddof, keepdims):
   else:
     variance = [var_axis(d, mean_values[i], axis - 1, ddof, keepdims) if isinstance(d[0], list) else sum((x - mean_values[i]) ** 2 for x in d) / (len(d) - ddof) for i, d in enumerate(data)]
   if keepdims:
-    variance = [variance]
+    for _ in range(axis):
+      variance = [variance]
   return variance
 
 def sum_axis(data, axis, keepdims):
@@ -64,7 +66,8 @@ def sum_axis(data, axis, keepdims):
   else:
     mean_vals = [sum_axis(d, axis - 1, keepdims) if isinstance(d[0], list) else sum(d) for d in data]
   if keepdims:
-    mean_vals = [mean_vals]
+    for _ in range(axis):
+      mean_vals = [mean_vals]
   return mean_vals
 
 def _l1_norm(zeros, data):

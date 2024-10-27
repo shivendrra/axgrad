@@ -6,3 +6,4 @@ from ._functional import functional
 from ._optim import SGD, LARS
 from ._conv import Conv2d
 from ._loss import MSE, MAE
+from ._norm import LayerNorm, BatchNorm

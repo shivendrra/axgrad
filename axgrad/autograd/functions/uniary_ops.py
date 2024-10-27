@@ -128,7 +128,7 @@ class __SQRT__:
   def backward(self, grad, out):
     if not isinstance(grad, list):
       # Gradient for sqrt: 0.5 * (x ** -0.5)
-      grad += (0.5 * (out ** -1)) * out
+      grad += 0.0 if out == 0.0 else (0.5 * (out ** -1)) * out
       return grad
     return [self.backward(g, og) for g, og in zip(grad, out)]
 

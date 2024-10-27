@@ -2,7 +2,6 @@ from .._tensor import tensor
 from typing import List
 from ..helpers.ops import dedup, compute_norm
 from ..helpers.utils import _zeros_like
-from .._grad import grads
 
 class Optimizer:
   """ Base class for all optimizers. """
@@ -80,13 +79,13 @@ class LARS(Optimizer):
 
     # update momentum buffer
     momentum_buffer = self.momentum_buffers[param]
-    momentum_buffer = (self.defaults['momentum'] * momentum_buffer) + param.grad
+    momentum_buffer = (momentum_buffer * [self.defaults['momentum']]) + param.grad.data
     self.momentum_buffers[param] = momentum_buffer
 
     # Nesterov momentum
     if self.defaults['nesterov']:
-      param.data -= lr * (momentum_buffer + param.grad)
+      param.data -= (momentum_buffer + param.grad.data) * [lr]
     else:
-      param.data -= lr * momentum_buffer
+      param.data -= momentum_buffer * [lr]
 
     return param

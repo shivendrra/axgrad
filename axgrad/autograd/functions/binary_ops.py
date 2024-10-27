@@ -10,13 +10,22 @@ def sum_to_shape(grad, shape):
   return grad
 
 class __ADD__:
-  def __init__(self, first, second, out) -> None: self.first, self.second, self.out = first, second, out
+  def __init__(self, first, second, out) -> None:
+    self.first, self.second, self.out = first, second, out
+
   def backward(self, grad, out):
-    if not isinstance(grad, list):
-      grad += out
+    if isinstance(grad, (int, float)) and isinstance(out, (int, float)):
+      grad = grad
       return grad
-    return [self.backward(g, og) for g, og, in zip(grad, out)]
-  
+    if isinstance(grad, list) and isinstance(out, list):
+      return [self.backward(g, og) for g, og in zip(grad, out)]
+    if isinstance(grad, list) and isinstance(out, (int, float)):
+      return [g + out for g in grad]
+    if isinstance(out, list) and isinstance(grad, (int, float)):
+      return [grad + o for o in out]
+
+    raise TypeError(f"Incompatible types for grad ({type(grad)}) and out ({type(out)})")
+
   def __call__(self) -> Callable:
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data)
     self.second.grad.data = self.backward(self.second.grad.data, self.out.grad.data)
@@ -105,7 +114,7 @@ class __POW__:
   def __init__(self, first, out, power) -> None: self.first, self.out, self.power = first, out, power
   def backward(self, grad, out, power):
     if not isinstance(grad, list):
-      grad += (power * out ** (power - 1)) * out
+      grad += 0 if out == 0.0 else (power * out ** (power - 1)) * out
       return grad
     return [self.backward(g, og, power) for g, og in zip(grad, out)]
   
