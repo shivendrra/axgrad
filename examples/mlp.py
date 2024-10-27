@@ -20,13 +20,14 @@ model = MLP(4, 10, 1)
 X = axgrad.tensor(axgrad.randn(shape=(4, 4)), requires_grad=True)  # Input tensor of shape (batch_size=4, features=4)
 Y = axgrad.tensor(axgrad.randn(shape=(4, 1)), requires_grad=True)  # Target tensor of shape (batch_size=4, 1)
 
-optimizer = nn.Optim.SGD(parameters=model.parameters(), lr=0.001)
-epoch = 100
-lr = 0.1
+optimizer = nn.SGD(parameters=model.parameters(), lr=0.001)
+epoch = 10
+lr = 0.01
+
 for n in range(epoch):
   out = model.forward(X)
-  loss = F.mse(out, Y)
-  model.zero_grad()
+  loss = F.mae(out, Y)
+  optimizer.zero_grad()
   loss.backward()
   optimizer.step()
   print(f"{n+1}th step, loss: {loss.data[0]:.6f}")

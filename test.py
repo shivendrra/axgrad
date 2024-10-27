@@ -1,6 +1,7 @@
 import axgrad
 import axgrad.nn as nn
 from axgrad.nn import functional as F
+import matplotlib.pyplot as plt
 
 class MLP(nn.Module):
   def __init__(self, _in, _hid, _out, bias=False) -> None:
@@ -15,38 +16,53 @@ class MLP(nn.Module):
     out = self.layer2(out)
     return out
 
-model = MLP(4, 10, 1)
+model = MLP(20, 30, 1)
 
-X = axgrad.tensor(axgrad.randn(shape=(4, 4)), requires_grad=True)  # Input tensor of shape (batch_size=4, features=4)
-Y = axgrad.tensor(axgrad.randn(shape=(4, 1)), requires_grad=True)  # Target tensor of shape (batch_size=4, 1)
+# Generate random input and target tensors
+X = axgrad.tensor(axgrad.randn(shape=(15, 20)), requires_grad=True)  # Input tensor of shape (batch_size=15, features=10)
+Y = axgrad.tensor(axgrad.randn(shape=(15, 1)), requires_grad=True)  # Target tensor of shape (batch_size=15, 1)
 
-optimizer = nn.LARS(parameters=model.parameters(), lr=0.001)
-epoch = 10
-lr = 0.1
+optimizer = nn.SGD(parameters=model.parameters(), lr=2e-5)
+epoch = 6000
+losses = []
+steps = []
 
-for n in range(epoch):
+for n in range(1, epoch + 1):
   out = model.forward(X)
-  loss = F.mae(out, Y)
+  loss = F.mse(out, Y)
+  
   optimizer.zero_grad()
   loss.backward()
   optimizer.step()
-  print(f"{n+1}th step, loss: {loss.data[0]:.6f}")
+  
+  # Store loss and step only for multiples of 100 or 200
+  if n % 300 == 0:
+    losses.append(loss.data[0])  # Store the loss
+    steps.append(n)  # Store the step
+    print(f"{n}th step, loss: {loss.data[0]:.6f}")
 
-# import axgrad
-# import axgrad.nn as nn
+# Plotting the learning curve
+plt.figure(figsize=(12, 5))
 
-# ln = nn.LayerNorm(normalized_shape=3, eps=1e-5)
-# x = axgrad.tensor([[1.9, -2.1, 3.3], [-4.0, -5.0, 5.0]])
-# y = axgrad.tensor([[1.0, -0.1, -3.9], [4.9, -0.1, 5.1]])
+# Learning curve
+plt.subplot(1, 2, 1)
+plt.plot(steps, losses, marker='o', linestyle='-', color='b')
+plt.title('Learning Curve')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.grid()
+plt.xticks(steps)
 
-# output = ln(x)
-# e = output * y
-# g = e.sum()
-# g.backward()
+# Predictions vs Targets
+plt.subplot(1, 2, 2)
+# Scatter plot for actual values (Y) and predicted values (out)
+plt.scatter(range(len(Y.F.data)), Y.F.data, color='b', label='Actual Values')  # Actual values in blue
+plt.scatter(range(len(out.F.data)), out.F.data, color='r', label='Predicted Values')  # Predicted values in red
+plt.title('Predictions vs Targets')
+plt.xlabel('Sample Index')
+plt.ylabel('Value')
+plt.legend()
+plt.grid()
 
-# print(g.grad)
-# print(output.grad)
-# print(x.grad)
-
-# for p in ln.parameters():
-#   print(p.grad)
+plt.tight_layout()
+plt.show()
