@@ -34,7 +34,6 @@ class LayerNorm(Module):
       beta = self.beta.reshape((1,) * (x.ndim - len(self.beta.shape)) + tuple(self.beta.shape))
       x_norm = x_norm * gamma + beta
 
-      # Ensure to attach backward functions to the parameters for gradient calculation
       self.gamma.grad = (x_norm * (x - mean) / (var + [self.eps]).sqrt()).sum(axis=0)
       self.beta.grad = x_norm.sum(axis=0)
     x_norm.grad_fn = "<LayerNorm>"
@@ -84,7 +83,7 @@ class BatchNorm(Module):
       mean, var = batch_mean, batch_var
     else:
       mean, var = self.running_mean, self.running_var
-    x_norm = (x - mean) / (var + self.eps) ** 0.5
+    x_norm = ((x - mean) / (var + [self.eps])).sqrt()
     if self.affine:
       x_norm = x_norm * self.gamma + self.beta
     return x_norm
