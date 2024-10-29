@@ -49,9 +49,9 @@ class Conv2d(Module):
     return params
 
 class Embedding(Module):
-  def __init__(self, num_embeddings:int, embedding_dim:int):
+  def __init__(self, n_embedding:int, embedding_dim:int):
     super().__init__()
-    self.weight = tensor(_randn(shape=(num_embeddings, embedding_dim)), requires_grad=True, dtype="float32")
+    self.weight = tensor(_randn(shape=(n_embedding, embedding_dim)), requires_grad=True, dtype="float32")
   def __call__(self, x): return self.forward(x)
   def __repr__(self): return f"<EmbeddingLayer n_embeddings={self.weight.shape[0]} embedding_dim={self.weight.shape[1]}>"
   def forward(self, indices):
@@ -61,3 +61,5 @@ class Embedding(Module):
     out = tensor(out, requires_grad=True)
     out.prev, out.grad_fn, out._backward = (self.weight,), "<EmbeddingBackwards>", Backward.embed_backwards(self.weight, indices, out)
     return out
+
+  def parameters(self): return [self.weight]
