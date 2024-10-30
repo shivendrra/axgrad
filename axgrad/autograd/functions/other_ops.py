@@ -50,3 +50,40 @@ class __EMBEDD__:
   def __call__(self) -> Callable:
     self.first.grad.data = self.backward(self.first.data, self.indices, self.out.data)
     return self.__call__
+
+class __LAYERNORM__:
+  def __init__(self, gamma, beta, bias, out, elem_aff, eps, x, mean, var): self.gamma, self.beta, self.bias, self.out, self.elem_aff, self.eps, self.x, self.mean, self.var = gamma, beta, bias, out, elem_aff, eps, x, mean, var
+  def backward(self, grad):
+    N = self.x.shape[-1]
+
+    # grads w.r.t. the normalized input
+    x_hat = (self.x - self.mean) / (self.var + self.eps).sqrt()
+    dx_hat = grad * self.gamma.data if self.elem_aff else grad
+
+    # grads w.r.t. the input (x)
+    dvar = ((dx_hat * (self.x - self.mean)) * -0.5 * (self.var + self.eps)**-1.5).sum(axis=-1, keepdims=True)
+    dmean = (dx_hat * -1 / (self.var + self.eps).sqrt()).sum(axis=-1, keepdims=True) \
+            + dvar * -2 * (self.x - self.mean).mean(axis=-1, keepdims=True)
+
+    dx = dx_hat / (self.var + self.eps).sqrt() + dvar * 2 * (self.x - self.mean) / N + dmean / N
+
+    return dx, x_hat
+
+  def __call__(self, grad) -> Callable:
+    dx, x_hat = self.backward(grad)
+    self.x.grad.data = dx
+
+    if self.elem_aff:
+      dgamma = (grad * x_hat).sum(axis=0)
+      dbeta = grad.sum(axis=0)
+      self.gamma.grad.data = dgamma
+      self.beta.grad.data = dbeta
+
+    if self.bias is not None:
+      self.bias.grad.data = grad.sum(axis=0)
+
+    return self.__call__
+
+class __BATCHNORM__:
+  def __init__(self, gamma, beta, running_mean, running_var):
+    pass
