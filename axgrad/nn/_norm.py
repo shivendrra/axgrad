@@ -22,8 +22,7 @@ class LayerNorm(Module):
 
     mean = x.mean(axis=-1, keepdims=True).unsqueeze(dim=0)
     var = x.var(axis=-1, keepdims=True).unsqueeze(dim=0)
-    out = (x - mean) / (var + [self.eps])
-    out = out.sqrt()
+    out = (x - mean) / (var + [self.eps]).sqrt()
 
     if self.elementwise_affine:
       gamma = self.gamma.reshape((1,) * (x.ndim - len(self.gamma.shape)) + tuple(self.gamma.shape))

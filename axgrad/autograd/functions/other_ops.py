@@ -1,4 +1,5 @@
 from ...helpers.utils import _zeros_like
+from ...helpers.ops import sum_axis0
 from typing import Callable
 
 class __STACK__:
@@ -57,30 +58,31 @@ class __LAYERNORM__:
     N = self.x.shape[-1]
 
     # grads w.r.t. the normalized input
-    x_hat = (self.x - self.mean) / (self.var + self.eps).sqrt()
-    dx_hat = grad * self.gamma.data if self.elem_aff else grad
+    x_hat = (self.x - self.mean) / (self.var + [self.eps]).sqrt()
+    dx_hat = grad * self.gamma if self.elem_aff else grad
 
     # grads w.r.t. the input (x)
-    dvar = ((dx_hat * (self.x - self.mean)) * -0.5 * (self.var + self.eps)**-1.5).sum(axis=-1, keepdims=True)
-    dmean = (dx_hat * -1 / (self.var + self.eps).sqrt()).sum(axis=-1, keepdims=True) \
-            + dvar * -2 * (self.x - self.mean).mean(axis=-1, keepdims=True)
+    dvar = ((dx_hat * (self.x - self.mean)) * [-0.5] * (self.var + [self.eps])**-1.5).sum(axis=-1, keepdims=True)
+    dmean = (dx_hat * [-1] / (self.var + [self.eps]).sqrt()).sum(axis=-1, keepdims=True) \
+            + dvar * [-2] * (self.x - self.mean).mean(axis=-1, keepdims=True)
 
-    dx = dx_hat / (self.var + self.eps).sqrt() + dvar * 2 * (self.x - self.mean) / N + dmean / N
-
+    dx = dx_hat / (self.var + [self.eps]).sqrt()
+    dx += ((self.x - self.mean) * dvar.unsqueeze() * [2]) / [N]
+    dx += dmean.unsqueeze() / [N]
     return dx, x_hat
 
-  def __call__(self, grad) -> Callable:
-    dx, x_hat = self.backward(grad)
-    self.x.grad.data = dx
-
+  def __call__(self) -> Callable:
+    dx, x_hat = self.backward(self.out.grad.data)
+    self.x.grad.data = dx.data
+    
     if self.elem_aff:
-      dgamma = (grad * x_hat).sum(axis=0)
-      dbeta = grad.sum(axis=0)
+      dgamma = sum_axis0((self.out.grad * x_hat).data)
+      dbeta = sum_axis0(self.out.grad.data)
       self.gamma.grad.data = dgamma
       self.beta.grad.data = dbeta
 
     if self.bias is not None:
-      self.bias.grad.data = grad.sum(axis=0)
+      self.bias.grad.data = sum_axis0(self.out.grad.data)
 
     return self.__call__
 
