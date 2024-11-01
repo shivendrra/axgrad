@@ -5,7 +5,7 @@ from ..helpers.utils import _randn, _zeros, _ones
 from ..autograd._backward import Backward
 
 class LayerNorm(Module):
-  def __init__(self, normalized_shape: tuple, eps=1e-5, elementwise_affine=True, bias=False):
+  def __init__(self, normalized_shape:tuple, eps:float=1e-5, elementwise_affine:bool=True, bias:bool=False):
     super(LayerNorm, self).__init__()
     self.normalized_shape = (normalized_shape,) if isinstance(normalized_shape, int) else tuple(normalized_shape)
     self.eps, self.elementwise_affine = eps, elementwise_affine
@@ -40,10 +40,10 @@ class LayerNorm(Module):
     return params
 
 class BatchNorm(Module):
-  def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True):
+  def __init__(self, num_features:int, eps:float=1e-5, momentum:float=0.1, affine:bool=True, track_running_stats:bool=True):
     super(BatchNorm, self).__init__()
     self.num_features, self.eps, self.momentum, self.affine = num_features, eps, momentum, affine
-    self.track_running_stats = track_running_stats
+    self.track_running_stats, self.training = track_running_stats, True
 
     self.gamma = Parameter(_randn(shape=(1, num_features))) if self.affine else None
     self.beta = Parameter(_zeros(shape=(1, num_features))) if self.affine else None
@@ -77,3 +77,19 @@ class BatchNorm(Module):
     if self.affine:
       params.extend([self.gamma, self.beta])
     return params
+
+class RMSNorm(Module):
+  def __init__(self, dim:int, eps:float=1e-6):
+    super().__init__()
+    self.eps, self.wei, self.dim = eps, Parameter(_ones(shape=(1, dim))), dim
+  def __call__(self, x): return self.forward(x) * self.wei
+  def __repr__(self): return f"<RMSNorm dim={self.dim}, eps={self.eps}>"
+
+  def forward(self, x):
+    x = x if isinstance(x, tensor) else tensor(x, dtype=tensor.float32, requires_grad=True)
+    out = ((x ** 2).mean(axis=-1, keepdims=True)) + [self.eps]
+    out = out.unsqueeze() * x
+    out.prev, out.grad_fn, out._backward = (self.wei, ), "<RMSNormBackwards>", Backward.rmsnorm_backwards(self.wei, out, self.eps, x)
+    return out
+
+  def parameters(self): return [self.wei]

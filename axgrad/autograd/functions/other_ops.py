@@ -113,3 +113,26 @@ class __BATCHNORM__:
       self.beta.grad.data = dbeta
 
     return self.__call__
+
+class __RMSNORM__:
+  def __init__(self, wei, out, eps, x):
+    self.wei, self.out, self.eps, self.x = wei, out, eps, x
+
+  def backward(self, grad):
+    mean_square = (self.x ** 2).mean(axis=-1, keepdims=True)
+    rms = (mean_square + [self.eps]).sqrt()
+
+    # grads w.r.t. `x`
+    grad_x = grad * self.wei / rms
+    grad_rms = (-grad * self.wei * self.x / (rms ** 3)).mean(axis=-1, keepdims=True)
+    dx = grad_x + (grad_rms * self.x)
+
+    # grads w.r.t. `wei`
+    dwei = (grad * self.x / rms).sum(axis=0, keepdims=True)
+    return dx, dwei
+
+  def __call__(self):
+    dx, dwei = self.backward(self.out.grad.data)
+    self.x.grad.data = dx.data
+    self.wei.grad.data = dwei.data
+    return self.__call__
