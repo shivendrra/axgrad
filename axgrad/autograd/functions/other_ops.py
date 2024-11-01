@@ -87,5 +87,29 @@ class __LAYERNORM__:
     return self.__call__
 
 class __BATCHNORM__:
-  def __init__(self, gamma, beta, running_mean, running_var):
-    pass
+  def __init__(self, gamma, beta, running_mean, running_var, out, affine, eps, x, mean, var): self.gamma, self.beta, self.running_mean, self.running_var, self.out, self.affine, self.eps, self.x, self.mean, self.var = gamma, beta, running_mean, running_var, out, affine, eps, x, mean, var
+  def backward(self, grad):
+    N, _ = self.x.shape
+
+    x_hat = (self.x - self.mean) / (self.var + [self.eps]).sqrt()
+    dx_hat = grad * self.gamma if self.affine else grad
+
+    dvar = (dx_hat * (self.x - self.mean) * [-0.5] * (self.var + [self.eps]) ** -1.5).sum(axis=0, keepdims=True)
+    dmean = (dx_hat * [-1] / (self.var + [self.eps]).sqrt()).sum(axis=0, keepdims=True) \
+            + dvar * [-2] * (self.x - self.mean).mean(axis=0, keepdims=True)
+    dx = dx_hat / (self.var + [self.eps]).sqrt()
+    dx += ((self.x - self.mean) * dvar.unsqueeze().T * [2]) / [N]
+    dx += dmean.unsqueeze().T / [N]
+    return dx, x_hat
+
+  def __call__(self):
+    dx, x_hat = self.backward(self.out.grad.data)
+    self.x.grad.data = dx.data
+    
+    if self.affine:
+      dgamma = sum_axis0((self.out.grad * x_hat).data)
+      dbeta = sum_axis0(self.out.grad.data)
+      self.gamma.grad.data = dgamma
+      self.beta.grad.data = dbeta
+
+    return self.__call__

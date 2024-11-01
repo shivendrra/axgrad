@@ -90,6 +90,10 @@ class Backward:
   def layernorm_backwards(gamma:Literal["tensor"], beta:Literal["tensor"], bias:Literal["tensor"], out:Literal["tensor"], elem_aff:bool, eps:float, x:Literal["tensor"], mean:Literal["tensor"], var:Literal["tensor"]) -> Callable:
     _back = __LAYERNORM__(gamma, beta, bias, out, elem_aff, eps, x, mean, var)
     return _back
+  
+  def batchnorm_backwards(gamma:Literal["tensor"], beta:Literal["tensor"], running_mean:Literal["tensor"], running_var:Literal["tensor"] , aff:bool, out:Literal["tensor"], eps:float, x:Literal["tensor"], mean:Literal["tensor"], var:Literal["tensor"]) -> Callable:
+    _back = __BATCHNORM__(gamma=gamma, beta=beta, running_mean=running_mean, running_var=running_var, out=out, affine=aff, eps=eps, x=x, mean=mean, var=var)
+    return _back
 
   ## shape ops backwards:
   def transpose_backwards(first:Literal["tensor"], out:Literal["tensor"]) -> Callable:

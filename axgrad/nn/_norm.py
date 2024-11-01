@@ -28,7 +28,7 @@ class LayerNorm(Module):
       gamma = self.gamma.reshape((1,) * (x.ndim - len(self.gamma.shape)) + tuple(self.gamma.shape))
       beta = self.beta.reshape((1,) * (x.ndim - len(self.beta.shape)) + tuple(self.beta.shape))
       out = out * gamma + beta
-    out.prev, out.grad_fn, out._backward = (self.gamma, self.beta), "<LayerNorm>", Backward.layernorm_backwards(self.gamma, self.beta, self.bias, out, self.elementwise_affine, self.eps, x, mean, var)
+    out.prev, out.grad_fn, out._backward = (self.gamma, self.beta), "<LayerNormBackwards>", Backward.layernorm_backwards(self.gamma, self.beta, self.bias, out, self.elementwise_affine, self.eps, x, mean, var)
     return out
 
   def parameters(self):
@@ -48,8 +48,8 @@ class BatchNorm(Module):
     self.gamma = Parameter(_randn(shape=(1, num_features))) if self.affine else None
     self.beta = Parameter(_zeros(shape=(1, num_features))) if self.affine else None
 
-    self.running_mean = _zeros(shape=(1, num_features)) if self.track_running_stats else None
-    self.running_var = _ones(shape=(1, num_features)) if self.track_running_stats else None
+    self.running_mean = tensor(_zeros(shape=(1, num_features))) if self.track_running_stats else None
+    self.running_var = tensor(_ones(shape=(1, num_features))) if self.track_running_stats else None
   
   def __call__(self, x): return self.forward(x)
   def __repr__(self): return f"<BatchNorm num_features={self.num_features}, eps={self.eps}, momentum={self.momentum}>"
@@ -61,15 +61,16 @@ class BatchNorm(Module):
       batch_mean = x.mean(axis=0, keepdims=True)
       batch_var = ((x - batch_mean) ** 2).mean(axis=0, keepdims=True)
       if self.track_running_stats:
-        self.running_mean = self.momentum * batch_mean + (1 - self.momentum) * self.running_mean
-        self.running_var = self.momentum * batch_var + (1 - self.momentum) * self.running_var
+        self.running_mean = [self.momentum] * batch_mean + [(1 - self.momentum)] * self.running_mean
+        self.running_var = [self.momentum] * batch_var + [(1 - self.momentum)] * self.running_var
       mean, var = batch_mean, batch_var
     else:
       mean, var = self.running_mean, self.running_var
-    x_norm = ((x - mean) / (var + [self.eps])).sqrt()
+    out = (x - mean) / (var + [self.eps]).sqrt()
     if self.affine:
-      x_norm = x_norm * self.gamma + self.beta
-    return x_norm
+      out = out * self.gamma + self.beta
+    out.prev, out.grad_fn, out._backward = (self.gamma, self.beta), "<BatchNormBackwards>", Backward.batchnorm_backwards(self.gamma, self.beta, self.running_mean, self.running_var, self.affine, out, self.eps, x, mean, var)
+    return out
 
   def parameters(self):
     params = []
