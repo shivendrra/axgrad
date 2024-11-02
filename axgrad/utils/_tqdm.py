@@ -1,8 +1,5 @@
 from typing import *
-import time
-import math
-import sys
-import shutil
+import time, math, sys, shutil
 
 class tqdm:
   def __init__(self, iterable=None, desc: str = "", disable: bool = False, unit: str = "it", unit_scale: bool = False, total: Optional[int] = None, rate: int = 100) -> None:

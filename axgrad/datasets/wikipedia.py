@@ -3,4 +3,4 @@
   @brief script to download raw dataset from wiki dumps to train language model
 """
 
-from ..utils.tqdm import tqdm
+from ..utils._tqdm import tqdm
