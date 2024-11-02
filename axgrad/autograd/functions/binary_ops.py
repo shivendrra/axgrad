@@ -112,37 +112,3 @@ class __POW__:
   def __call__(self) -> Callable:
     self.first.grad.data = self.backward(self.first.grad.data, self.out.grad.data, self.power)
     return self.__call__
-
-class __STACK__:
-  def __init__(self, out, tensors, axis): self.out, self.tensors, self.axis = out, tensors, axis
-  def __call__(self) -> Callable:
-    split_grads = self._split_grad(self.out.grad.data)
-    for tensor, grad_part in zip(self.tensors, split_grads):
-      if tensor.grad is None:
-        tensor.grad = grad_part
-      else:
-        tensor.grad += grad_part
-
-  def _split_grad(self, grad):
-    return [
-      grad[i] if self.axis == 0 else grad[(slice(None),) * self.axis + (i,)]
-      for i in range(len(self.tensors))
-    ]
-
-class __CONCAT__:
-  def __init__(self, out, tensors, axis): self.out, self.tensors, self.axis = out, tensors, axis
-  def __call__(self):
-    split_grads = self._split_grad(self.out.grad.data)
-    for tensor, grad_part in zip(self.tensors, split_grads):
-      if tensor.grad is None:
-        tensor.grad = grad_part
-      else:
-        tensor.grad += grad_part
-
-  def _split_grad(self, grad):
-    split_grads, current_index = [], 0
-    for tensor in self.tensors:
-      tensor_size = tensor.shape[self.axis]
-      split_grads.append(grad[current_index:current_index + tensor_size])
-      current_index += tensor_size
-    return split_grads

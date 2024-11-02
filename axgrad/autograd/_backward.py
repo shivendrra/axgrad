@@ -8,10 +8,11 @@
 
 from typing import Literal, Callable
 from ..helpers.functionals import *
-from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__, __STACK__, __CONCAT__, __CONV2D__
+from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__, __CONV2D__
 from .functions.shape_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
 from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__, __EXP__, __RSQRT__, __SQRT__, __LOG__, __CLIP__, __ABS__
 from .functions.activations import __GELU__, __RELU__, __SIGMOID__, __SILU__, __TANH__, __LRELU__
+from .functions.other_ops import __EMBEDD__, __STACK__, __CONCAT__, __BATCHNORM__, __LAYERNORM__, __RMSNORM__
 from ..helpers.shape import *
 
 class Backward:
@@ -35,14 +36,6 @@ class Backward:
   def conv2d_backwards(first:Literal["tensor"], kernel:Union[Literal["tensor"], list], out:Literal["tensor"], stride:int, padding:int) -> Callable:
     _back = __CONV2D__(first, kernel, out, stride, padding)
     return _back
-  
-  def stack_backwards(out:Literal["tensor"], tensors:Literal["tensor"], axis:int) -> Callable:
-   _back = __STACK__(out, tensors, axis)
-   return _back
-  
-  def concat_backwards(out:Literal["tensor"], tensors:Literal["tensor"], axis:int) -> Callable:
-   _back = __CONCAT__(out, tensors, axis)
-   return _back
 
   ## unary ops backwards:
   def sum_backwards(out: Literal["tensor"], first: Literal["tensor"], axis: Optional[int], keepdims: bool) -> Callable:
@@ -79,6 +72,31 @@ class Backward:
   
   def sqrt_backwards(out:Literal["tensor"], first:Literal["tensor"]) -> Callable:
     _back = __SQRT__(first, out)
+    return _back
+  
+  ## other ops backwards:
+  def embed_backwards(first:Literal["tensor"], indices:list, out:Literal["tensor"]) -> Callable:
+    _back = __EMBEDD__(first, indices, out)
+    return _back
+  
+  def stack_backwards(out:Literal["tensor"], tensors:Literal["tensor"], axis:int) -> Callable:
+   _back = __STACK__(out, tensors, axis)
+   return _back
+  
+  def concat_backwards(out:Literal["tensor"], tensors:Literal["tensor"], axis:int) -> Callable:
+   _back = __CONCAT__(out, tensors, axis)
+   return _back
+  
+  def layernorm_backwards(gamma:Literal["tensor"], beta:Literal["tensor"], bias:Literal["tensor"], out:Literal["tensor"], elem_aff:bool, eps:float, x:Literal["tensor"], mean:Literal["tensor"], var:Literal["tensor"]) -> Callable:
+    _back = __LAYERNORM__(gamma, beta, bias, out, elem_aff, eps, x, mean, var)
+    return _back
+  
+  def batchnorm_backwards(gamma:Literal["tensor"], beta:Literal["tensor"], running_mean:Literal["tensor"], running_var:Literal["tensor"] , aff:bool, out:Literal["tensor"], eps:float, x:Literal["tensor"], mean:Literal["tensor"], var:Literal["tensor"]) -> Callable:
+    _back = __BATCHNORM__(gamma=gamma, beta=beta, running_mean=running_mean, running_var=running_var, out=out, affine=aff, eps=eps, x=x, mean=mean, var=var)
+    return _back
+  
+  def rmsnorm_backwards(wei:Literal["tensor"], out:Literal["tensor"], eps:float, x:Literal["tensor"]) -> Callable:
+    _back = __RMSNORM__(wei, out, eps, x)
     return _back
 
   ## shape ops backwards:
