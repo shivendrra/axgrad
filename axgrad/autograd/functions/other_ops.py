@@ -123,12 +123,12 @@ class __RMSNORM__:
     rms = (mean_square + [self.eps]).sqrt()
 
     # grads w.r.t. `x`
-    grad_x = grad * self.wei / rms
-    grad_rms = (-grad * self.wei * self.x / (rms ** 3)).mean(axis=-1, keepdims=True)
-    dx = grad_x + (grad_rms * self.x)
+    grad_x = grad * self.wei / rms.unsqueeze()
+    grad_rms = (grad * -self.wei * self.x / (rms ** 3).unsqueeze()).mean(axis=-1, keepdims=True)
+    dx = grad_x + (grad_rms.unsqueeze() * self.x)
 
     # grads w.r.t. `wei`
-    dwei = (grad * self.x / rms).sum(axis=0, keepdims=True)
+    dwei = (grad * self.x / rms.unsqueeze()).sum(axis=0, keepdims=True)
     return dx, dwei
 
   def __call__(self):
