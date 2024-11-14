@@ -1,3 +1,12 @@
+"""
+  @utils/_helpers.py
+  @brief contains utility helper codes, from scratch implementation
+  comments:
+  - tqdm from scratch, from https://github.com/tinygrad/tinygrad/blob/master/tinygrad/helpers.py
+  - contains the Random Number Generator class (RNG)
+  - using xorshift: https://en.wikipedia.org/wiki/Xorshift#xorshift.2A
+"""
+
 from typing import *
 import time, math, sys, shutil
 
@@ -21,7 +30,7 @@ class tqdm:
   
   def update(self, n: int = 0, close: bool = True):
     self.n, self.i = self.n + n, self.i + 1
-    if self.disable or (not close and self.i % self.skip != 0):
+    if self.dis or (not close and self.i % self.skip != 0):
       return
     prog, elapsed, ncols = (
       self.n / self.t if self.t else 0,
@@ -59,3 +68,23 @@ def pretty_print(x:Any, rep:Callable, srcfn=lambda x: x.src, cache=None, d=0)->s
     return f"{' '*d} x{cx[0]}"
   cx[2], srcs = True, ('None' if srcfn(x) is None else ''.join(f'\n{pretty_print(s, rep, srcfn, cache, d+2)},' for s in srcfn(x)))
   return f"{' '*d}{f'x{cx[0]}:=' * (cx[1]>1)}{rep(x)}" % srcs
+
+class RNG:
+  def __init__(self, seed):
+    self.state = seed
+
+  def random_u32(self):
+    # doing & 0xFFFFFFFFFFFFFFFF is the same as cast to uint64 in C
+    # doing & 0xFFFFFFFF is the same as cast to uint32 in C
+    self.state ^= (self.state >> 12) & 0xFFFFFFFFFFFFFFFF
+    self.state ^= (self.state << 25) & 0xFFFFFFFFFFFFFFFF
+    self.state ^= (self.state >> 27) & 0xFFFFFFFFFFFFFFFF
+    return ((self.state * 0x2545F4914F6CDD1D) >> 32) & 0xFFFFFFFF
+
+  def random(self):
+    # random float32 in [0, 1)
+    return (self.random_u32() >> 8) / 16777216.0
+
+  def uniform(self, a=0.0, b=1.0):
+    # random float32 in [a, b)
+    return a + (b-a) * self.random()
