@@ -52,6 +52,22 @@ class __EMBEDD__:
     self.first.grad.data = self.backward(self.first.data, self.indices, self.out.data)
     return self.__call__
 
+class __POSEMBEDD__:
+  def __init__(self, first, indices, out): self.first, self.indices, self.out = first, indices, out
+  def backward(self, grad_output):
+    def _apply_grad(existing_grad, new_grad):
+      if isinstance(existing_grad, list):
+        return [_apply_grad(e, n) for e, n in zip(existing_grad, new_grad)]
+      existing_grad += new_grad
+      return existing_grad
+    grad_weight = _zeros_like(self.first.data)
+    for i, idx in enumerate(self.indices):
+      grad_weight[idx] = _apply_grad(grad_weight[idx], grad_output[i])
+    return grad_weight
+  def __call__(self):
+    self.first.grad.data = self.backward(self.out.grad.data)
+    return self.__call__
+
 class __LAYERNORM__:
   def __init__(self, gamma, beta, bias, out, elem_aff, eps, x, mean, var): self.gamma, self.beta, self.bias, self.out, self.elem_aff, self.eps, self.x, self.mean, self.var = gamma, beta, bias, out, elem_aff, eps, x, mean, var
   def backward(self, grad):
@@ -74,16 +90,13 @@ class __LAYERNORM__:
   def __call__(self) -> Callable:
     dx, x_hat = self.backward(self.out.grad.data)
     self.x.grad.data = dx.data
-    
     if self.elem_aff:
       dgamma = sum_axis0((self.out.grad * x_hat).data)
       dbeta = sum_axis0(self.out.grad.data)
       self.gamma.grad.data = dgamma
       self.beta.grad.data = dbeta
-
     if self.bias is not None:
       self.bias.grad.data = sum_axis0(self.out.grad.data)
-
     return self.__call__
 
 class __BATCHNORM__:
@@ -93,7 +106,6 @@ class __BATCHNORM__:
 
     x_hat = (self.x - self.mean) / (self.var + [self.eps]).sqrt()
     dx_hat = grad * self.gamma if self.affine else grad
-
     dvar = (dx_hat * (self.x - self.mean) * [-0.5] * (self.var + [self.eps]) ** -1.5).sum(axis=0, keepdims=True)
     dmean = (dx_hat * [-1] / (self.var + [self.eps]).sqrt()).sum(axis=0, keepdims=True) \
             + dvar * [-2] * (self.x - self.mean).mean(axis=0, keepdims=True)
@@ -105,19 +117,16 @@ class __BATCHNORM__:
   def __call__(self):
     dx, x_hat = self.backward(self.out.grad.data)
     self.x.grad.data = dx.data
-    
     if self.affine:
       dgamma = sum_axis0((self.out.grad * x_hat).data)
       dbeta = sum_axis0(self.out.grad.data)
       self.gamma.grad.data = dgamma
       self.beta.grad.data = dbeta
-
     return self.__call__
 
 class __RMSNORM__:
   def __init__(self, wei, out, eps, x):
     self.wei, self.out, self.eps, self.x = wei, out, eps, x
-
   def backward(self, grad):
     mean_square = (self.x ** 2).mean(axis=-1, keepdims=True)
     rms = (mean_square + [self.eps]).sqrt()
