@@ -1,3 +1,12 @@
+/* 
+  - tensor.h header file for tensor.cpp & Tensor
+  - contains all the ops & functions for Tensor & python front-end
+  - manages all the cpu & gpu functionality
+  - compile it as:
+    -- '.so': g++ -shared -fPIC -o libtensor.so tensor.cpp cpu.cpp
+    -- '.dll': g++ -shared -o libtensor.dll tensor.cpp cpu.cpp
+*/
+
 #ifndef TENSOR_H
 #define TENSOR_H
 

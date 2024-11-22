@@ -29,6 +29,108 @@ void div_tensor_cpu(Tensor* a, Tensor* b, float* out) {
   }
 }
 
+void add_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size) {
+  int max_ndim = a->ndim > b->ndim ? b->ndim : a->ndim;
+
+  int* strides1 = (int*)malloc(max_ndim * sizeof(int));
+  int* strides2 = (int*)malloc(max_ndim * sizeof(int));
+  if (strides1 == NULL || strides2 == NULL) {
+    fprintf(stderr, "Couldn't assign the strides to memory, operation failed!\n");
+    exit(1);
+  }
+  int stride1 = 1, stride2 = 1;
+  for (int i = max_ndim; i >=0 ; i--) {
+    int dim1 = i<a->ndim ? a->shape[a->ndim - max_ndim + i] : 1;
+    int dim2 = i<b->ndim ? b->shape[b->ndim - max_ndim + i] : 1;
+    strides1[i] = dim1 == broadcasted_shape[i] ? stride1 : 0;
+    strides2[i] = dim1 == broadcasted_shape[i] ? stride2 : 0;
+    stride1 *= (dim1 == broadcasted_shape[i]) ? dim1 : 1;
+    stride2 *= (dim1 == broadcasted_shape[i]) ? dim2 : 1;
+  }
+
+  for (int i = 0; i < broadcasted_size; i++) {
+    int index1 = 0, index2 = 0;
+    int linear_index = i;
+    for (int j = max_ndim - 1; j >= 0; j--) {
+      int pos = linear_index % broadcasted_shape[j];
+      linear_index /= broadcasted_shape[j];
+      if (strides1[j] != 0) index1 += pos * strides1[j];
+      if (strides2[j] != 0) index2 += pos * strides2[j];
+    }
+    out[i] = a->data[i] + b->data[i];
+  }
+  free(strides1);
+  free(strides2);
+}
+
+void sub_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size) {
+  int max_ndim = a->ndim > b->ndim ? b->ndim : a->ndim;
+
+  int* strides1 = (int*)malloc(max_ndim * sizeof(int));
+  int* strides2 = (int*)malloc(max_ndim * sizeof(int));
+  if (strides1 == NULL || strides2 == NULL) {
+    fprintf(stderr, "Couldn't assign the strides to memory, operation failed!\n");
+    exit(1);
+  }
+  int stride1 = 1, stride2 = 1;
+  for (int i = max_ndim; i >=0 ; i--) {
+    int dim1 = i<a->ndim ? a->shape[a->ndim - max_ndim + i] : 1;
+    int dim2 = i<b->ndim ? b->shape[b->ndim - max_ndim + i] : 1;
+    strides1[i] = dim1 == broadcasted_shape[i] ? stride1 : 0;
+    strides2[i] = dim1 == broadcasted_shape[i] ? stride2 : 0;
+    stride1 *= (dim1 == broadcasted_shape[i]) ? dim1 : 1;
+    stride2 *= (dim1 == broadcasted_shape[i]) ? dim2 : 1;
+  }
+
+  for (int i = 0; i < broadcasted_size; i++) {
+    int index1 = 0, index2 = 0;
+    int linear_index = i;
+    for (int j = max_ndim - 1; j >= 0; j--) {
+      int pos = linear_index % broadcasted_shape[j];
+      linear_index /= broadcasted_shape[j];
+      if (strides1[j] != 0) index1 += pos * strides1[j];
+      if (strides2[j] != 0) index2 += pos * strides2[j];
+    }
+    out[i] = a->data[i] - b->data[i];
+  }
+  free(strides1);
+  free(strides2);
+}
+
+void mul_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size) {
+  int max_ndim = a->ndim > b->ndim ? b->ndim : a->ndim;
+
+  int* strides1 = (int*)malloc(max_ndim * sizeof(int));
+  int* strides2 = (int*)malloc(max_ndim * sizeof(int));
+  if (strides1 == NULL || strides2 == NULL) {
+    fprintf(stderr, "Couldn't assign the strides to memory, operation failed!\n");
+    exit(1);
+  }
+  int stride1 = 1, stride2 = 1;
+  for (int i = max_ndim; i >=0 ; i--) {
+    int dim1 = i<a->ndim ? a->shape[a->ndim - max_ndim + i] : 1;
+    int dim2 = i<b->ndim ? b->shape[b->ndim - max_ndim + i] : 1;
+    strides1[i] = dim1 == broadcasted_shape[i] ? stride1 : 0;
+    strides2[i] = dim1 == broadcasted_shape[i] ? stride2 : 0;
+    stride1 *= (dim1 == broadcasted_shape[i]) ? dim1 : 1;
+    stride2 *= (dim1 == broadcasted_shape[i]) ? dim2 : 1;
+  }
+
+  for (int i = 0; i < broadcasted_size; i++) {
+    int index1 = 0, index2 = 0;
+    int linear_index = i;
+    for (int j = max_ndim - 1; j >= 0; j--) {
+      int pos = linear_index % broadcasted_shape[j];
+      linear_index /= broadcasted_shape[j];
+      if (strides1[j] != 0) index1 += pos * strides1[j];
+      if (strides2[j] != 0) index2 += pos * strides2[j];
+    }
+    out[i] = a->data[i] * b->data[i];
+  }
+  free(strides1);
+  free(strides2);
+}
+
 void scalar_mul_tensor_cpu(Tensor* a, float b, float* out) {
   for (int i = 0; i < a->size; i++) {
     out[i] = a->data[i] * b;
@@ -65,6 +167,48 @@ void log_tensor_cpu(Tensor* a, float* out) {
   }
 }
 
+void matmul_tensor_cpu(Tensor* a, Tensor* b, float* out) {
+  for (int i = 0; i < a->shape[0]; i++) {
+    for (int j = 0; j < b->shape[1]; j++) {
+      float sum = 0.0;
+      for (int k = 0; k < a->shape[1]; k++) {
+        sum += a->data[i * a->shape[1] + k] * b->data[k * b->shape[1] + j];
+      }
+      out[i * b->shape[1] + j] = sum;
+    }
+  }
+}
+
+void broadcasted_batched_matmul_tensor_cpu(Tensor* a, Tensor* b, float* out) {
+  int out_stride = a->shape[0] * b->shape[2];
+  for (int batch = 0; batch < b->shape[0]; batch++) {
+    for (int i = 0; i < a->shape[0]; i++) {
+      for (int j = 0; j < b->shape[2]; j++) {
+        float sum = 0.0;
+        for (int k = 0; k < a->shape[1]; k++) {
+          sum += a->data[i * a->shape[1] + k] * b->data[batch*b->strides[0] + (k * b->shape[2] + j)];
+        }
+        out[(batch * out_stride) + (i * b->shape[2] + j)] = sum;
+      }
+    }
+  }
+}
+
+void batched_matmul_tensor_cpu(Tensor* a, Tensor* b, float* out) {
+  int out_stride = a->shape[1] * b->shape[2];
+  for (int batch = 0; batch < b->shape[0]; batch++) {    
+    for (int i = 0; i < a->shape[1]; i++) {
+      for (int j = 0; j < b->shape[2]; j++) {
+        float sum = 0.0;
+        for (int k = 0; k < a->shape[2]; k++) {
+          sum += a->data[(batch * a->strides[0]) + i * a->shape[2] + k] * b->data[batch*b->strides[0] + (k * b->shape[2] + j)];
+        }
+        out[(batch * out_stride) + (i * b->shape[2] + j)] = sum;
+      }
+    }
+  }
+}
+
 void sum_tensor_cpu(Tensor* a, float* out, int size, int* res_shape, int axis) {
   if (axis == -1) {
     float sum = 0.0;
@@ -90,6 +234,64 @@ void sum_tensor_cpu(Tensor* a, float* out, int size, int* res_shape, int axis) {
       }
     }
   }
+}
+
+void ones_like_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    out[i] = 1.0;
+  }
+}
+
+void zeros_like_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    out[i] = 0.0;
+  }
+}
+
+void transpose_1d_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->shape[0]; i++) {
+    out[i] = a->data[i];
+  }
+}
+
+void transpose_2d_tensor_cpu(Tensor* a, float* out) {
+  int rows = a->shape[0], cols = a->shape[1];
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
+      out[j * rows + i] = a->data[i * cols + j];
+    }
+  }
+}
+
+void transpose_3d_tensor_cpu(Tensor* a, float* out) {
+  int batch = a->shape[0], rows = a->shape[0], cols = a->shape[1];
+  for (int i = 0; i < batch; i++) {
+    for (int j = 0; j < rows; j++) {
+      for (int k = 0; k < cols; k++) {
+        out[k * rows * batch + j * batch + i] = a->data[i * rows * cols + j * cols + k];
+      }
+    }
+  }
+}
+
+void assign_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    out[i] = a->data[i];
+  }
+}
+
+void make_contagious_tensor_cpu(Tensor* a, float* out, int* new_strides) {
+  for (int i = 0; i < a->size; i++) {
+    int index = 0, offset = i;
+    for (int j = 0; j < a->ndim; j++) {
+      index += (offset / new_strides[j]) * a->strides[j];
+      offset %= new_strides[j];
+    }
+    out[i] = a->data[index];
+  }
+  free(a->data);
+  free(a->strides);
+  a->data = out, a->strides = new_strides;
 }
 
 void max_tensor_cpu(Tensor* a, float* out, int size, int* res_shape, int axis) {
@@ -155,5 +357,73 @@ void min_tensor_cpu(Tensor* a, float* out, int size, int* res_shape, int axis) {
 void equal_tensor_cpu(Tensor* a, Tensor* b, float* out) {
   for (int i = 0; i < a->size; i++) {
     out[i] = (a->data[i] == b->data[i]) ? 1.0f : 0.0f;
+  }
+}
+
+void equal_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size) {
+  int max_ndim = a->ndim > b->ndim ? b->ndim : a->ndim;
+
+  int* strides1 = (int*)malloc(max_ndim * sizeof(int));
+  int* strides2 = (int*)malloc(max_ndim * sizeof(int));
+  if (strides1 == NULL || strides2 == NULL) {
+    fprintf(stderr, "Couldn't assign the strides to memory, operation failed!\n");
+    exit(1);
+  }
+  int stride1 = 1, stride2 = 1;
+  for (int i = max_ndim; i >=0 ; i--) {
+    int dim1 = i<a->ndim ? a->shape[a->ndim - max_ndim + i] : 1;
+    int dim2 = i<b->ndim ? b->shape[b->ndim - max_ndim + i] : 1;
+    strides1[i] = dim1 == broadcasted_shape[i] ? stride1 : 0;
+    strides2[i] = dim1 == broadcasted_shape[i] ? stride2 : 0;
+    stride1 *= (dim1 == broadcasted_shape[i]) ? dim1 : 1;
+    stride2 *= (dim1 == broadcasted_shape[i]) ? dim2 : 1;
+  }
+
+  for (int i = 0; i < broadcasted_size; i++) {
+    int index1 = 0, index2 = 0;
+    int linear_index = i;
+    for (int j = max_ndim - 1; j >= 0; j--) {
+      int pos = linear_index % broadcasted_shape[j];
+      linear_index /= broadcasted_shape[j];
+      if (strides1[j] != 0) index1 += pos * strides1[j];
+      if (strides2[j] != 0) index2 += pos * strides2[j];
+    }
+    out[i] = (a->data[index1] == b->data[index2]) ? 1.0f : 0.0f;
+  }
+  free(strides1);
+  free(strides2);
+}
+
+void sin_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    out[i] = sin(a->data[i]);
+  }
+}
+
+void cos_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    out[i] = cos(a->data[i]);
+  }
+}
+
+void sigmoid_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    if (a->data[i] >= 0) {
+      out[i] = 1 / (1 + expf(-a->data[i]));
+    } else {
+      out[i] = expf(a->data[i]) / (1 + expf(a->data[i]));
+    }
+  }
+}
+
+void tanh_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    out[i] = tanh(a->data[i]);
+  }
+}
+
+void relu_tensor_cpu(Tensor* a, float* out) {
+  for (int i = 0; i < a->size; i++) {
+    out[i] = fmax(a->data[i], 0);
   }
 }
