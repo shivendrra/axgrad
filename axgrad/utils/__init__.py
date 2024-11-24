@@ -1,2 +1,2 @@
-from ._tqdm import tqdm
-from .yinyang import RNG, yingyang_dataset
+from ._helpers import tqdm, RNG
+from ._dataset import yingyang_dataset

@@ -1,30 +1,11 @@
 """
-  @utils/yinyang.py data generation codes
-  @brief generates yinyang dateset randomly, from: https://github.com/lkriener/yin_yang_data_set
+  @utils/dataset.py data generation codes
+  @brief generates dataset for training
   comments:
-  - also contains the Random Number Generator class (RNG)
-  - using xorshift: https://en.wikipedia.org/wiki/Xorshift#xorshift.2A
+  - generates yinyang dateset randomly, from: https://github.com/lkriener/yin_yang_data_set
 """
 
-class RNG:
-  def __init__(self, seed):
-    self.state = seed
-
-  def random_u32(self):
-    # doing & 0xFFFFFFFFFFFFFFFF is the same as cast to uint64 in C
-    # doing & 0xFFFFFFFF is the same as cast to uint32 in C
-    self.state ^= (self.state >> 12) & 0xFFFFFFFFFFFFFFFF
-    self.state ^= (self.state << 25) & 0xFFFFFFFFFFFFFFFF
-    self.state ^= (self.state >> 27) & 0xFFFFFFFFFFFFFFFF
-    return ((self.state * 0x2545F4914F6CDD1D) >> 32) & 0xFFFFFFFF
-
-  def random(self):
-    # random float32 in [0, 1)
-    return (self.random_u32() >> 8) / 16777216.0
-
-  def uniform(self, a=0.0, b=1.0):
-    # random float32 in [a, b)
-    return a + (b-a) * self.random()
+from ._helpers import RNG
 
 ## dataset ------------------------------------
 

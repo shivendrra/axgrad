@@ -479,11 +479,32 @@ class tensor:
   
   def log(self) -> List["tensor"]:
     def _ops(data):
+      return [_ops(d) for d in data] if isinstance(data, list) else math.log(10, data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<LogBackwards>", Backward.log_backwards(out, self)
+    return out
+  
+  def ln(self) -> List["tensor"]:
+    def _ops(data):
       return [_ops(d) for d in data] if isinstance(data, list) else math.log(data)
     out = tensor(_ops(self.data), self.requires_grad, self.dtype)
     out.prev, out.grad_fn, out._backward = (self, ), "<LogBackwards>", Backward.log_backwards(out, self)
     return out
   
+  def sin(self) -> List["tensor"]:
+    def _ops(data):
+      return [_ops(d) for d in data] if isinstance(data, list) else math.sin(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<SinBackwards>", Backward.sin_backwards(out, self)
+    return out
+  
+  def cos(self) -> List["tensor"]:
+    def _ops(data):
+      return [_ops(d) for d in data] if isinstance(data, list) else math.cos(data)
+    out = tensor(_ops(self.data), self.requires_grad, self.dtype)
+    out.prev, out.grad_fn, out._backward = (self, ), "<CosBackwards>", Backward.cos_backwards(out, self)
+    return out
+
   def abs(self) -> List["tensor"]:
     def _ops(data):
       return [_ops(d) for d in data] if isinstance(data, list) else abs(data)
