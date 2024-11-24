@@ -28,7 +28,7 @@ void zeros_like_tensor_cpu(Tensor* a, float* out);
 void transpose_1d_tensor_cpu(Tensor* a, float* out);
 void transpose_2d_tensor_cpu(Tensor* a, float* out);
 void transpose_3d_tensor_cpu(Tensor* a, float* out);
-void assign_tensor_cpu(Tensor* a, float* out);
+void reassign_tensor_cpu(Tensor* a, float* out);
 void make_contagious_tensor_cpu(Tensor* a, float* out, int* new_strides);
 void equal_tensor_cpu(Tensor* a, Tensor* b, float* out);
 void equal_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size);

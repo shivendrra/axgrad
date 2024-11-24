@@ -274,7 +274,7 @@ void transpose_3d_tensor_cpu(Tensor* a, float* out) {
   }
 }
 
-void assign_tensor_cpu(Tensor* a, float* out) {
+void reassign_tensor_cpu(Tensor* a, float* out) {
   for (int i = 0; i < a->size; i++) {
     out[i] = a->data[i];
   }
