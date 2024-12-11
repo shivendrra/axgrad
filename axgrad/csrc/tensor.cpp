@@ -1,11 +1,12 @@
-#include "tensor.h"
-#include "cpu.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
+#include "tensor.h"
+#include "cpu.h"
+#include "cuda.h"
 
-Tensor* create_tensor(float* data, int* shape, int ndim) {
+Tensor* create_tensor(float* data, int* shape, int ndim, char* device) {
   Tensor* tensor = (Tensor*)malloc(sizeof(Tensor));
   if (tensor == NULL) {
     fprintf(stderr, "Memory allocation failed\n");
@@ -14,7 +15,13 @@ Tensor* create_tensor(float* data, int* shape, int ndim) {
   tensor->data = data;
   tensor->shape = shape;
   tensor->ndim = ndim;
-
+  self->device = (char*)malloc(strlen(device) + 1);
+  if (device != NULL) {
+    strcpy(self->device, device);
+  } else {
+    fprintf(stderr, "Memory allocation failed\n");
+    exit(-1);
+  }
   tensor->size = 1;
   for (int i = 0; i < ndim; i++) {
     tensor->size *= shape[i];
@@ -32,6 +39,27 @@ Tensor* create_tensor(float* data, int* shape, int ndim) {
   }
 
   return tensor;
+}
+
+void to_device(Tensor* a, char* device) {
+  int device_id = 0;
+  char *end_ptr, *device_type;
+  long num = strtol(device, &end_ptr, 10);
+  if (*end_ptr == '\0') {
+    device_id = (int)num;
+    device_type = new char[strlen("cuda") + 1];
+    strcpy(device_type, "cuda");
+  } else {
+    device_type = new char[strlen("cpu") + 1];
+    strcpy(device_type, "cpu");
+  }
+
+  if((strcmp(device_type, "cuda") == 0) && (strcmp(a->device, "cpu") == 0)) {
+    cpu_to_cuda(a, device_id);
+  } else if ((strcmp(device_type, "cpu") == 0) && (strcmp(a->device, "cuda") == 0)) {
+    cuda_to_cpu(a);
+  }
+  free(device_type);
 }
 
 void delete_tensor(Tensor* tensor) {
@@ -73,48 +101,82 @@ float get_item(Tensor* tensor, int* indices) {
 }
 
 Tensor* add_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->ndim != b->ndim) {
     fprintf(stderr, "Tensors must have the same no of dims %d and %d for addition\n", a->ndim, b->ndim);
     exit(1);
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    add_tensor_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  add_tensor_cpu(a, b, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* sub_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->ndim != b->ndim) {
     fprintf(stderr, "Tensors must have the same no of dims %d and %d for subtraction\n", a->ndim, b->ndim);
     exit(1);
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    sub_tensor_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  sub_tensor_cpu(a, b, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* elemwise_mul_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->ndim != b->ndim) {
     fprintf(stderr, "Tensors must have the same no of dims %d and %d for elementwise multiplication\n", a->ndim, b->ndim);
     exit(1);
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    mul_tensor_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  mul_tensor_cpu(a, b, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* add_broadcasted_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   int max_ndim = a->ndim > b->ndim ? a->ndim : b->ndim;
   int* broadcasted_shape = (int*)malloc(max_ndim * sizeof(int));
   if (broadcasted_shape == NULL) {
@@ -133,16 +195,26 @@ Tensor* add_broadcasted_tensor(Tensor* a, Tensor* b) {
   for (int i = 0; i < max_ndim; i++) {
     broadcasted_size *= broadcasted_shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    add_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
+    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  add_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-  return create_tensor(out, broadcasted_shape, max_ndim);
 }
 
 Tensor* sub_broadcasted_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   int max_ndim = a->ndim > b->ndim ? a->ndim : b->ndim;
   int* broadcasted_shape = (int*)malloc(max_ndim * sizeof(int));
   if (broadcasted_shape == NULL) {
@@ -161,16 +233,26 @@ Tensor* sub_broadcasted_tensor(Tensor* a, Tensor* b) {
   for (int i = 0; i < max_ndim; i++) {
     broadcasted_size *= broadcasted_shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    sub_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
+    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  sub_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-  return create_tensor(out, broadcasted_shape, max_ndim);
 }
 
 Tensor* elemwise_mul_broadcasted_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   int max_ndim = a->ndim > b->ndim ? a->ndim : b->ndim;
   int* broadcasted_shape = (int*)malloc(max_ndim * sizeof(int));
   if (broadcasted_shape == NULL) {
@@ -189,16 +271,26 @@ Tensor* elemwise_mul_broadcasted_tensor(Tensor* a, Tensor* b) {
   for (int i = 0; i < max_ndim; i++) {
     broadcasted_size *= broadcasted_shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    mul_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
+    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  mul_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-  return create_tensor(out, broadcasted_shape, max_ndim);
 }
 
 Tensor* matmul_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->shape[1] != b->shape[0]) {
     fprintf(stderr, "Incompatible shapes for matrix multiplication %dx%d and %dx%d\n", a->shape[0], a->shape[1], b->shape[0], b->shape[1]);
     exit(1);
@@ -219,16 +311,26 @@ Tensor* matmul_tensor(Tensor* a, Tensor* b) {
   for (int i = 0; i < ndim; i++) {
     size *= shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    matmul_tensor_cpu(a, b, out);
+    return create_tensor(out, shape, ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  matmul_tensor_cpu(a, b, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* batched_matmul_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->shape[0] != b->shape[0]) {
     fprintf(stderr, "Incompatible shapes for batched multiplication %dx%d and %dx%d\n", a->shape[0], a->shape[1], b->shape[0], a->shape[1]);
     exit(1);
@@ -247,16 +349,26 @@ Tensor* batched_matmul_tensor(Tensor* a, Tensor* b) {
   for (int i = 0; i < ndim; i++) {
     size *= shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    batched_matmul_tensor_cpu(a, b, out);
+    return create_tensor(out, shape, ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  batched_matmul_tensor_cpu(a, b, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* broadcasted_batched_matmul_tensor_cpu(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->shape[1] != b->shape[1]) {
     fprintf(stderr, "Incompatible shapes for broadcasted batched matrix multiplication %dx%d and %dx%dx%d\n", a->shape[0], a->shape[1], b->shape[0], b->shape[1], b->shape[2]);
     exit(1);
@@ -271,87 +383,139 @@ Tensor* broadcasted_batched_matmul_tensor_cpu(Tensor* a, Tensor* b) {
   for (int i = 0; i < ndim; i++) {
     size *= shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    broadcasted_matmul_tensor_cpu(a, b, out);
+    return create_tensor(out, shape, ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  broadcasted_batched_matmul_tensor_cpu(a, b, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* tensor_div_tensor(Tensor* a, Tensor* b) {
+    if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->ndim != b->ndim) {
-    fprintf(stderr, "Tensors must have the same no of dims %d and %d for elementwise division\n", a->ndim, b->ndim);
+    fprintf(stderr, "Tensors must have the same no of dims %d and %d for elementwise multiplication\n", a->ndim, b->ndim);
     exit(1);
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    div_tensor_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  div_tensor_cpu(a, b, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* scalar_mul_tensor(Tensor* a, float b) {
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    scalar_mul_tensor_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  scalar_mul_tensor_cpu(a, b, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* tensor_div_scalar(Tensor* a, float b) {
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    tensor_div_scalar_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  tensor_div_scalar_cpu(a, b, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* scalar_div_tensor(float a, Tensor* b) {
-  float* out = (float*)malloc(b->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    scalar_div_tensor_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  scalar_div_tensor_cpu(b, a, out);
-  return create_tensor(out, b->shape, b->ndim);
 }
 
 Tensor* tensor_pow_scalar(Tensor* a, float exp) {
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    tensor_pow_scalar_cpu(a, exp, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  tensor_pow_scalar_cpu(a, exp, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* scalar_pow_tensor(float base, Tensor* a) {
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    scalar_pow_tensor_cpu(base, a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  scalar_pow_tensor_cpu(base, a, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* log_tensor(Tensor* a) {
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    log_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  log_tensor_cpu(a, out);
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* sum_tensor(Tensor* a, int axis, bool keepdim) {
@@ -379,22 +543,33 @@ Tensor* sum_tensor(Tensor* a, int axis, bool keepdim) {
     fprintf(stderr, "Memory allocation failed");
     exit(1);
   }
-  sum_tensor_cpu(a, out, axis_size, shape, axis);
-  if (keepdim) {
-    if (axis == -1) {
-      ndim = a->ndim, shape = (int*)malloc((a->ndim) * sizeof(int));
-      for (int i = 0; i < a->size; i++) {
-        shape[i] = 1;
-      }
-    } else {
-      shape = (int*)malloc(a->ndim * sizeof(int));
-      for (int i = 0; i < a->size; i++) {
-        shape[i] = a->shape[i];
-      }
-      shape[axis] = 1, ndim = a->ndim;
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed");
+      exit(1);
     }
+    sum_tensor_cpu(a, out, axis_size, shape, axis);
+    if (keepdim) {
+      if (axis == -1) {
+        ndim = a->ndim, shape = (int*)malloc((a->ndim) * sizeof(int));
+        for (int i = 0; i < a->size; i++) {
+          shape[i] = 1;
+        }
+      } else {
+        shape = (int*)malloc(a->ndim * sizeof(int));
+        for (int i = 0; i < a->size; i++) {
+          shape[i] = a->shape[i];
+        }
+        shape[axis] = 1, ndim = a->ndim;
+      }
+    }
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* max_tensor(Tensor* a, int axis, bool keepdim) {
@@ -417,27 +592,33 @@ Tensor* max_tensor(Tensor* a, int axis, bool keepdim) {
   for (int i = 0; i < ndim; i++) {
     axis_size *= shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
-  }
-  max_tensor_cpu(a, out, axis_size, shape, axis);
-  if (keepdim) {
-    if (axis == -1) {
-      ndim = a->ndim, shape = (int*)malloc((a->ndim) * sizeof(int));
-      for (int i = 0; i < a->size; i++) {
-        shape[i] = 1;
-      }
-    } else {
-      shape = (int*)malloc(a->ndim * sizeof(int));
-      for (int i = 0; i < a->size; i++) {
-        shape[i] = a->shape[i];
-      }
-      shape[axis] = 1, ndim = a->ndim;
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed");
+      exit(1);
     }
+    max_tensor_cpu(a, out, axis_size, shape, axis);
+    if (keepdim) {
+      if (axis == -1) {
+        ndim = a->ndim, shape = (int*)malloc((a->ndim) * sizeof(int));
+        for (int i = 0; i < a->size; i++) {
+          shape[i] = 1;
+        }
+      } else {
+        shape = (int*)malloc(a->ndim * sizeof(int));
+        for (int i = 0; i < a->size; i++) {
+          shape[i] = a->shape[i];
+        }
+        shape[axis] = 1, ndim = a->ndim;
+      }
+    }
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* min_tensor(Tensor* a, int axis, bool keepdim) {
@@ -460,117 +641,113 @@ Tensor* min_tensor(Tensor* a, int axis, bool keepdim) {
   for (int i = 0; i < ndim; i++) {
     axis_size *= shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
-  }
-  min_tensor_cpu(a, out, axis_size, shape, axis);
-  if (keepdim) {
-    if (axis == -1) {
-      ndim = a->ndim, shape = (int*)malloc((a->ndim) * sizeof(int));
-      for (int i = 0; i < a->size; i++) {
-        shape[i] = 1;
-      }
-    } else {
-      shape = (int*)malloc(a->ndim * sizeof(int));
-      for (int i = 0; i < a->size; i++) {
-        shape[i] = a->shape[i];
-      }
-      shape[axis] = 1, ndim = a->ndim;
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed");
+      exit(1);
     }
+    min_tensor_cpu(a, out, axis_size, shape, axis);
+    if (keepdim) {
+      if (axis == -1) {
+        ndim = a->ndim, shape = (int*)malloc((a->ndim) * sizeof(int));
+        for (int i = 0; i < a->size; i++) {
+          shape[i] = 1;
+        }
+      } else {
+        shape = (int*)malloc(a->ndim * sizeof(int));
+        for (int i = 0; i < a->size; i++) {
+          shape[i] = a->shape[i];
+        }
+        shape[axis] = 1, ndim = a->ndim;
+      }
+    }
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  return create_tensor(out, a->shape, a->ndim);
 }
 
 Tensor* sin_tensor(Tensor* a) {
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    sin_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  for (int i = 0; i < ndim; i++) {
-    shape[i] = a->shape[i];
-  }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  sin_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* cos_tensor(Tensor* a) {
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    cos_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  for (int i = 0; i < ndim; i++) {
-    shape[i] = a->shape[i];
-  }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  cos_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* sigmoid_tensor(Tensor* a) {
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    sigmoid_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  for (int i = 0; i < ndim; i++) {
-    shape[i] = a->shape[i];
-  }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  sigmoid_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* tanh_tensor(Tensor* a) {
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    tanh_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  for (int i = 0; i < ndim; i++) {
-    shape[i] = a->shape[i];
-  }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  tanh_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* relu_tensor(Tensor* a) {
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    relu_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  for (int i = 0; i < ndim; i++) {
-    shape[i] = a->shape[i];
-  }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  relu_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* reshape_tensor(Tensor* a, int* new_shape, int new_ndim) {
@@ -589,13 +766,19 @@ Tensor* reshape_tensor(Tensor* a, int* new_shape, int new_ndim) {
   if (size != a->size) {
     fprintf(stderr, "Can't reshape the tensor. tensor's size doesn't match the target size: %d != %d", a->size, size);
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed!");
+      exit(1);
+    }
+    reassign_tensor_cpu(a, out);
+    return create_tensor(out, shape, ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  reassign_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* transpose_tensor(Tensor* a) {
@@ -607,26 +790,32 @@ Tensor* transpose_tensor(Tensor* a) {
   for (int i = 0; i < ndim; i++) {
     shape[i] = a->shape[ndim - 1 - i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  switch(ndim) {
-    case 1:
-      transpose_1d_tensor_cpu(a, out);
-      break;
-    case 2:
-      transpose_2d_tensor_cpu(a, out);
-      break;
-    case 3:
-      transpose_3d_tensor_cpu(a, out);
-      break;
-    default:
-      fprintf(stderr, "Transpose supported only for 3-dim tensor");
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed!");
       exit(1);
+    }
+    switch(ndim) {
+      case 1:
+        transpose_1d_tensor_cpu(a, out);
+        break;
+      case 2:
+        transpose_2d_tensor_cpu(a, out);
+        break;
+      case 3:
+        transpose_3d_tensor_cpu(a, out);
+        break;
+      default:
+        fprintf(stderr, "Transpose supported only for 3-dim tensor");
+        exit(1);
+    }
+    return create_tensor(out, shape, ndim);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  return create_tensor(out, shape, ndim);
 }
 
 void make_contiguous(Tensor* a) {
@@ -639,41 +828,49 @@ void make_contiguous(Tensor* a) {
     new_strides[i] = stride;
     stride *= a->shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed!");
+      exit(1);
+    }
+    make_contagious_tensor_cpu(a, out, new_strides);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  make_contagious_tensor_cpu(a, out, new_strides);
 }
 
 Tensor* equal_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   if (a->ndim != b->ndim) {
     fprintf(stderr, "Tensors must have same dimensions %d and %d for equal", a->ndim, b->ndim);
     exit(1);
   }
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
-  }
-  for (int i = 0; i < ndim; i++) {
-    if (a->shape[i] != b->shape[i]) {
-      fprintf(stderr, "Tensors must have same shape %d and %d at index %d for equal", a->shape[i], b->shape[i], i);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed!");
       exit(1);
     }
-    shape[i] = a->shape[i];
+    equal_tensor_cpu(a, b, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  equal_tensor_cpu(a, b, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* equal_broadcasted_tensor(Tensor* a, Tensor* b) {
+  if (strcmp(a->device, b->device) != 0) {
+    fprintf(stderr, "Tensors must be on the same devices: %s and %s\n", a->device, b->device);
+    exit(1);
+  }
   int max_ndim = a->ndim > b->ndim ? a->ndim : b->ndim;
   int* broadcasted_shape = (int*)malloc(max_ndim * sizeof(int));
   if (broadcasted_shape == NULL) {
@@ -693,47 +890,49 @@ Tensor* equal_broadcasted_tensor(Tensor* a, Tensor* b) {
   for (int i = 0; i < max_ndim; i++) {
     broadcasted_size *= broadcasted_shape[i];
   }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed!");
+      exit(1);
+    }
+    equal_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
+    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  equal_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-  return create_tensor(out, broadcasted_shape, max_ndim);
 }
 
 Tensor* zeros_like_tensor(Tensor* a) {
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    ones_like_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  for (int i = 0; i < ndim; i++) {
-    shape[i] = a->shape[i];
-  }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  zeros_like_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
 
 Tensor* ones_like_tensor(Tensor* a) {
-  int ndim = a->ndim, *shape = (int*)malloc(ndim * sizeof(int));
-  if (shape == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(1);
+  if (strcmp(a->device, "cpu") == 0) {
+    float* out = (float*)malloc(a->size * sizeof(float));
+    if (out == NULL) {
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+    }
+    ones_like_tensor_cpu(a, out);
+    return create_tensor(out, a->shape, a->ndim, a->device);
+  } else {
+    ///////////////////////
+    ///// placeholder /////
+    ///////////////////////
   }
-  for (int i = 0; i < ndim; i++) {
-    shape[i] = a->shape[i];
-  }
-  float* out = (float*)malloc(a->size * sizeof(float));
-  if (out == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(1);
-  }
-  ones_like_tensor_cpu(a, out);
-  return create_tensor(out, shape, ndim);
 }
