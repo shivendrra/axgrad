@@ -37,16 +37,16 @@ __host__ void free_cuda(float* data) {
   cudaFree(data);
 }
 
-__global__ void add_tensor_cuda_kernel(float* data1, float* data2, float* out, int size) {
+__global__ void add_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
-    out[i] = data1[i] + data2[i];
+    out[i] = a[i] + b[i];
   }
 }
 
 __host__ void add_tensor_cuda(Tensor* a, Tensor* b, float* out) {
-  int number_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  add_tensor_cuda_kernel<<<number_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
+  int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+  add_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -55,16 +55,16 @@ __host__ void add_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void sub_tensor_cuda_kernel(float* data1, float* data2, float* out, int size) {
+__global__ void sub_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
-    out[i] = data1[i] - data2[i];
+    out[i] = a[i] - b[i];
   }
 }
 
 __host__ void sub_tensor_cuda(Tensor* a, Tensor* b, float* out) {
-  int number_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  sub_tensor_cuda_kernel<<<number_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
+  int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+  sub_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -73,16 +73,34 @@ __host__ void sub_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void mul_tensor_cuda_kernel(float* data1, float* data2, float* out, int size) {
+__global__ void mul_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
-    out[i] = data1[i] * data2[i];
+    out[i] = a[i] * b[i];
   }
 }
 
 __host__ void mul_tensor_cuda(Tensor* a, Tensor* b, float* out) {
-  int number_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  mul_tensor_cuda_kernel<<<number_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
+  int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+  mul_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess) {
+    printf("CUDA error: %s\n", cudaGetErrorString(error));
+    exit(-1);
+  }
+  cudaDeviceSynchronize();
+}
+
+__global__ void div_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < size) {
+    out[i] = a[i] / b[i];
+  }
+}
+
+__host__ void div_tensor_cuda(Tensor* a, Tensor* b, float* out) {
+  int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+  div_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));

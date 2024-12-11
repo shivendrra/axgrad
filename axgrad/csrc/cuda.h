@@ -62,13 +62,13 @@ __global__ void min_tensor_cuda_kernel_axis(float* a, float* out, int* strides, 
 __host__ void min_tensor_cuda(float* a, float* out, int axis);
 
 __global__ void equal_tensor_cuda_kernel(float* a, float* b, float* out, int size);
-__host void equal_tensor_cuda(Tensor* a, Tensor* b, float* out);
+__host__ void equal_tensor_cuda(Tensor* a, Tensor* b, float* out);
 __global__ void zeros_tensor_cuda_kernel(float* a, float* out, int size);
-__host void zeros_tensor_cuda(Tensor* a, float* out);
+__host__ void zeros_tensor_cuda(Tensor* a, float* out);
 __global__ void ones_tensor_cuda_kernel(float* a, float* out, int size);
-__host void ones_tensor_cuda(Tensor* a, float* out);
+__host__ void ones_tensor_cuda(Tensor* a, float* out);
 __global__ void assign_tensor_cuda_kernel(float* a, float* out, int size);
-__host void assign_tensor_cuda(Tensor* a, float* out);
+__host__ void assign_tensor_cuda(Tensor* a, float* out);
 __global__ void equal_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_ndim, int size);
 __host__ void equal_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size);
 __global__ void make_contiguous_tensor_cuda_kernel(float* a, float* out, int ndim, int size, int* strides, int* new_strides);
