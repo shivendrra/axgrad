@@ -396,13 +396,13 @@ void equal_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadca
 
 void sin_tensor_cpu(Tensor* a, float* out) {
   for (int i = 0; i < a->size; i++) {
-    out[i] = sin(a->data[i]);
+    out[i] = sinf(a->data[i]);
   }
 }
 
 void cos_tensor_cpu(Tensor* a, float* out) {
   for (int i = 0; i < a->size; i++) {
-    out[i] = cos(a->data[i]);
+    out[i] = cosf(a->data[i]);
   }
 }
 
@@ -424,6 +424,6 @@ void tanh_tensor_cpu(Tensor* a, float* out) {
 
 void relu_tensor_cpu(Tensor* a, float* out) {
   for (int i = 0; i < a->size; i++) {
-    out[i] = fmax(a->data[i], 0);
+    out[i] = fmax(a->data[i], 0.0);
   }
 }

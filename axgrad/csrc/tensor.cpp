@@ -15,9 +15,9 @@ Tensor* create_tensor(float* data, int* shape, int ndim, char* device) {
   tensor->data = data;
   tensor->shape = shape;
   tensor->ndim = ndim;
-  self->device = (char*)malloc(strlen(device) + 1);
+  tensor->device = (char*)malloc(strlen(device) + 1);
   if (device != NULL) {
-    strcpy(self->device, device);
+    strcpy(tensor->device, device);
   } else {
     fprintf(stderr, "Memory allocation failed\n");
     exit(-1);
@@ -26,7 +26,6 @@ Tensor* create_tensor(float* data, int* shape, int ndim, char* device) {
   for (int i = 0; i < ndim; i++) {
     tensor->size *= shape[i];
   }
-
   tensor->strides = (int*)malloc(ndim * sizeof(int));
   if (tensor->strides == NULL) {
     fprintf(stderr, "Memory allocation failed\n");
@@ -37,7 +36,6 @@ Tensor* create_tensor(float* data, int* shape, int ndim, char* device) {
     tensor->strides[i] = stride;
     stride *= shape[i];
   }
-
   return tensor;
 }
 
@@ -116,12 +114,12 @@ Tensor* add_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     add_tensor_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    add_tensor_cuda(a, b, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* sub_tensor(Tensor* a, Tensor* b) {
@@ -140,12 +138,12 @@ Tensor* sub_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     sub_tensor_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    sub_tensor_cuda(a, b, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* elemwise_mul_tensor(Tensor* a, Tensor* b) {
@@ -164,12 +162,12 @@ Tensor* elemwise_mul_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     mul_tensor_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    mul_tensor_cuda(a, b, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* add_broadcasted_tensor(Tensor* a, Tensor* b) {
@@ -202,12 +200,12 @@ Tensor* add_broadcasted_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     add_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    add_broadcasted_tensor_cuda(a, b, out, broadcasted_shape, broadcasted_size);
   }
+  return create_tensor(out, broadcasted_shape, max_ndim, a->device);
 }
 
 Tensor* sub_broadcasted_tensor(Tensor* a, Tensor* b) {
@@ -240,12 +238,12 @@ Tensor* sub_broadcasted_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     sub_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    sub_broadcasted_tensor_cuda(a, b, out, broadcasted_shape, broadcasted_size);
   }
+  return create_tensor(out, broadcasted_shape, max_ndim, a->device);
 }
 
 Tensor* elemwise_mul_broadcasted_tensor(Tensor* a, Tensor* b) {
@@ -278,12 +276,12 @@ Tensor* elemwise_mul_broadcasted_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     mul_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    mul_broadcasted_tensor_cuda(a, b, out, broadcasted_shape, broadcasted_size);
   }
+  return create_tensor(out, broadcasted_shape, max_ndim, a->device);
 }
 
 Tensor* matmul_tensor(Tensor* a, Tensor* b) {
@@ -414,12 +412,12 @@ Tensor* tensor_div_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     div_tensor_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    div_tensor_cuda(a, b, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* scalar_mul_tensor(Tensor* a, float b) {
@@ -430,12 +428,12 @@ Tensor* scalar_mul_tensor(Tensor* a, float b) {
       exit(1);
     }
     scalar_mul_tensor_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    scalar_mul_tensor_cuda(b, a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* tensor_div_scalar(Tensor* a, float b) {
@@ -446,12 +444,12 @@ Tensor* tensor_div_scalar(Tensor* a, float b) {
       exit(1);
     }
     tensor_div_scalar_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    tensor_div_scalar_cuda(b, a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* scalar_div_tensor(float a, Tensor* b) {
@@ -462,12 +460,12 @@ Tensor* scalar_div_tensor(float a, Tensor* b) {
       exit(1);
     }
     scalar_div_tensor_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    scalar_div_tensor_cuda(a, b, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* tensor_pow_scalar(Tensor* a, float exp) {
@@ -478,12 +476,12 @@ Tensor* tensor_pow_scalar(Tensor* a, float exp) {
       exit(1);
     }
     tensor_pow_scalar_cpu(a, exp, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    tensor_pow_scalar_cuda(a, exp, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* scalar_pow_tensor(float base, Tensor* a) {
@@ -494,12 +492,12 @@ Tensor* scalar_pow_tensor(float base, Tensor* a) {
       exit(1);
     }
     scalar_pow_tensor_cpu(base, a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    scalar_pow_tensor_cuda(base, a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* log_tensor(Tensor* a) {
@@ -510,12 +508,12 @@ Tensor* log_tensor(Tensor* a) {
       exit(1);
     }
     log_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    log_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* sum_tensor(Tensor* a, int axis, bool keepdim) {
@@ -564,7 +562,7 @@ Tensor* sum_tensor(Tensor* a, int axis, bool keepdim) {
         shape[axis] = 1, ndim = a->ndim;
       }
     }
-    return create_tensor(out, a->shape, a->ndim, a->device);
+    return create_tensor(out, shape, ndim, a->device);
   } else {
     ///////////////////////
     ///// placeholder /////
@@ -678,12 +676,12 @@ Tensor* sin_tensor(Tensor* a) {
       exit(1);
     }
     sin_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    sin_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* cos_tensor(Tensor* a) {
@@ -694,12 +692,12 @@ Tensor* cos_tensor(Tensor* a) {
       exit(1);
     }
     cos_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    cos_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* sigmoid_tensor(Tensor* a) {
@@ -710,12 +708,12 @@ Tensor* sigmoid_tensor(Tensor* a) {
       exit(1);
     }
     sigmoid_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    sigmoid_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* tanh_tensor(Tensor* a) {
@@ -726,12 +724,12 @@ Tensor* tanh_tensor(Tensor* a) {
       exit(1);
     }
     tanh_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    tanh_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* relu_tensor(Tensor* a) {
@@ -742,12 +740,12 @@ Tensor* relu_tensor(Tensor* a) {
       exit(1);
     }
     relu_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    relu_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* reshape_tensor(Tensor* a, int* new_shape, int new_ndim) {
@@ -858,12 +856,12 @@ Tensor* equal_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     equal_tensor_cpu(a, b, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    equal_tensor_cuda(a, b, out);
   }
+  return create_tensor(out, broadcasted_shape, max_ndim, a->device);
 }
 
 Tensor* equal_broadcasted_tensor(Tensor* a, Tensor* b) {
@@ -897,12 +895,12 @@ Tensor* equal_broadcasted_tensor(Tensor* a, Tensor* b) {
       exit(1);
     }
     equal_broadcasted_tensor_cpu(a, b, out, broadcasted_shape, broadcasted_size);
-    return create_tensor(out, broadcasted_shape, max_ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    equal_broadcasted_tensor_cuda(a, b, out, broadcasted_shape, broadcasted_size);
   }
+  return create_tensor(out, broadcasted_shape, max_ndim, a->device);
 }
 
 Tensor* zeros_like_tensor(Tensor* a) {
@@ -913,12 +911,12 @@ Tensor* zeros_like_tensor(Tensor* a) {
       exit(1);
     }
     ones_like_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    zeros_like_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
 
 Tensor* ones_like_tensor(Tensor* a) {
@@ -929,10 +927,10 @@ Tensor* ones_like_tensor(Tensor* a) {
       exit(1);
     }
     ones_like_tensor_cpu(a, out);
-    return create_tensor(out, a->shape, a->ndim, a->device);
   } else {
-    ///////////////////////
-    ///// placeholder /////
-    ///////////////////////
+    float* out;
+    cudamalloc((void*)&out, a->size * sizeof(float));
+    ones_like_tensor_cuda(a, out);
   }
+  return create_tensor(out, a->shape, a->ndim, a->device);
 }
