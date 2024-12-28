@@ -33,6 +33,8 @@ __global__ void sub_broadcasted_tensor_cuda_kernel(float* a, float* b, float* ou
 __host__ void sub_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size);
 __global__ void mul_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int*strides2, int max_ndim, int size);
 __host__ void mul_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size);
+__global__ void div_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int*strides2, int max_ndim, int size);
+__host__ void div_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int* broadcasted_shape, int broadcasted_size);
 
 __global__ void tensor_pow_scalar_cuda_kernel(float* a, float exponent, float* out, int size);
 __host__ void tensor_pow_scalar_cuda(Tensor* a, float exponent float* out);
