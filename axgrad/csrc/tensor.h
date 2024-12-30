@@ -16,10 +16,12 @@ typedef struct Tensor {
   int* shape;                         // array holding dimensions of the tensor
   int ndim;                           // no of dim in tensor
   int size;                           // total no of elements in the tensor
+  char* device;                       // device for ops
 } Tensor;
 
 extern "C" {
-  Tensor* create_tensor(float* data, int* shape, int ndim);
+  Tensor* create_tensor(float* data, int* shape, int ndim, char* device);
+  void to_device(Tensor* a, char* device);
   void delete_tensor(Tensor* tensor);
   void delete_strides(Tensor* tensor);
   void delete_shape(Tensor* tensor);

@@ -57,7 +57,7 @@ void add_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcast
       if (strides1[j] != 0) index1 += pos * strides1[j];
       if (strides2[j] != 0) index2 += pos * strides2[j];
     }
-    out[i] = a->data[i] + b->data[i];
+    out[i] = a->data[index1] + b->data[index2];
   }
   free(strides1);
   free(strides2);
@@ -91,7 +91,7 @@ void sub_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcast
       if (strides1[j] != 0) index1 += pos * strides1[j];
       if (strides2[j] != 0) index2 += pos * strides2[j];
     }
-    out[i] = a->data[i] - b->data[i];
+    out[i] = a->data[index1] - b->data[index2];
   }
   free(strides1);
   free(strides2);
@@ -125,7 +125,7 @@ void mul_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadcast
       if (strides1[j] != 0) index1 += pos * strides1[j];
       if (strides2[j] != 0) index2 += pos * strides2[j];
     }
-    out[i] = a->data[i] * b->data[i];
+    out[i] = a->data[index1] * b->data[index2];
   }
   free(strides1);
   free(strides2);
@@ -236,15 +236,15 @@ void sum_tensor_cpu(Tensor* a, float* out, int size, int* res_shape, int axis) {
   }
 }
 
-void ones_like_tensor_cpu(Tensor* a, float* out) {
-  for (int i = 0; i < a->size; i++) {
-    out[i] = 1.0;
+void ones_like_tensor_cpu(int size, float* out) {
+  for (int i = 0; i < size; i++) {
+    out[i] = 1.0f;
   }
 }
 
-void zeros_like_tensor_cpu(Tensor* a, float* out) {
-  for (int i = 0; i < a->size; i++) {
-    out[i] = 0.0;
+void zeros_like_tensor_cpu(int size, float* out) {
+  for (int i = 0; i < size; i++) {
+    out[i] = 0.0f;
   }
 }
 
@@ -396,13 +396,13 @@ void equal_broadcasted_tensor_cpu(Tensor* a, Tensor* b, float* out, int* broadca
 
 void sin_tensor_cpu(Tensor* a, float* out) {
   for (int i = 0; i < a->size; i++) {
-    out[i] = sin(a->data[i]);
+    out[i] = sinf(a->data[i]);
   }
 }
 
 void cos_tensor_cpu(Tensor* a, float* out) {
   for (int i = 0; i < a->size; i++) {
-    out[i] = cos(a->data[i]);
+    out[i] = cosf(a->data[i]);
   }
 }
 
@@ -424,6 +424,6 @@ void tanh_tensor_cpu(Tensor* a, float* out) {
 
 void relu_tensor_cpu(Tensor* a, float* out) {
   for (int i = 0; i < a->size; i++) {
-    out[i] = fmax(a->data[i], 0);
+    out[i] = fmax(a->data[i], 0.0);
   }
 }
