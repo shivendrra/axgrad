@@ -1,11 +1,15 @@
+/*
+  * dtype.cpp main file that contains all dtype related ops
+  * changes the dtype of each scalar & tensor values, up-castes & re-castes
+    values: float->dtype->float as needed.
+*/
+
 #include "dtype.h"
 #include <iostream>
-#include <cstring>
-#include <cmath>
-#include <cstdlib>
+#include <string.h>
+#include <math.h>
 
-namespace axgrad {
-
+// returns the size of the given data type
 size_t dtype_size(DType dtype) {
   switch (dtype) {
     case DType::INT8: return sizeof(int8_t);
@@ -18,22 +22,25 @@ size_t dtype_size(DType dtype) {
   }
 }
 
+// initializes a memory block for the given value and dtype
 void* initialize_data(float value, DType dtype) {
   void* data = malloc(dtype_size(dtype));
   if (!data) {
-    fprintf(stderr, "Memory allocation failed!\n");
-    exit(EXIT_FAILURE);
+    fprintf(stderr, "Memory allocation failed\n");
+    exit(-1);
   }
   set_data_from_float(data, dtype, value);
   return data;
 }
 
+// converts data from one dtype to another
 void convert_data(void* data, DType from_dtype, DType to_dtype) {
   float value = get_data_as_float(data, from_dtype);
   set_data_from_float(data, to_dtype, value);
 }
 
-std::string dtype_to_string(DType dtype) {
+// converts dtype to string for display
+const char* dtype_to_string(DType dtype) {
   switch (dtype) {
     case DType::INT8: return "INT8";
     case DType::INT16: return "INT16";
@@ -45,31 +52,33 @@ std::string dtype_to_string(DType dtype) {
   }
 }
 
+// retrieves data as float from given index & dtype
 float get_data_as_float(void* data, DType dtype) {
   switch (dtype) {
-    case DType::INT8: return static_cast<float>(*reinterpret_cast<int8_t*>(data));
-    case DType::INT16: return static_cast<float>(*reinterpret_cast<int16_t*>(data));
-    case DType::INT32: return static_cast<float>(*reinterpret_cast<int32_t*>(data));
-    case DType::INT64: return static_cast<float>(*reinterpret_cast<int64_t*>(data));
+    case DType::INT8: return *reinterpret_cast<int8_t*>(data);
+    case DType::INT16: return *reinterpret_cast<int16_t*>(data);
+    case DType::INT32: return *reinterpret_cast<int32_t*>(data);
+    case DType::INT64: return *reinterpret_cast<int64_t*>(data);
     case DType::FLOAT32: return *reinterpret_cast<float*>(data);
-    case DType::FLOAT64: return static_cast<float>(*reinterpret_cast<double*>(data));
-    default: return 0.0f;
+    case DType::FLOAT64: return *reinterpret_cast<double*>(data);
+    default: return 0.0;
   }
 }
 
+// sets data from & float value based on dtype
 void set_data_from_float(void* data, DType dtype, float value) {
   switch (dtype) {
     case DType::INT8:
-      *reinterpret_cast<int8_t*>(data) = static_cast<int8_t>(std::lround(value));
+      *reinterpret_cast<int8_t*>(data) = static_cast<int8_t>(std::round(value));
       break;
     case DType::INT16:
-      *reinterpret_cast<int16_t*>(data) = static_cast<int16_t>(std::lround(value));
+      *reinterpret_cast<int16_t*>(data) = static_cast<int16_t>(std::round(value));
       break;
     case DType::INT32:
-      *reinterpret_cast<int32_t*>(data) = static_cast<int32_t>(std::lround(value));
+      *reinterpret_cast<int32_t*>(data) = static_cast<int32_t>(std::round(value));
       break;
     case DType::INT64:
-      *reinterpret_cast<int64_t*>(data) = static_cast<int64_t>(std::lround(value));
+      *reinterpret_cast<int64_t*>(data) = static_cast<int64_t>(std::round(value));
       break;
     case DType::FLOAT32:
       *reinterpret_cast<float*>(data) = static_cast<float>(value);
@@ -78,8 +87,7 @@ void set_data_from_float(void* data, DType dtype, float value) {
       *reinterpret_cast<double*>(data) = static_cast<double>(value);
       break;
     default:
-      fprintf(stderr, "Unknown dtype!\n");
-      exit(EXIT_FAILURE);
+      printf("Unknown type!\n");
   }
 }
 
@@ -87,6 +95,4 @@ void free_data(void* data) {
   if (data) {
     free(data);
   }
-}
-
 }

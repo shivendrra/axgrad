@@ -1037,3 +1037,70 @@ Tensor* ones_like_tensor(Tensor* a) {
     return create_tensor(out, a->shape, a->ndim, a->device);
   }
 }
+
+// helper function to truncate elements in a single row
+void truncate_row(const float* row, int length, int max_display, char* result) {
+  strcat(result, "  [");
+  if (length > max_display) {
+    for (int i = 0; i < max_display / 2; i++) {
+      char buffer[16];
+      sprintf(buffer, "%.2f", row[i]);
+      strcat(result, buffer);
+      strcat(result, ", ");
+    }
+    strcat(result, "...");
+    for (int i = length - max_display / 2; i < length; i++) {
+      char buffer[16];
+      sprintf(buffer, "%.2f", row[i]);
+      strcat(result, ", ");
+      strcat(result, buffer);
+    }
+
+    // removing trailing comma and space
+    if (result[strlen(result) - 2] == ',') {
+      result[strlen(result) - 2] = '\0';
+    }
+  } else {
+    for (int i = 0; i < length; i++) {
+      char buffer[16];
+      sprintf(buffer, "%.2f", row[i]);
+      strcat(result, buffer);
+      if (i != length - 1) strcat(result, ", ");
+    }
+  }
+  strcat(result, "]");
+}
+
+void format_tensor(const float* data, const int* shape, int ndim, int level, char* result) {
+  if (ndim == 1) {
+    truncate_row(data, shape[0], 8, result);
+    return;
+  }
+
+  strcat(result, "[\n");
+  int rows_to_display = shape[0] > 4 ? 2 : shape[0]; // truncate rows if needed
+  for (int i = 0; i < rows_to_display; i++) {
+    if (i > 0) strcat(result, ",\n");
+    for (int j = 0; j < level + 1; j++) strcat(result, "  ");
+    format_tensor(data + i * shape[1], shape + 1, ndim - 1, level + 1, result);
+  }
+
+  if (shape[0] > 4) {
+    strcat(result, ",\n");
+    for (int j = 0; j < level + 1; j++) strcat(result, "  ");
+    strcat(result, "...");
+    strcat(result, ",\n");
+    for (int j = 0; j < level + 1; j++) strcat(result, "  ");
+    for (int i = shape[0] - 2; i < shape[0]; i++) {
+      if (i > shape[0] - 2) strcat(result, ",\n");
+      format_tensor(data + i * shape[1], shape + 1, ndim - 1, level + 1, result);
+    }
+  }
+  strcat(result, "\n]");
+}
+
+void print_tensor(Tensor* a) {
+  char result[4096] = "";
+  format_tensor(a->data, a->shape, a->ndim, 0, result);
+  printf("axon.tensor(%s, dtype=axon.FLOAT32, device=%s)\n", result, a->device);
+}
