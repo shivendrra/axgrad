@@ -8,38 +8,40 @@
 #include <iostream>
 #include <string.h>
 #include <math.h>
+#include <stdint.h>
 
-// returns the size of the given data type
 size_t dtype_size(DType dtype) {
-  switch (dtype) {
-    case DType::INT8: return sizeof(int8_t);
-    case DType::INT16: return sizeof(int16_t);
-    case DType::INT32: return sizeof(int32_t);
-    case DType::INT64: return sizeof(int64_t);
-    case DType::FLOAT32: return sizeof(float);
-    case DType::FLOAT64: return sizeof(double);
-    default: return 0;
+  switch (dtype)
+  {
+  case DType::INT8: return sizeof(int8_t);
+  case DType::INT16: return sizeof(int16_t);
+  case DType::INT32: return sizeof(int32_t);
+  case DType::INT64: return sizeof(int64_t);
+  case DType::FLOAT32: return sizeof(float);
+  case DType::FLOAT64: return sizeof(double);
+  default: return 0;
   }
 }
 
-// initializes a memory block for the given value and dtype
-void* initialize_data(float value, DType dtype) {
-  void* data = malloc(dtype_size(dtype));
-  if (!data) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(-1);
+void* init_data(float* values, DType dtype, int size) {
+  if (!values || size <= 0) return NULL;
+  size_t type_size = dtype_size(dtype);
+  if (type_size == 0) {
+    fprintf(stderr, "Invalid dtype!\n");
+    return NULL;
   }
-  set_data_from_float(data, dtype, value);
+
+  void* data = malloc(size * type_size);
+  if (!data) {
+    fprintf(stderr, "Memory allocation failed!\n");
+    exit(EXIT_FAILURE);
+  }
+  for (int i = 0; i < size; i++) {
+    set_data_from_float((char*)data + i * type_size, dtype, values[i]);
+  }
   return data;
 }
 
-// converts data from one dtype to another
-void convert_data(void* data, DType from_dtype, DType to_dtype) {
-  float value = get_data_as_float(data, from_dtype);
-  set_data_from_float(data, to_dtype, value);
-}
-
-// converts dtype to string for display
 const char* dtype_to_string(DType dtype) {
   switch (dtype) {
     case DType::INT8: return "INT8";
@@ -48,12 +50,18 @@ const char* dtype_to_string(DType dtype) {
     case DType::INT64: return "INT64";
     case DType::FLOAT32: return "FLOAT32";
     case DType::FLOAT64: return "FLOAT64";
-    default: return "Unknown";
+    default: return "UNKNOWN!";
   }
 }
 
-// retrieves data as float from given index & dtype
+void convert_data(void* data, DType from_dtype, DType to_dtype) {
+  if (!data) return;
+  float temp_value = get_data_as_float(data, from_dtype);
+  set_data_from_float(data, to_dtype, temp_value);
+}
+
 float get_data_as_float(void* data, DType dtype) {
+  if (!data) return 0.0;
   switch (dtype) {
     case DType::INT8: return *reinterpret_cast<int8_t*>(data);
     case DType::INT16: return *reinterpret_cast<int16_t*>(data);
@@ -65,20 +73,20 @@ float get_data_as_float(void* data, DType dtype) {
   }
 }
 
-// sets data from & float value based on dtype
 void set_data_from_float(void* data, DType dtype, float value) {
+  if (!data) return;
   switch (dtype) {
     case DType::INT8:
-      *reinterpret_cast<int8_t*>(data) = static_cast<int8_t>(std::round(value));
+      *reinterpret_cast<int8_t*>(data) = static_cast<int8_t>(round(value));
       break;
     case DType::INT16:
-      *reinterpret_cast<int16_t*>(data) = static_cast<int16_t>(std::round(value));
+      *reinterpret_cast<int16_t*>(data) = static_cast<int16_t>(round(value));
       break;
     case DType::INT32:
-      *reinterpret_cast<int32_t*>(data) = static_cast<int32_t>(std::round(value));
+      *reinterpret_cast<int32_t*>(data) = static_cast<int32_t>(round(value));
       break;
     case DType::INT64:
-      *reinterpret_cast<int64_t*>(data) = static_cast<int64_t>(std::round(value));
+      *reinterpret_cast<int64_t*>(data) = static_cast<int64_t>(round(value));
       break;
     case DType::FLOAT32:
       *reinterpret_cast<float*>(data) = static_cast<float>(value);
