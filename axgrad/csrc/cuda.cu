@@ -2,33 +2,34 @@
 #include <stdlib.h>
 #include <math.h>
 #include <float.h>
-#include "a.h"
+#include "tensor.h"
+#include "cuda.h"
 
-#define THREADS_PER_BLOCK 128
-#define TILE_SIZE 32
+#define THREADS_PER_BLOCK 256
+#define TILE_SIZE 64
 
 __host__ void cpu_to_cuda(Tensor* a, int device_id) {
   int deviceCount;
   cudaGetDeviceCount(&deviceCount);
   if (device_id >= deviceCount) {
-    fprintf(stderr, "Could not send a to device %d, only %d devices available\n", device_id, deviceCount);
+    fprintf(stderr, "Could not send tensor to device %d, only %d devices available\n", device_id, deviceCount);
     exit(1);
   }
   cudaSetDevice(device_id);
 
-  float* a_tmp;
-  cudaMalloc((void**)&a_tmp, a->size * sizeof(float));
-  cudaMemcpy(a_tmp, a->a, a->size * sizeof(float), cudaMemcpyHostToDevice);
-  a->a = a_tmp;
+  float* tensor_tmp;
+  cudaMalloc((void**)&tensor_tmp, a->size * sizeof(float));
+  cudaMemcpy(tensor_tmp, a->data, a->size * sizeof(float), cudaMemcpyHostToDevice);
+  a->data = tensor_tmp;
   a->device = (char*)malloc(strlen("cuda") + 1);
   strcpy(a->device, "cuda");
 }
 
-__host__ void cuda_to_cpu(Tensor* a) {
-  float* a_tmp = (float*)malloc(a->size * sizeof(float));
-  cudaMemcpy(a_tmp, a->a, a->size * sizeof(float), cudaMemcpyHostToDevice);
-  cudaFree(a->a);
-  a->a = a_tmp;
+__host__ void cudtensor_to_cpu(Tensor* a) {
+  float* tensor_tmp = (float*)malloc(a->size * sizeof(float));
+  cudaMemcpy(tensor_tmp, a->data, a->size * sizeof(float), cudaMemcpyHostToDevice);
+  cudaFree(a->data);
+  a->data = tensor_tmp;
   a->deivce = (char*)malloc(strlen("cpu") + 1);
   strcpy(a->device, "cpu");
 }
@@ -37,7 +38,7 @@ __host__ void free_cuda(float* a) {
   cudaFree(a);
 }
 
-__global__ void add_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
+__global__ void add_tensor_cudtensor_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i] + b[i];
@@ -46,7 +47,7 @@ __global__ void add_tensor_cuda_kernel(float* a, float* b, float* out, int size)
 
 __host__ void add_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  add_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, b->a, out, a->size);
+  add_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -55,7 +56,7 @@ __host__ void add_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void sub_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
+__global__ void sub_tensor_cudtensor_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i] - b[i];
@@ -64,7 +65,7 @@ __global__ void sub_tensor_cuda_kernel(float* a, float* b, float* out, int size)
 
 __host__ void sub_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  sub_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, b->a, out, a->size);
+  sub_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -73,7 +74,7 @@ __host__ void sub_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void mul_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
+__global__ void mul_tensor_cudtensor_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i] * b[i];
@@ -82,7 +83,7 @@ __global__ void mul_tensor_cuda_kernel(float* a, float* b, float* out, int size)
 
 __host__ void mul_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  mul_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, b->a, out, a->size);
+  mul_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -91,7 +92,7 @@ __host__ void mul_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void div_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
+__global__ void div_tensor_cudtensor_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i] / b[i];
@@ -100,7 +101,7 @@ __global__ void div_tensor_cuda_kernel(float* a, float* b, float* out, int size)
 
 __host__ void div_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  div_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, b->a, out, a->size);
+  div_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -109,7 +110,7 @@ __host__ void div_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void scalar_div_tensor_cuda_kernel(float scalar, float* a, float* out, int size) {
+__global__ void scalar_div_tensor_cudtensor_kernel(float scalar, float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = scalar / a[i];
@@ -118,7 +119,7 @@ __global__ void scalar_div_tensor_cuda_kernel(float scalar, float* a, float* out
 
 __host__ void scalar_div_tensor_cuda(float scalar, Tensor* b, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  scalar_div_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(scalar, a->a, out, a->size);
+  scalar_div_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(scalar, a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -127,16 +128,16 @@ __host__ void scalar_div_tensor_cuda(float scalar, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void a_div_scalar_cuda_kernel(float* a, float scalar, float* out, int size) {
+__global__ void tensor_div_scalar_cudtensor_kernel(float* a, float scalar, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i] / scalar;
   }
 }
 
-__host__ void a_div_scalar_cuda(float scalar, Tensor* b, float* out) {
+__host__ void tensor_div_scalar_cuda(float scalar, Tensor* b, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  a_div_scalar_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, scalar, out, a->size);
+  tensor_div_scalar_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, scalar, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -145,7 +146,7 @@ __host__ void a_div_scalar_cuda(float scalar, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void scalar_mul_tensor_cuda_kernel(float scalar, float* a, float* out, int size) {
+__global__ void scalar_mul_tensor_cudtensor_kernel(float scalar, float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i] * scalar;
@@ -154,7 +155,7 @@ __global__ void scalar_mul_tensor_cuda_kernel(float scalar, float* a, float* out
 
 __host__ void scalar_mul_tensor_cuda(float scalar, Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCKS;
-  scalar_mul_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCKS>>>(scalar, a->a, out, a->size);
+  scalar_mul_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCKS>>>(scalar, a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if(error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -163,7 +164,7 @@ __host__ void scalar_mul_tensor_cuda(float scalar, Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void add_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
+__global__ void add_broadcasted_tensor_cudtensor_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if(i >= size) return;
   int idx1 = 0, idx2 = 0;
@@ -204,7 +205,7 @@ __host__ void add_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaMemcpy(d_strides2, strides2, max_ndim * sizeof(int), cudaMemcpyHostToDevice);
 
   int n_of_blocks = (broadcasted_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  add_broadcasted_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->a, b->a, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
+  add_broadcasted_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->data, b->data, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
   cudaError_t error = cudaGetLastError();
   if(error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -213,7 +214,7 @@ __host__ void add_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaDeviceSynchronize();
 }
 
-__global__ void sub_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
+__global__ void sub_broadcasted_tensor_cudtensor_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if(i >= size) return;
   int idx1 = 0, idx2 = 0;
@@ -254,7 +255,7 @@ __host__ void sub_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaMemcpy(d_strides2, strides2, max_ndim * sizeof(int), cudaMemcpyHostToDevice);
 
   int n_of_blocks = (broadcasted_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  sub_broadcasted_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->a, b->a, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
+  sub_broadcasted_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->data, b->data, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
   cudaError_t error = cudaGetLastError();
   if(error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -263,7 +264,7 @@ __host__ void sub_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaDeviceSynchronize();
 }
 
-__global__ void mul_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
+__global__ void mul_broadcasted_tensor_cudtensor_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if(i >= size) return;
   int idx1 = 0, idx2 = 0;
@@ -304,7 +305,7 @@ __host__ void mul_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaMemcpy(d_strides2, strides2, max_ndim * sizeof(int), cudaMemcpyHostToDevice);
 
   int n_of_blocks = (broadcasted_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  mul_broadcasted_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->a, b->a, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
+  mul_broadcasted_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->data, b->data, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
   cudaError_t error = cudaGetLastError();
   if(error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -313,7 +314,7 @@ __host__ void mul_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaDeviceSynchronize();
 }
 
-__global__ void div_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
+__global__ void div_broadcasted_tensor_cudtensor_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_dim, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if(i >= size) return;
   int idx1 = 0, idx2 = 0;
@@ -354,7 +355,7 @@ __host__ void div_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaMemcpy(d_strides2, strides2, max_ndim * sizeof(int), cudaMemcpyHostToDevice);
 
   int n_of_blocks = (broadcasted_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  div_broadcasted_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->a, b->a, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
+  div_broadcasted_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->data, b->data, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
   cudaError_t error = cudaGetLastError();
   if(error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -363,16 +364,16 @@ __host__ void div_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, int*
   cudaDeviceSynchronize();
 }
 
-__global__ void a_pow_scalar_cuda_kernel(float* a, float exp, float* out, int size) {
+__global__ void tensor_pow_scalar_cudtensor_kernel(float* a, float exp, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = powf(a[i], exp);
   }
 }
 
-__host__ void a_pow_scalar_cuda(Tensor* a, float exp, float* out) {
+__host__ void tensor_pow_scalar_cuda(Tensor* a, float exp, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  a_pow_scalar_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, exp, out, a->size);
+  tensor_pow_scalar_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, exp, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -381,7 +382,7 @@ __host__ void a_pow_scalar_cuda(Tensor* a, float exp, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void scalar_pow_tensor_cuda_kernel(float base, float* a, float* out, int size) {
+__global__ void scalar_pow_tensor_cudtensor_kernel(float base, float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = powf(base, a[i]);
@@ -390,7 +391,7 @@ __global__ void scalar_pow_tensor_cuda_kernel(float base, float* a, float* out, 
 
 __host__ void scalar_pow_tensor_cuda(float base, Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  scalar_pow_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(base, a->a, out, a->size);
+  scalar_pow_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(base, a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -399,7 +400,7 @@ __host__ void scalar_pow_tensor_cuda(float base, Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void log_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void log_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = logf(a[i]);
@@ -408,7 +409,7 @@ __global__ void log_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void log_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  log_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  log_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -417,7 +418,7 @@ __host__ void log_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void sigmoid_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void sigmoid_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = logf(a[i]);
@@ -426,7 +427,7 @@ __global__ void sigmoid_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void sigmoid_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  sigmoid_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  sigmoid_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -435,7 +436,7 @@ __host__ void sigmoid_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void tanh_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void tanh_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = tanh(a[i]);
@@ -444,7 +445,7 @@ __global__ void tanh_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void tanh_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  tanh_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  tanh_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -453,7 +454,7 @@ __host__ void tanh_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void sin_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void sin_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = sinf(a[i]);
@@ -462,7 +463,7 @@ __global__ void sin_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void sin_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  sin_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  sin_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -471,7 +472,7 @@ __host__ void sin_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void cos_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void cos_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = cosf(a[i]);
@@ -480,7 +481,7 @@ __global__ void cos_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void cos_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  cos_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  cos_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -489,7 +490,7 @@ __host__ void cos_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void relu_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void relu_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = fmax(a[i], 0.0);
@@ -498,7 +499,7 @@ __global__ void relu_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void relu_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  relu_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  relu_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -507,7 +508,7 @@ __host__ void relu_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void zeros_like_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void zeros_like_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = 0.0;
@@ -516,7 +517,7 @@ __global__ void zeros_like_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void zeros_like_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  zeros_like_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  zeros_like_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -525,7 +526,7 @@ __host__ void zeros_like_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void ones_like_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void ones_like_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = 1.0;
@@ -534,7 +535,7 @@ __global__ void ones_like_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void ones_like_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  ones_like_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  ones_like_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -543,7 +544,7 @@ __host__ void ones_like_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void equal_tensor_cuda_kernel(float* a, float* b, float* out, int size) {
+__global__ void equal_tensor_cudtensor_kernel(float* a, float* b, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = (a[i] == b[i]) ? 1.0f : 0.0f;
@@ -552,7 +553,7 @@ __global__ void equal_tensor_cuda_kernel(float* a, float* b, float* out, int siz
 
 __host__ void equal_tensor_cuda(Tensor* a, Tensor* b float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  equal_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, b->a, out, a->size);
+  equal_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, b->data, out, a->size);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -561,7 +562,7 @@ __host__ void equal_tensor_cuda(Tensor* a, Tensor* b float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void equal_broadcasted_tensor_cuda_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_ndim, int size) {
+__global__ void equal_broadcasted_tensor_cudtensor_kernel(float* a, float* b, float* out, int* broadcasted_shape, int* strides1, int* strides2, int max_ndim, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if(i >= size) return;
   int idx1 = 0, idx2 = 0;
@@ -602,7 +603,7 @@ __host__ void equal_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, in
   cudaMemcpy(d_strides2, strides2, max_ndim * sizeof(int), cudaMemcpyHostToDevice);
 
   int n_of_blocks = (broadcasted_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  equal_broadcasted_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->a, b->a, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
+  equal_broadcasted_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>>(a->data, b->data, out, d_broadcasted_shape, d_strides1, d_strides2, max_ndim, broadcasted_size);
   cudaError_t error = cudaGetLastError();
   if(error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -611,7 +612,7 @@ __host__ void equal_broadcasted_tensor_cuda(Tensor* a, Tensor* b, float* out, in
   cudaDeviceSynchronize();
 }
 
-__global__ void sum_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void sum_tensor_cudtensor_kernel(float* a, float* out, int size) {
   __shared__ float partial_sum[THREADS_PER_BLOCK * sizeof(float)];
 
   int tid = threadIdx.x;
@@ -629,7 +630,7 @@ __global__ void sum_tensor_cuda_kernel(float* a, float* out, int size) {
   }
 }
 
-__global__ void sum_tensor_cuda_kernel_axis(float* a, float* out, int* strides, int* shape, int axis, int ndim, int axis_stride, int size, int result_size) {
+__global__ void sum_tensor_cudtensor_kernel_axis(float* a, float* out, int* strides, int* shape, int axis, int ndim, int axis_stride, int size, int result_size) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid < result_size) {
     for (int i = 0; i < shape[axis]; i++) {
@@ -647,14 +648,14 @@ __global__ void sum_tensor_cuda_kernel_axis(float* a, float* out, int* strides, 
 
 __host__ void sum_tensor_cuda(Tensor* a, float* out, int axis) {
   if (axis == -1) {
-    cudaMemcpy(out, a->a, a->size * sizeof(float), cudaMemcpyHostToDevice);      
+    cudaMemcpy(out, a->data, a->size * sizeof(float), cudaMemcpyHostToDevice);      
     int num_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     // first-level reduction
-    sum_tensor_cuda_kernel<<<num_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+    sum_tensor_cudtensor_kernel<<<num_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
     // if necessary, perform multiple levels of reduction
     while (num_blocks > 1) {
       int num_blocks_next = (num_blocks + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      sum_tensor_cuda_kernel<<<num_blocks_next, THREADS_PER_BLOCK>>>(out, out, num_blocks);
+      sum_tensor_cudtensor_kernel<<<num_blocks_next, THREADS_PER_BLOCK>>>(out, out, num_blocks);
       num_blocks = num_blocks_next;
     }
     cudaError_t error = cudaGetLastError();
@@ -681,7 +682,7 @@ __host__ void sum_tensor_cuda(Tensor* a, float* out, int axis) {
     cudaMemset(out, 0, result_size * sizeof(float));
     int num_threads = result_size;
     int num_blocks = (num_threads + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    sum_tensor_cuda_kernel_axis<<<num_blocks, THREADS_PER_BLOCK>>>(a->a, out, d_strides, d_shape, axis, a->ndim, axis_stride, a->size, result_size);
+    sum_tensor_cudtensor_kernel_axis<<<num_blocks, THREADS_PER_BLOCK>>>(a->data, out, d_strides, d_shape, axis, a->ndim, axis_stride, a->size, result_size);
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
       printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -693,7 +694,7 @@ __host__ void sum_tensor_cuda(Tensor* a, float* out, int axis) {
   }
 }
 
-__global__ void matmul_tensor_cuda_kernel(float* a, float* b, float* out, int rows1, int cols1, int cols2) {    
+__global__ void matmul_tensor_cudtensor_kernel(float* a, float* b, float* out, int rows1, int cols1, int cols2) {    
   // shared memory for tiles
   __shared__ float tile1[TILE_SIZE][TILE_SIZE];
   __shared__ float tile2[TILE_SIZE][TILE_SIZE];
@@ -733,7 +734,7 @@ __host__ void matmul_tensor_cuda(Tensor* a, Tensor* b, float* out) {
 
   dim3 threadsPerBlock(16, 16);
   dim3 n_of_blocks((cols2 + threadsPerBlock.x - 1) / threadsPerBlock.x, (rows1 + threadsPerBlock.y - 1) / threadsPerBlock.y);
-  matmul_tensor_cuda_kernel<<<n_of_blocks, threadsPerBlock>>>(a->a, b->a, out, rows1, cols1, cols2);
+  matmul_tensor_cudtensor_kernel<<<n_of_blocks, threadsPerBlock>>>(a->data, b->data, out, rows1, cols1, cols2);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -743,7 +744,7 @@ __host__ void matmul_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void batched_matmul_tensor_cuda_kernel(float* a, float* b, float* out, int batch_size, int rows1, int cols1, int cols2) {
+__global__ void batched_matmul_tensor_cudtensor_kernel(float* a, float* b, float* out, int batch_size, int rows1, int cols1, int cols2) {
   int batch = blockIdx.z;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
   int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -765,7 +766,7 @@ __host__ void batched_matmul_tensor_cuda(Tensor* a, Tensor* b, float* out) {
 
   dim3 threadsPerBlock(16, 16);
   dim3 n_of_blocks((cols2 + threadsPerBlock.x - 1) / threadsPerBlock.x, (rows1 + threadsPerBlock.y - 1) / threadsPerBlock.y, batch_size);
-  batched_matmul_tensor_cuda_kernel<<<n_of_blocks, threadsPerBlock>>>(a->a, b->a, out, batch_size, rows1, cols1, cols2);
+  batched_matmul_tensor_cudtensor_kernel<<<n_of_blocks, threadsPerBlock>>>(a->data, b->data, out, batch_size, rows1, cols1, cols2);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -775,7 +776,7 @@ __host__ void batched_matmul_tensor_cuda(Tensor* a, Tensor* b, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void broadcasted_batched_matmul_tensor_cuda_kernel(float* a, float* b, float* out, int batch_size, int rows1, int cols1, int cols2) {
+__global__ void broadcasted_batched_matmul_tensor_cudtensor_kernel(float* a, float* b, float* out, int batch_size, int rows1, int cols1, int cols2) {
   int batch = blockIdx.z;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
   int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -796,7 +797,7 @@ __host__ void broadcasted_batched_matmul_tensor_cuda(Tensor* a, Tensor* b, float
 
   dim3 threadsPerBlock(16, 16);
   dim3 n_of_blocks((cols2 + threadsPerBlock.x - 1) / threadsPerBlock.x, (rows1 + threadsPerBlock.y - 1) / threadsPerBlock.y, batch_size);
-  broadcasted_batched_matmul_tensor_cuda_kernel<<<n_of_blocks, threadsPerBlock>>>(a->a, b->a, out, batch_size, rows1, cols1, cols2);
+  broadcasted_batched_matmul_tensor_cudtensor_kernel<<<n_of_blocks, threadsPerBlock>>>(a->data, b->data, out, batch_size, rows1, cols1, cols2);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -806,7 +807,7 @@ __host__ void broadcasted_batched_matmul_tensor_cuda(Tensor* a, Tensor* b, float
   cudaDeviceSynchronize();
 }
 
-__global__ void transpose_1D_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void transpose_1D_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i];
@@ -815,7 +816,7 @@ __global__ void transpose_1D_tensor_cuda_kernel(float* a, float* out, int size) 
 
 __host__ void transpose_1D_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  transpose_1D_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  transpose_1D_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
 
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
@@ -826,7 +827,7 @@ __host__ void transpose_1D_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void transpose_2D_tensor_cuda_kernel(float* a, float* out, int rows, int cols) {
+__global__ void transpose_2D_tensor_cudtensor_kernel(float* a, float* out, int rows, int cols) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -841,7 +842,7 @@ __host__ void transpose_2D_tensor_cuda(Tensor* a, float* out) {
 
   dim3 threadsPerBlock(16, 16);
   dim3 n_of_blocks((rows + threadsPerBlock.x - 1) / threadsPerBlock.x, (cols + threadsPerBlock.y - 1) / threadsPerBlock.y);
-  transpose_2D_tensor_cuda_kernel<<<n_of_blocks, threadsPerBlock>>>(a->a, out, rows, cols);
+  transpose_2D_tensor_cudtensor_kernel<<<n_of_blocks, threadsPerBlock>>>(a->data, out, rows, cols);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -851,7 +852,7 @@ __host__ void transpose_2D_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void transpose_3D_tensor_cuda_kernel(float* a, float* out, int batch, int rows, int cols) {
+__global__ void transpose_3D_tensor_cudtensor_kernel(float* a, float* out, int batch, int rows, int cols) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   int k = blockIdx.z * blockDim.z + threadIdx.z;
@@ -868,7 +869,7 @@ __host__ void transpose_3D_tensor_cuda(Tensor* a, float* out) {
 
   dim3 threadsPerBlock(8, 8, 8);
   dim3 n_of_blocks((batch + threadsPerBlock.x - 1) / threadsPerBlock.x, (rows + threadsPerBlock.y - 1) / threadsPerBlock.y, (cols + threadsPerBlock.z - 1) / threadsPerBlock.z);
-  transpose_3D_tensor_cuda_kernel<<<n_of_blocks, threadsPerBlock>>>(a->a, out, batch, rows, cols);
+  transpose_3D_tensor_cudtensor_kernel<<<n_of_blocks, threadsPerBlock>>>(a->data, out, batch, rows, cols);
 
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
@@ -879,7 +880,7 @@ __host__ void transpose_3D_tensor_cuda(Tensor* a, float* out) {
 }
 
 
-__global__ void assign_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void assign_tensor_cudtensor_kernel(float* a, float* out, int size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     out[i] = a[i];
@@ -888,7 +889,7 @@ __global__ void assign_tensor_cuda_kernel(float* a, float* out, int size) {
 
 __host__ void assign_tensor_cuda(Tensor* a, float* out) {
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  assign_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->size);
+  assign_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->size);
 
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
@@ -898,7 +899,7 @@ __host__ void assign_tensor_cuda(Tensor* a, float* out) {
   cudaDeviceSynchronize();
 }
 
-__global__ void make_contiguous_tensor_cuda_kernel(float* a, float* out, int ndim, int size, int* strides, int* new_strides) {
+__global__ void make_contiguous_tensor_cudtensor_kernel(float* a, float* out, int ndim, int size, int* strides, int* new_strides) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < size) {
     int index = 0;
@@ -921,7 +922,7 @@ __host__ void make_contiguous_tensor_cuda(Tensor* a, float* out, int* new_stride
   cudaMemcpy(d_new_strides, new_strides, a->ndim * sizeof(int), cudaMemcpyHostToDevice);
 
   int n_of_blocks = (a->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  make_contiguous_tensor_cuda_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->a, out, a->ndim, a->size, d_strides, d_new_strides);
+  make_contiguous_tensor_cudtensor_kernel<<<n_of_blocks, THREADS_PER_BLOCK>>>(a->data, out, a->ndim, a->size, d_strides, d_new_strides);
 
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
@@ -930,13 +931,13 @@ __host__ void make_contiguous_tensor_cuda(Tensor* a, float* out, int* new_stride
   }
 
   cudaDeviceSynchronize();
-  cudaFree(a->a);
+  cudaFree(a->data);
   free(a->strides);
-  a->a = out;
+  a->data = out;
   a->strides = new_strides;
 }
 
-__global__ void max_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void max_tensor_cudtensor_kernel(float* a, float* out, int size) {
   __shared__ float partial_max[THREADS_PER_BLOCK * sizeof(float)];
   int tid = threadIdx.x;
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -967,7 +968,7 @@ __device__ float atomicMaxFloat(float* address, float val) {
   return __int_as_float(old);
 }
 
-__global__ void max_tensor_cuda_kernel_axis(float* a, float* out, int* strides, int* shape, int axis, int ndim, int axis_stride, int size, int result_size) {
+__global__ void max_tensor_cudtensor_kernel_axis(float* a, float* out, int* strides, int* shape, int axis, int ndim, int axis_stride, int size, int result_size) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid < result_size) {
     for (int i = 0; i < shape[axis]; i++) {
@@ -988,10 +989,10 @@ __host__ void max_tensor_cuda(Tensor* tensor, float* out, int axis) {
     cudaMemcpy(out, tensor->a, tensor->size * sizeof(float), cudaMemcpyHostToDevice);
     int num_blocks = (tensor->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     // first-level reduction
-    max_tensor_cuda_kernel<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, tensor->size);
+    max_tensor_cudtensor_kernel<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, tensor->size);
     while (num_blocks > 1) {
       int num_blocks_next = (num_blocks + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      max_tensor_cuda_kernel<<<num_blocks_next, THREADS_PER_BLOCK>>>(out, out, num_blocks);
+      max_tensor_cudtensor_kernel<<<num_blocks_next, THREADS_PER_BLOCK>>>(out, out, num_blocks);
       num_blocks = num_blocks_next;
     }
     cudaError_t error = cudaGetLastError();
@@ -1017,7 +1018,7 @@ __host__ void max_tensor_cuda(Tensor* tensor, float* out, int axis) {
     cudaMemset(out, *reinterpret_cast<int*>(&neg_inf), result_size * sizeof(float));
     int num_threads = result_size;
     int num_blocks = (num_threads + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    max_tensor_cuda_kernel_axis<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, d_strides, d_shape, axis, tensor->ndim, axis_stride, tensor->size, result_size);
+    max_tensor_cudtensor_kernel_axis<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, d_strides, d_shape, axis, tensor->ndim, axis_stride, tensor->size, result_size);
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
       printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -1029,7 +1030,7 @@ __host__ void max_tensor_cuda(Tensor* tensor, float* out, int axis) {
   }
 }
 
-__global__ void min_tensor_cuda_kernel(float* a, float* out, int size) {
+__global__ void min_tensor_cudtensor_kernel(float* a, float* out, int size) {
   __shared__ float partial_min[THREADS_PER_BLOCK * sizeof(float)];
   int tid = threadIdx.x;
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1057,7 +1058,7 @@ __device__ float atomicMinFloat(float* address, float val) {
   return __int_as_float(old);
 }
 
-__global__ void min_tensor_cuda_kernel_axis(float* a, float* out, int* strides, int* shape, int axis, int ndim, int axis_stride, int size, int result_size) {
+__global__ void min_tensor_cudtensor_kernel_axis(float* a, float* out, int* strides, int* shape, int axis, int ndim, int axis_stride, int size, int result_size) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (tid < result_size) {
@@ -1078,10 +1079,10 @@ __host__ void min_tensor_cuda(Tensor* tensor, float* out, int axis) {
   if (axis == -1) {
     cudaMemcpy(out, tensor->a, tensor->size * sizeof(float), cudaMemcpyHostToDevice);
     int num_blocks = (tensor->size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    min_tensor_cuda_kernel<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, tensor->size);
+    min_tensor_cudtensor_kernel<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, tensor->size);
     while (num_blocks > 1) {
       int num_blocks_next = (num_blocks + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      min_tensor_cuda_kernel<<<num_blocks_next, THREADS_PER_BLOCK>>>(out, out, num_blocks);
+      min_tensor_cudtensor_kernel<<<num_blocks_next, THREADS_PER_BLOCK>>>(out, out, num_blocks);
       num_blocks = num_blocks_next;
     }
 
@@ -1109,7 +1110,7 @@ __host__ void min_tensor_cuda(Tensor* tensor, float* out, int axis) {
 
     int num_threads = result_size;
     int num_blocks = (num_threads + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    min_tensor_cuda_kernel_axis<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, d_strides, d_shape, axis, tensor->ndim, axis_stride, tensor->size, result_size);
+    min_tensor_cudtensor_kernel_axis<<<num_blocks, THREADS_PER_BLOCK>>>(tensor->a, out, d_strides, d_shape, axis, tensor->ndim, axis_stride, tensor->size, result_size);
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
       printf("CUDA error: %s\n", cudaGetErrorString(error));

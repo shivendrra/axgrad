@@ -57,6 +57,7 @@ extern "C" {
   Tensor* equal_broadcasted_tensor(Tensor* a, Tensor* b);
   Tensor* zeros_like_tensor(Tensor* a);
   Tensor* ones_like_tensor(Tensor* a);
+  void print_tensor(Tensor* a);
 }
 
 #endif
