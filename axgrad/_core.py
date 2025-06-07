@@ -7,13 +7,13 @@
 
 from typing import *
 from copy import deepcopy
-import math
 
 from ._dtype import Dtype
 from .utils.contiguous import ContiguousOps
 from .helpers.shape import get_shape, get_strides, get_size, transpose, flatten_recursive, unsqueeze, squeeze, swap_axes, reshape
-from .helpers.ops import broadcast, matmul, mean_axis, mean_axis0, var_axis, var_axis0, dot_product, determinant
-from .ops.binary import *
+from .helpers.ops import broadcast, dot_product, determinant
+from .ops.main import *
+from .ops.binary import register_binary_operators
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
@@ -66,6 +66,9 @@ class _tensor:
   def reshape(self, new_shape: tuple) -> "_tensor": return _tensor(reshape(self.data, new_shape), self.dtype)
   def dot(self, other: "_tensor") -> "_tensor": return _tensor(dot_product(self.data, other.data), self.dtype)
   def det(self) -> "_tensor": return _tensor(determinant(self.data), self.dtype)
+  def exp(self) -> "_tensor": return _tensor(exp_tensor(self.data), self.dtype)
+  def log(self) -> "_tensor": return _tensor(log_tensor(self.data), self.dtype)
+  def ln(self) -> "_tensor": return _tensor(ln_tensor(self.data), self.dtype)
   def sin(self) -> "_tensor": return _tensor(sin_tensor(self.data), self.dtype)
   def sinh(self) -> "_tensor": return _tensor(sinh_tensor(self.data), self.dtype)
   def cos(self) -> "_tensor": return _tensor(cos_tensor(self.data), self.dtype)
@@ -75,3 +78,5 @@ class _tensor:
   def relu(self) -> "_tensor": return _tensor(relu_tensor(self.data), self.dtype)
   def gelu(self) -> "_tensor": return _tensor(gelu_tensor(self.data), self.dtype)
   def leaky_relu(self) -> "_tensor": return _tensor(leaky_relu_tensor(self.data), self.dtype)
+
+register_binary_operators()
