@@ -7,7 +7,7 @@
 """
 
 from typing import Literal, Callable
-from ..helpers.functionals import *
+from ..ops.functionals import *
 from .functions.binary_ops import __ADD__, __MUL__, __MATMUL__, __POW__, __CONV2D__
 from .functions.shape_ops import __TRANSPOSE__, __SWAPAXES__, __RESHAPE__, __SQUEEZE__, __UNSQUEEZE__, __FLATTEN__, __VIEW__, __BROADCAST__
 from .functions.uniary_ops import __SUM__, __MEAN__, __VAR__, __STD__, __EXP__, __RSQRT__, __SQRT__, __LOG__, __CLIP__, __ABS__
