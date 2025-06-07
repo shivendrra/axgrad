@@ -1,48 +1,62 @@
 from .main import add_tensor, sub_tensor, mul_tensor, div_tensor
-from .._dtype import Dtype
-from ..helpers.shape import broadcast, broadcast_shape, get_shape
-from .._core import _tensor
+from ..helpers.shape import broadcast, broadcast_shape
 
-def add_tensor_ops(tensor1, tensor2):
-  target_shape, requires_broadcasting = broadcast_shape(tensor1.shape, tensor2.shape)
-  if requires_broadcasting:
-    tensor1.data, tensor1.grad, tensor1.shape = Dtype.handle_conversion(broadcast(tensor1.data, target_shape), tensor1.dtype), broadcast(tensor1.grad, target_shape), get_shape(tensor1.data)
-    tensor2.data, tensor2.grad, tensor2.shape = Dtype.handle_conversion(broadcast(tensor2.data, target_shape), tensor2.dtype), broadcast(tensor2.grad, target_shape), get_shape(tensor2.data)
-  if tensor1.size == tensor2.size:
-    out = add_tensor(tensor1.data, tensor2.data)
-  return _tensor(out, tensor1.dtype)
+def _ensure_tensor(obj, ref):
+  from .._core import _tensor
+  return obj if isinstance(obj, _tensor) else _tensor(obj, ref.dtype)
 
-def sub_tensor_ops(tensor1, tensor2):
-  target_shape, requires_broadcasting = broadcast_shape(tensor1.shape, tensor2.shape)
-  if requires_broadcasting:
-    tensor1.data, tensor1.grad, tensor1.shape = Dtype.handle_conversion(broadcast(tensor1.data, target_shape), tensor1.dtype), broadcast(tensor1.grad, target_shape), get_shape(tensor1.data)
-    tensor2.data, tensor2.grad, tensor2.shape = Dtype.handle_conversion(broadcast(tensor2.data, target_shape), tensor2.dtype), broadcast(tensor2.grad, target_shape), get_shape(tensor2.data)
-  if tensor1.size == tensor2.size:
-    out = sub_tensor(tensor1.data, tensor2.data)
-  return _tensor(out, tensor1.dtype)
+def add_tensor_ops(self, other):
+  from .._core import _tensor
+  other = _ensure_tensor(other, self)
+  target_shape, _ = broadcast_shape(self.shape, other.shape)
+  self_data, other_data = broadcast(self.data, target_shape), broadcast(other.data, target_shape)
+  out = add_tensor(self_data, other_data)
+  return _tensor(out, self.dtype)
 
-def mul_tensor_ops(tensor1, tensor2):
-  target_shape, requires_broadcasting = broadcast_shape(tensor1.shape, tensor2.shape)
-  if requires_broadcasting:
-    tensor1.data, tensor1.grad, tensor1.shape = Dtype.handle_conversion(broadcast(tensor1.data, target_shape), tensor1.dtype), broadcast(tensor1.grad, target_shape), get_shape(tensor1.data)
-    tensor2.data, tensor2.grad, tensor2.shape = Dtype.handle_conversion(broadcast(tensor2.data, target_shape), tensor2.dtype), broadcast(tensor2.grad, target_shape), get_shape(tensor2.data)
-  if tensor1.size == tensor2.size:
-    out = mul_tensor(tensor1.data, tensor2.data)
-  return _tensor(out, tensor1.dtype)
+def radd_tensor_ops(self, other):
+  # __radd__ is same as __add__ with operands flipped
+  return add_tensor_ops(other, self)
 
-def div_tensor_ops(tensor1, tensor2):
-  target_shape, requires_broadcasting = broadcast_shape(tensor1.shape, tensor2.shape)
-  if requires_broadcasting:
-    tensor1.data, tensor1.grad, tensor1.shape = Dtype.handle_conversion(broadcast(tensor1.data, target_shape), tensor1.dtype), broadcast(tensor1.grad, target_shape), get_shape(tensor1.data)
-    tensor2.data, tensor2.grad, tensor2.shape = Dtype.handle_conversion(broadcast(tensor2.data, target_shape), tensor2.dtype), broadcast(tensor2.grad, target_shape), get_shape(tensor2.data)
-  if tensor1.size == tensor2.size:
-    out = div_tensor(tensor1.data, tensor2.data)
-  return _tensor(out, tensor1.dtype)
+def sub_tensor_ops(self, other):
+  from .._core import _tensor
+  other = _ensure_tensor(other, self)
+  target_shape, _ = broadcast_shape(self.shape, other.shape)
+  self_data, other_data = broadcast(self.data, target_shape), broadcast(other.data, target_shape)
+  out = sub_tensor(self_data, other_data)
+  return _tensor(out, self.dtype)
+
+def rsub_tensor_ops(self, other):
+  return sub_tensor_ops(other, self)
+
+def mul_tensor_ops(self, other):
+  from .._core import _tensor
+  other = _ensure_tensor(other, self)
+  target_shape, _ = broadcast_shape(self.shape, other.shape)
+  self_data, other_data = broadcast(self.data, target_shape), broadcast(other.data, target_shape)
+  out = mul_tensor(self_data, other_data)
+  return _tensor(out, self.dtype)
+
+def rmul_tensor_ops(self, other):
+  return mul_tensor_ops(other, self)
+
+def div_tensor_ops(self, other):
+  from .._core import _tensor
+  other = _ensure_tensor(other, self)
+  target_shape, _ = broadcast_shape(self.shape, other.shape)
+  self_data, other_data = broadcast(self.data, target_shape), broadcast(other.data, target_shape)
+  out = div_tensor(self_data, other_data)
+  return _tensor(out, self.dtype)
+
+def rdiv_tensor_ops(self, other):
+  return div_tensor_ops(other, self)
 
 def register_binary_operators():
   from .._core import _tensor
-
   _tensor.__add__ = add_tensor_ops
+  _tensor.__radd__ = radd_tensor_ops
   _tensor.__sub__ = sub_tensor_ops
+  _tensor.__rsub__ = rsub_tensor_ops
   _tensor.__mul__ = mul_tensor_ops
-  _tensor.__div__ = div_tensor_ops
+  _tensor.__rmul__ = rmul_tensor_ops
+  _tensor.__truediv__ = div_tensor_ops
+  _tensor.__rtruediv__ = rdiv_tensor_ops

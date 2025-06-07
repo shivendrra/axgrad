@@ -14,6 +14,7 @@ from .helpers.shape import get_shape, get_strides, get_size, transpose, flatten_
 from .helpers.ops import broadcast, dot_product, determinant
 from .ops.main import *
 from .ops.binary import register_binary_operators
+from .ops.reduction import register_reduction_operators
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float16, float32, float64, double = "float16", "float32", "float64", "double"
@@ -80,3 +81,4 @@ class _tensor:
   def leaky_relu(self) -> "_tensor": return _tensor(leaky_relu_tensor(self.data), self.dtype)
 
 register_binary_operators()
+register_reduction_operators()
