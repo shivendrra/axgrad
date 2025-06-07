@@ -13,7 +13,7 @@ import math
 
 from .helpers.shape import *
 from ._dtype import *
-from .helpers.functionals import *
+from .ops.functionals import *
 from .helpers.utils import _ones
 from .helpers.ops import *
 from .utils.contiguous import ContiguousOps
