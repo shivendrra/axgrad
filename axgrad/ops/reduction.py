@@ -37,8 +37,17 @@ def var_tensor_ops(self, axis: int = None, ddof: int = 0, keepdim: bool = False)
     out = var_axis(self.data, mean_vals, axis, ddof, keepdim)
   return _tensor(out, self.dtype)
 
+def clip_tensor_ops(self, _min: float , _max: float):
+  from .._core import _tensor
+  def _clip(data):
+    if isinstance(data, list):
+      return [_clip(d, _min, _max) for d in data]
+    return max(min(data, _max), _min)
+  return _tensor(_clip(self.data), self.dtype)
+
 def register_reduction_operators():
   from .._core import _tensor
   _tensor.sum = sum_tensor_ops
   _tensor.mean = mean_tensor_ops
   _tensor.var = var_tensor_ops
+  _tensor.clip = clip_tensor_ops
