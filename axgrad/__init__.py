@@ -3,7 +3,7 @@ from ._functions import *
 from ._ops import *
 from ._utils import *
 from .utils import *
-
+from ._core import _tensor
 random = random(seed=200)
 RNG = RNG(seed=300)
 

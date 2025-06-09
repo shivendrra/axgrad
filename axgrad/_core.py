@@ -1,7 +1,7 @@
 """
   @core.py
   @brief: main multi-dim tensor class to build tensor manipulation functions & ops
-  * tensor() is going to be built over on top of this, for proper grad management
+  * tensor() & grad() is going to be built over on top of this, for proper grad management
   * no backprop enabled
 """
 
@@ -55,6 +55,7 @@ class _tensor:
 
   def __iter__(self) -> Iterator: return (item for item in self.data)
   def __repr__(self) -> str: return f"{self.data}"
+  def __len__(self) -> int: return self.size
   def is_contiguous(self) -> bool: return self.contiguous_ops.is_contiguous()
   def make_contiguous(self) -> None: self.contiguous_ops.make_contiguous()
   def compute_stride(self, shape: List[int]) -> List[int]: return self.contiguous_ops.compute_stride(shape)
@@ -65,6 +66,7 @@ class _tensor:
   def unsqueeze(self, dim: int=0) -> "_tensor": return _tensor(unsqueeze(self.data, dim), self.dtype)
   def sequeeze(self, dim: int=0) -> "_tensor": return _tensor(squeeze(self.data, dim), self.dtype)
   def reshape(self, new_shape: tuple) -> "_tensor": return _tensor(reshape(self.data, new_shape), self.dtype)
+  def __pow__(self, other) -> "_tensor": return _tensor(pow_tensor(self.data, other), self.dtype)
   def dot(self, other: "_tensor") -> "_tensor": return _tensor(dot_product(self.data, other.data), self.dtype)
   def det(self) -> "_tensor": return _tensor(determinant(self.data), self.dtype)
   def exp(self) -> "_tensor": return _tensor(exp_tensor(self.data), self.dtype)
@@ -78,7 +80,21 @@ class _tensor:
   def tanh(self) -> "_tensor": return _tensor(tanh_tensor(self.data), self.dtype)
   def relu(self) -> "_tensor": return _tensor(relu_tensor(self.data), self.dtype)
   def gelu(self) -> "_tensor": return _tensor(gelu_tensor(self.data), self.dtype)
+  def sigmoid(self) -> "_tensor": return _tensor(sigmoid_tensor(self.data), self.dtype)
   def leaky_relu(self) -> "_tensor": return _tensor(leaky_relu_tensor(self.data), self.dtype)
+
+  def view(self, *new_shape:Union[int, list, tuple]):
+    if isinstance(new_shape[0], list) or isinstance(new_shape[0], tuple):
+      new_shape = tuple(new_shape[0])
+    elif isinstance(new_shape[0], int):
+      new_shape = tuple(new_shape)
+    self.make_contiguous()
+    flat_data = self.flatten()
+    total_elements = len(flat_data)
+    if total_elements != self.size:
+      raise ValueError("Total elements in new shape must match the number of elements in the original tensor")
+    out = _tensor(reshape(self.data, new_shape), dtype=self.dtype)
+    return out
 
 register_binary_operators()
 register_reduction_operators()
