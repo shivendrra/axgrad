@@ -1,5 +1,6 @@
 from .main import add_tensor, sub_tensor, mul_tensor, div_tensor
 from ..helpers.shape import broadcast, broadcast_shape
+from ..helpers.ops import matmul
 
 def _ensure_tensor(obj, ref):
   from .._core import _tensor
@@ -50,6 +51,12 @@ def div_tensor_ops(self, other):
 def rdiv_tensor_ops(self, other):
   return div_tensor_ops(other, self)
 
+def matmul_tensor_ops(self, other):
+  from .._core import _tensor
+  other = _ensure_tensor(other, self)
+  out = matmul(self.data, other.data)
+  return _tensor(out, self.dtype)
+
 def register_binary_operators():
   from .._core import _tensor
   _tensor.__add__ = add_tensor_ops
@@ -60,3 +67,4 @@ def register_binary_operators():
   _tensor.__rmul__ = rmul_tensor_ops
   _tensor.__truediv__ = div_tensor_ops
   _tensor.__rtruediv__ = rdiv_tensor_ops
+  _tensor.__matmul__ = matmul_tensor_ops
