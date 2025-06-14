@@ -60,6 +60,7 @@ class _tensor:
   def make_contiguous(self) -> None: self.contiguous_ops.make_contiguous()
   def compute_stride(self, shape: List[int]) -> List[int]: return self.contiguous_ops.compute_stride(shape)
   def tolist(self) -> list: return list(self.data)
+  def astype(self, dtype: Dtype) -> "_tensor": return _tensor(self.data, dtype)
   def copy(self) -> "_tensor": return _tensor(deepcopy(self.data), self.dtype)
   def transpose(self) -> "_tensor": return _tensor(transpose(self.data), self.dtype)
   def flatten(self, start_dim: int, end_dim: int) -> "_tensor": return _tensor(flatten_recursive(self.data, start_dim, end_dim), self.dtype)
@@ -67,6 +68,8 @@ class _tensor:
   def sequeeze(self, dim: int=0) -> "_tensor": return _tensor(squeeze(self.data, dim), self.dtype)
   def reshape(self, new_shape: tuple) -> "_tensor": return _tensor(reshape(self.data, new_shape), self.dtype)
   def __pow__(self, other) -> "_tensor": return _tensor(pow_tensor(self.data, other), self.dtype)
+  def sqrt(self, other) -> "_tensor": return _tensor(sqrt_tensor(self.data, other), self.dtype)
+  def rsqrt(self, other) -> "_tensor": return _tensor(rsqrt_tensor(self.data, other), self.dtype)
   def dot(self, other: "_tensor") -> "_tensor": return _tensor(dot_product(self.data, other.data), self.dtype)
   def det(self) -> "_tensor": return _tensor(determinant(self.data), self.dtype)
   def exp(self) -> "_tensor": return _tensor(exp_tensor(self.data), self.dtype)
@@ -95,6 +98,9 @@ class _tensor:
       raise ValueError("Total elements in new shape must match the number of elements in the original tensor")
     out = _tensor(reshape(self.data, new_shape), dtype=self.dtype)
     return out
+
+  def backward(self):
+    raise RuntimeError("backward() can only be called on tensors that require gradients. Use axgrad.tensor instead of _tensor.")
 
 register_binary_operators()
 register_reduction_operators()
