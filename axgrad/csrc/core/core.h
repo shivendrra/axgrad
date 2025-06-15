@@ -26,11 +26,11 @@ typedef struct Tensor {
 extern "C" {
   // tensor initialization & deletion related function
   Tensor* create_tensor(float* data, size_t ndim, int* shape, size_t size, dtype_t dtype);
-  void delete_array(Tensor* self);
+  void delete_tensor(Tensor* self);
   void delete_shape(Tensor* self);
   void delete_data(Tensor* self);
   void delete_strides(Tensor* self);
-  void print_array(Tensor* self);
+  void print_tensor(Tensor* self);
 }
 
 #endif  //!__CORE__H__
