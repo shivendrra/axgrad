@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include "core.h"
 #include "dtype.h"
+#include "contiguous.h"
 
 Tensor* create_tensor(float* data, size_t ndim, int* shape, size_t size, dtype_t dtype) {
   if (data == NULL || !ndim || !size) {
