@@ -31,6 +31,28 @@ extern "C" {
   void delete_data(Tensor* self);
   void delete_strides(Tensor* self);
   void print_tensor(Tensor* self);
+
+  // data returning function for python endpoint
+  float* out_data(Tensor* self);
+  int* out_shape(Tensor* self);
+  int* out_strides(Tensor* self);
+  int out_size(Tensor* self);
+
+  // contiguous tensor related ops
+  Tensor* contiguous_tensor(Tensor* self);
+  void make_contiguous_inplace_tensor(Tensor* self);
+  int is_contiguous_tensor(Tensor* self);
+
+  // view/reshaping
+  int is_view_tensor(Tensor* self);
+  Tensor* view_tensor(Tensor* self);
+  Tensor* reshape_view(Tensor* self, int* new_shape, size_t new_ndim);
+  Tensor* slice_view(Tensor* self, int* start, int* end, int* step);
+  Tensor* copy_tensor(Tensor* self);
+
+  // dtype casting related functions
+  Tensor* cast_tensor_simple(Tensor* self, dtype_t new_dtype);
+  Tensor* cast_tensor(Tensor* self, dtype_t new_dtype);
 }
 
 #endif  //!__CORE__H__
