@@ -2,6 +2,7 @@
 #define __HELPER__H__
 
 #include <stddef.h>
+#include <stdint.h>
 
 extern "C" {
   // tensor initialization functions
