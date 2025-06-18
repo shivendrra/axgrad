@@ -3,8 +3,6 @@
 #include <stddef.h>
 #include <cuda_runtime.h>
 #include "cuda.cuh"
-#include "../core/core.h"
-#include "../core/dtype.h"
 
 // CUDA error checking macro
 #define CUDA_CHECK(call) \
@@ -16,9 +14,9 @@
     } \
   } while(0)
 
-__host__ float* cpu_to_cuda(float* cpu_data, int device_id) {
-  if (tensor == NULL) {
-    fprintf(stderr, "Tensor value pointers are null!\n");
+__host__ float* cpu_to_cuda(float* cpu_data, int device_id, size_t size) {
+  if (cpu_data == NULL) {
+    fprintf(stderr, "CPU data pointer is null!\n");
     exit(EXIT_FAILURE);
   }
 
@@ -27,18 +25,18 @@ __host__ float* cpu_to_cuda(float* cpu_data, int device_id) {
 
   // allocating GPU memory for float32 data
   float* gpu_float_data;
-  size_t data_size = tensor->size * sizeof(float);
+  size_t data_size = size * sizeof(float);
   CUDA_CHECK(cudaMalloc((void**)&gpu_float_data, data_size));
 
   // copying float32 data from CPU to GPU
   CUDA_CHECK(cudaMemcpy(gpu_float_data, cpu_data, data_size, cudaMemcpyHostToDevice));
-  free(cpu_data);  // cleaningup temporary CPU float data
+  free(cpu_data);  // cleaning up temporary CPU float data
   // printf("Tensor data moved to GPU device %d as float32 array\n", device_id);
   return gpu_float_data;
 }
 
-__host__ float* cuda_to_cpu(float* gpu_data, size_t ndim, int* shape, size_t size, dtype_t dtype) {
-  if (gpu_data == NULL || !ndim || !size || shape == NULL) {
+__host__ float* cuda_to_cpu(float* gpu_data, size_t size) {
+  if (gpu_data == NULL || !size) {
     fprintf(stderr, "Invalid input parameters!\n");
     exit(EXIT_FAILURE);
   }
@@ -60,7 +58,7 @@ __host__ float* cuda_to_cpu(float* gpu_data, size_t ndim, int* shape, size_t siz
 
   // copying float32 data from GPU to CPU
   CUDA_CHECK(cudaMemcpy(cpu_data, gpu_data, size * sizeof(float), cudaMemcpyDeviceToHost));
-  // printf("GPU float32 data converted to CPU tensor with dtype %s\n", get_dtype_name(dtype));
+  // printf("GPU float32 data converted to CPU\n");
   return cpu_data;
 }
 

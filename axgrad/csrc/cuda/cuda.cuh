@@ -7,8 +7,8 @@
 #define TILE_SIZE 64
 
 // core CUDA functions - work with float32 arrays directly
-__host__ float* cpu_to_cuda(float* cpu_data, int device_id);
-__host__ float* cuda_to_cpu(float* gpu_data);
+__host__ float* cpu_to_cuda(float* cpu_data, int device_id, size_t size);
+__host__ float* cuda_to_cpu(float* gpu_data, size_t size);
 __host__ void free_cuda(float* data);
 
 // utility functions

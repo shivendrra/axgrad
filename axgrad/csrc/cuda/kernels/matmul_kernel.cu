@@ -58,7 +58,7 @@ __global__ void __batched_matmul_kernel__(float* a, float* b, float* out, int ba
   int row = blockIdx.y * blockDim.y + threadIdx.y;
   int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (row < rows1 && col < cols2) {
+  if (batch < batch_size && row < rows1 && col < cols2) {
     float sum = 0.0f;
     for (int k = 0; k < cols1; ++k) {
       sum += a[batch * rows1 * cols1 + row * cols1 + k] * b[batch * cols1 * cols2 + k * cols2 + col];
@@ -68,12 +68,14 @@ __global__ void __batched_matmul_kernel__(float* a, float* b, float* out, int ba
 }
 
 __host__ void batched_matmul_tensor_cuda(float* a, float* b, float* out, int* shape1, int* shape2) {
-  int batch_size = shape2[0], int cols2 = shape2[2];
-  int rows1 = shape1[1], int cols1 = shape1[2];
+  int batch_size = shape1[0];
+  int rows1 = shape1[1];
+  int cols1 = shape1[2];
+  int cols2 = shape2[2];
 
   dim3 threadsPerBlock(16, 16);
   dim3 n_of_blocks((cols2 + threadsPerBlock.x - 1) / threadsPerBlock.x, (rows1 + threadsPerBlock.y - 1) / threadsPerBlock.y, batch_size);
-  __batched_matmul_kernel__<<<n_of_blocks, threadsPerBlock>>>(a->data, b->data, out, batch_size, rows1, cols1, cols2);
+  __batched_matmul_kernel__<<<n_of_blocks, threadsPerBlock>>>(a, b, out, batch_size, rows1, cols1, cols2);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
@@ -87,7 +89,8 @@ __global__ void __broadcasted_batched_matmul_kernel__(float* a, float* b, float*
   int batch = blockIdx.z;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
   int col = blockIdx.x * blockDim.x + threadIdx.x;
-  if (row < rows1 && col < cols2) {
+
+  if (batch < batch_size && row < rows1 && col < cols2) {
     float sum = 0.0f;
     for (int k = 0; k < cols1; ++k) {
       sum += a[row * cols1 + k] * b[batch * cols1 * cols2 + k * cols2 + col];
@@ -104,7 +107,7 @@ __host__ void broadcasted_batched_matmul_tensor_cuda(float* a, float* b, float* 
 
   dim3 threadsPerBlock(16, 16);
   dim3 n_of_blocks((cols2 + threadsPerBlock.x - 1) / threadsPerBlock.x, (rows1 + threadsPerBlock.y - 1) / threadsPerBlock.y, batch_size);
-  __broadcasted_batched_matmul_kernel__<<<n_of_blocks, threadsPerBlock>>>(a->data, b->data, out, batch_size, rows1, cols1, cols2);
+  __broadcasted_batched_matmul_kernel__<<<n_of_blocks, threadsPerBlock>>>(a, b, out, batch_size, rows1, cols1, cols2);
   cudaError_t error = cudaGetLastError();
   if (error != cudaSuccess) {
     printf("CUDA error: %s\n", cudaGetErrorString(error));
