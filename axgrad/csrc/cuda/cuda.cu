@@ -31,7 +31,7 @@ __host__ float* cpu_to_cuda(float* cpu_data, int device_id, size_t size) {
   // copying float32 data from CPU to GPU
   CUDA_CHECK(cudaMemcpy(gpu_float_data, cpu_data, data_size, cudaMemcpyHostToDevice));
   free(cpu_data);  // cleaning up temporary CPU float data
-  // printf("Tensor data moved to GPU device %d as float32 array\n", device_id);
+  // printf("float data moved to GPU device %d as float32 array\n", device_id);
   return gpu_float_data;
 }
 
@@ -109,4 +109,59 @@ __host__ void print_cuda_device_info(int device_id) {
   printf("  Max Threads per Block: %d\n", prop.maxThreadsPerBlock);
   printf("  Max Threads per Multiprocessor: %d\n", prop.maxThreadsPerMultiProcessor);
   printf("  Warp Size: %d\n", prop.warpSize);
+}
+
+__device__ size_t calculate_flat_index_cuda(int* indices, int* strides, size_t ndim) {
+  size_t flat_idx = 0;
+  for (size_t i = 0; i < ndim; i++) {
+    flat_idx += indices[i] * strides[i];
+  }
+  return flat_idx;
+}
+
+__device__ void flat_to_multi_index_cuda(size_t flat_idx, int* shape, size_t ndim, int* indices) {
+  for (int i = ndim - 1; i >= 0; i--) {
+    indices[i] = flat_idx % shape[i];
+    flat_idx /= shape[i];
+  }
+}
+
+__global__ void contiguous_tensor_cuda(void* src_data, void* dst_data, int* strides, int* shape, size_t ndim, size_t elem_size, size_t total_size) {
+  size_t flat_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (flat_idx >= total_size) return;
+
+  extern __shared__ int shared[];
+  int* indices = shared + threadIdx.x * ndim;
+
+  flat_to_multi_index_cuda(flat_idx, shape, ndim, indices);
+  size_t src_offset = 0;
+  for (size_t dim = 0; dim < ndim; dim++) {
+    src_offset += indices[dim] * strides[dim] * elem_size;
+  }
+
+  char* src = (char*)src_data;
+  char* dst = (char*)dst_data;
+  size_t dst_offset = flat_idx * elem_size;
+  for (size_t i = 0; i < elem_size; i++) {
+    dst[dst_offset + i] = src[src_offset + i];
+  }
+}
+
+__global__ void __assign_tensor_kernel__(float* a, float* out, int size) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < size) {
+    out[i] = a[i];
+  }
+}
+
+__host__ void assign_tensor_cuda(float* a, float* out, size_t size) {
+  int n_of_blocks = (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+  __assign_tensor_kernel__<<<n_of_blocks, THREADS_PER_BLOCK>>>(a, out, size);
+
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess) {
+    printf("CUDA error: %s\n", cudaGetErrorString(error));
+    exit(-1);
+  }
+  cudaDeviceSynchronize();
 }

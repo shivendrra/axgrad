@@ -78,9 +78,6 @@ void make_contiguous_inplace(Tensor* self) {
     self->strides[i] = stride;
     stride *= self->shape[i];
   }
-  for (size_t i = 0; i < self->ndim; i++) {
-    self->backstrides[self->ndim - 1 - i] = self->strides[i];
-  }
   self->is_view = 0;  // no longer a view after making contiguous
 }
 
