@@ -3,7 +3,6 @@ from ._functions import *
 from ._ops import *
 from ._utils import *
 from .utils import *
-
 random = random(seed=200)
 RNG = RNG(seed=300)
 

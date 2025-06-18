@@ -5,7 +5,7 @@
   - generates yinyang dateset randomly, from: https://github.com/lkriener/yin_yang_data_set
 """
 
-from ._helpers import RNG
+from ._random import RNG
 
 ## dataset ------------------------------------
 
