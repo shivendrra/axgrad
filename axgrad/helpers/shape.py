@@ -22,18 +22,6 @@ def get_shape(data):
     return [0]
   return [len(data)] + get_shape(data[0])
 
-def get_strides(shape:tuple) -> list:
-  strides = [1]
-  for size in reversed(shape[:-1]):
-    strides.append(strides[-1] * size)
-  return list(reversed(strides))
-
-def get_size(shape:tuple) -> list:
-  out = 1
-  for dim in shape:
-    out *= dim
-  return out
-
 # returns a flatten tensor by appending elements recursively
 def flatten(data):
   if isinstance(data, list):

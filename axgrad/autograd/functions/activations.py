@@ -1,4 +1,4 @@
-from ...ops.functionals import *
+from ...helpers.functionals import *
 
 class __RELU__:
   def __init__(self, first, out) -> None: self.first, self.out = first, out
