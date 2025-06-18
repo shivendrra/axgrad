@@ -1,6 +1,6 @@
 from typing import Any, Optional, List, Union
 from ._tensor import tensor
-from .ops.functionals import *
+from .helpers.functionals import *
 
 class ReLU:
   def __init__(self) -> None: pass
