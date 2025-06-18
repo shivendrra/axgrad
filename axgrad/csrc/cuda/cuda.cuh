@@ -15,4 +15,12 @@ __host__ void free_cuda(float* data);
 __host__ int get_cuda_device_count(void);
 __host__ void print_cuda_device_info(int device_id);
 
+// contiguous ops
+__device__ void flat_to_multi_index_cuda(size_t flat_idx, int* shape, size_t ndim, int* indices);
+__device__ size_t calculate_flat_index_cuda(int* indices, int* strides, size_t ndim);
+__global__ void contiguous_tensor_cuda(void* src_data, void* dst_data, int* strides, int* shape, size_t ndim, size_t elem_size, size_t total_size);
+
+__global__ void assign_tensor_cudtensor_kernel(float* a, float* out, int size);
+__host__ void assign_tensor_cuda(float* a, float* out, size_t size);
+
 #endif
