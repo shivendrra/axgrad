@@ -1,5 +1,5 @@
-#ifndef __SHAPE_OPS__H__
-#define __SHAPE_OPS__H__
+#ifndef __OPS_SHAPE__H__
+#define __OPS_SHAPE__H__
 
 #include <stdlib.h>
 
@@ -12,4 +12,4 @@ extern "C" {
   void transpose_ndim_tensor_ops(float* a, float* out, int* shape, int ndim);
 }
 
-#endif  //!__SHAPE_OPS__H__
+#endif

@@ -1,5 +1,5 @@
-#ifndef __BINARY_OPS__H__
-#define __BINARY_OPS__H__
+#ifndef __OPS_TENSOR__H__
+#define __OPS_TENSOR__H__
 
 #include <stddef.h>
 
@@ -11,4 +11,4 @@ extern "C" {
   void batch_dot_tensor_ops(float* a, float* b, float* out, size_t batch_count, size_t vector_size);
 }
 
-#endif  //!__BINARY_OPS__H__
+#endif
