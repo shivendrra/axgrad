@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stddef.h>
-#include "shape_ops.h"
+#include "ops_shape.h"
 
 void reassign_tensor_ops(float* a, float* out, size_t size) {
   for (int i = 0; i < size; i++) { out[i] = a[i]; }

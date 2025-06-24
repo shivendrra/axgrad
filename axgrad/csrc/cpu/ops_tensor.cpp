@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <math.h>
-#include "binary_ops.h"
-#include "shape_ops.h"
+#include "ops_tensor.h"
+#include "ops_shape.h"
 
 // Optimized matrix multiplication using transposed second matrix
 // A: shape_a[0] x shape_a[1], B^T: shape_b[1] x shape_b[0], C: shape_a[0] x shape_b[0]

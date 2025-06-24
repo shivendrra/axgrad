@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <math.h>
-#include "maths_ops.h"
 
 void add_ops(float* a, float* b, float* out, size_t size) {
   for (size_t i = 0; i < size; i++) { out[i] = a[i] + b[i]; }
@@ -67,42 +66,6 @@ void pow_tensor_ops(float* a, float exp, float* out, size_t size) {
 
 void pow_scalar_ops(float a, float* exp, float* out, size_t size) {
   for (size_t i = 0; i < size; i++) { out[i] = powf(a, exp[i]); }
-}
-
-void exp_tensor_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = expf(a[i]); }
-}
-
-void log_tensor_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = logf(a[i]); }
-}
-
-void abs_tensor_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = fabsf(a[i]); }
-}
-
-void sin_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = sinf(a[i]); }
-}
-
-void cos_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = cosf(a[i]); }
-}
-
-void tan_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = tanf(a[i]); }
-}
-
-void sinh_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = sinhf(a[i]); }
-}
-
-void cosh_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = coshf(a[i]); }
-}
-
-void tanh_ops(float* a, float* out, size_t size) {
-  for (size_t i = 0; i < size; i++) { out[i] = tanhf(a[i]); }
 }
 
 void add_broadcasted_tensor_ops(float* a, float* b, float* out, int* broadcasted_shape, int broadcasted_size, int a_ndim, int b_ndim, int* a_shape, int* b_shape) {
