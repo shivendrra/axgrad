@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <math.h>
+#include "ops_binary.h"
 
 void add_ops(float* a, float* b, float* out, size_t size) {
   for (size_t i = 0; i < size; i++) { out[i] = a[i] + b[i]; }
