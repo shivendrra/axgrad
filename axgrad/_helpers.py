@@ -1,14 +1,18 @@
+type_dtypes = ["int8", "int16", "int32", "int64", "long", "float32", "float64", "double", "uint8", "uint16", "uint32", "uint64", "bool"]
+
+def get_dtypes(): return type_dtypes
+
 def get_shape(data: list):
   if isinstance(data, list):
     return [len(data), ] + get_shape(data[0])
   else:
     return []
 
-def flatten(data: list) -> list:
-  if isinstance(data, list):
-    return [item for sublist in data for item in flatten(sublist)]
+def flatten(subdata):
+  if isinstance(subdata, list):
+    return [item for sub in subdata for item in flatten(sub)]
   else:
-    return [data]
+    return [subdata]
 
 def get_size(shape:tuple) -> list:
   out = 1
