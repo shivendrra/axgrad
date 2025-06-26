@@ -60,6 +60,7 @@ _funcs = {
   'div_scalar_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'div_broadcasted_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'pow_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'pow_scalar': ([c_float, POINTER(CTensor)], POINTER(CTensor)),
   'log_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'exp_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'neg_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'sqrt_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'abs_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'matmul_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'batch_matmul_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'broadcasted_matmul_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'sin_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'sinh_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
