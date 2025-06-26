@@ -275,6 +275,54 @@ Tensor* abs_tensor(Tensor* a) {
   }
 
   abs_tensor_ops(a_float, out, a->size);
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, a->dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
+Tensor* neg_tensor(Tensor* a) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+
+  neg_tensor_ops(a_float, out, a->size);
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, a->dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
+Tensor* sqrt_tensor(Tensor* a) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+
+  sqrt_tensor_ops(a_float, out, a->size);
   // If input is integer, promote to float32; if already float, keep same precision
   dtype_t result_dtype;
   if (is_integer_dtype(a->dtype) || a->dtype == DTYPE_BOOL) {
