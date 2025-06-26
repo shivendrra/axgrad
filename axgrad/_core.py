@@ -27,7 +27,7 @@ class DTypeValue(ctypes.Union):
   _fields_ = [("f32", c_float), ("f64", c_double), ("i8", c_int8), ("i16", c_int16), ("i32", c_int32), ("i64", c_int64), ("u8", c_uint8), ("u16", c_uint16), ("u32", c_uint32), ("u64", c_uint64), ("boolean", c_uint8)]
 
 class CTensor(Structure):
-  _fields_ = [("data", c_void_p), ("strides", POINTER(c_int)), ("backstrides", POINTER(c_int)), ("shape", POINTER(c_int)), ("size", c_size_t), ("ndim", c_size_t), ("dtype", c_int), ("is_view", c_int)]
+  _fields_ = [("data", c_void_p), ("strides", POINTER(c_int)), ("shape", POINTER(c_int)), ("size", c_size_t), ("ndim", c_size_t), ("dtype", c_int), ("is_view", c_int)]
 
 def _setup_func(name, argtypes, restype):
   func = getattr(lib, name)
