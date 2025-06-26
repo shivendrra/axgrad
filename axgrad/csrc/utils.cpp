@@ -3,6 +3,7 @@
 #include "core/core.h"
 #include "cpu/helpers.h"
 #include "core/dtype.h"
+#include "utils.h"
 
 Tensor* zeros_like_tensor(Tensor* a) {
   float* out = (float*)malloc(a->size * sizeof(float));
