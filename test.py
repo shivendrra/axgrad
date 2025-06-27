@@ -1,12 +1,12 @@
 import axgrad as ax
 
-a = ax.Tensor([[2, 4, 5], [0, -1, -4]], dtype="int32")
-b = ax.Tensor([[-4, 2, -1], [2, 0, -1]], dtype="int32")
+a = ax.Tensor([[4, 5], [-1, -4]], dtype="float32")
+b = ax.Tensor([[2, -1], [0, -1]], dtype="float32")
 
-c = a + b - 10
+c = (a @ b) ** 2
 
-print(a, a.dtype, a.strides, a.shape, a.requires_grad, a.hooks)
-print(b, b.dtype, b.strides, b.shape, b.requires_grad, b.hooks)
-print(c, c.dtype, c.strides, c.shape, c.requires_grad, c.hooks)
-print(c.abs(), c.dtype, c.strides, c.shape, c.requires_grad, c.hooks)
-print(c.abs().sqrt(), c.dtype, c.strides, c.shape, c.requires_grad, c.hooks)
+print(a, a.dtype, a.strides, a.shape)
+print(b, b.dtype, b.strides, b.shape)
+print(c, c.dtype, c.strides, c.shape)
+print(c.sqrt(), c.dtype, c.strides, c.shape)
+print(c.tolist())
