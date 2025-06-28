@@ -1,0 +1,216 @@
+from ctypes import c_float, c_size_t, c_int, c_bool
+from typing import *
+
+from ._core import CTensor, lib, DType
+from .helpers import ShapeHelp, DtypeHelp
+
+int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
+float32, float64, double = "float32", "float64", "double"
+uint8, uint16, uint32, uint64 = "uint8", "uint16", "uint32", "uint64"
+boolean = "bool"
+
+class Tensor:
+  int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean = int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean
+  
+  def __init__(self, data: Union[List[Any], int, float], dtype: str=float32, requires_grad: bool=False):
+    if isinstance(data, CTensor): self.data, self.shape, self.size, self.ndim, self.strides, self.dtype = data, (), 0, 0, [], dtype or "float32"
+    elif isinstance(data, Tensor): self.data, self.shape, self.dtype, self.size, self.ndim, self.strides = data.data, data.shape, dtype or data.dtype, data.size, data.ndim, data.strides
+    else:
+      data, shape = ShapeHelp.flatten([data] if isinstance(data, (int, float)) else data), tuple(ShapeHelp.get_shape(data))
+      self.size, self.ndim, self.dtype, self.shape, self.strides = len(data), len(shape), dtype or "float32", shape, ShapeHelp.get_strides(shape)
+      self._data_ctypes, self._shape_ctypes = (c_float * self.size)(*data.copy()), (c_int * self.ndim)(*shape)
+      self.data = lib.create_tensor(self._data_ctypes, c_size_t(self.ndim), self._shape_ctypes, c_size_t(self.size), c_int(DtypeHelp._parse_dtype(self.dtype)))
+    self.requires_grad, self.hooks, self.grad_fn, self.grad = requires_grad, [], None, None
+
+  def __setattr__(self, name, value):
+    if name == "grad": [setattr(self, "_temp_value", hook(getattr(self, "_temp_value", value))) for hook in self.hooks]; value = getattr(self, "_temp_value", value)
+    super().__setattr__(name, value)
+  def register_hook(self, function): self.hooks.append(function)
+  def __str__(self): return (lib.print_tensor(self.data), "")[1]
+  def astype(self, dtype: DType) -> "Tensor":
+    out = Tensor(lib.cast_tensor(self.data, c_int(DtypeHelp._parse_dtype(dtype))).contents, requires_grad=self.requires_grad)
+    out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+  def tolist(self) -> List[Any]:
+    data_ptr = lib.out_data(self.data)
+    data_tensor = [data_ptr[i] for i in range(self.size)]
+    if self.ndim == 0: return data_tensor[0]
+    elif self.ndim == 1: return data_tensor
+    else: return ShapeHelp.reshape_list(data_tensor, self.shape)
+
+  def transpose(self) -> "Tensor":
+    assert self.ndim <= 3, ".transpose() ops limited to 3-d tensor"
+    out = Tensor(lib.transpose_tensor(self.data).contents, self.dtype, self.requires_grad)
+    out.shape, out.size, out.ndim = tuple(ShapeHelp.transpose_shape(self.shape)), self.size, self.ndim
+    out.strides = ShapeHelp.get_strides(out.shape)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def flatten(self) -> "Tensor":
+    out = Tensor(lib.flatten_tensor(self.data).contents, self.dtype, self.requires_grad)
+    out.shape, out.size, out.ndim = (self.size, ), self.size, 1
+    out.strides = ShapeHelp.get_strides(out.shape)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def reshape(self) -> "Tensor":
+    if isinstance(new_shape, tuple): new_shape = list(new_shape)
+    new_size, ndim = 1, len(new_shape)
+    for dim in new_shape: new_size *= dim
+    if new_size != self.shape: raise ValueError(f"Cannot reshape Tensor of size {self.size} into shape {new_shape}")
+    out = Tensor(lib.reshape_tensor(self.data, (c_int * ndim)(*new_shape), c_int(ndim)).contents, self.dtype, self.requires_grad)
+    out.shape, out.size, out.ndim, out.strides = tuple(new_shape), self.size, self.ndim, ShapeHelp.get_strides(new_shape)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def sum(self, axis: int = -1, keepdims: bool = False) -> "Tensor":
+    out = Tensor(lib.sum_tensor(self.data, c_int(axis), c_bool(keepdims)).contents, self.dtype, self.requires_grad)
+    if axis == -1:out.shape, out.size, out.ndim = (1,) if keepdims else (), 1, 1 if keepdims else 0   # Sum all elements
+    else:
+      new_shape = list(self.shape)
+      if keepdims: new_shape[axis] = 1
+      else: new_shape.pop(axis)
+      out.shape = tuple(new_shape)
+      out.size, out.ndim, out.strides = 1 if not new_shape else eval('*'.join(map(str, new_shape))), len(new_shape), ShapeHelp.get_strides(out.shape) if out.shape else []
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  # def __add__(self, other) -> "Tensor":
+  #   if isinstance(other, (int, float)):
+  #     result_pointer = lib.add_scalar_tensor(self.data, c_float(other)).contents
+  #   else:
+  #     other = other if isinstance(other, (CTensor, Tensor)) else Tensor(other)
+  #     result_pointer = lib.add_tensor(self.data, other.data).contents
+  #   out = Tensor(result_pointer, self.dtype, self.requires_grad)
+  #   out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
+  #   return out
+
+  def __add__(self, other) -> "Tensor":
+    result_ptr = lib.add_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.add_tensor(self.data, (other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)).data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __sub__(self, other) -> "Tensor":
+    result_ptr = lib.sub_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.sub_tensor(self.data, (other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)).data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __mul__(self, other) -> "Tensor":
+    result_ptr = lib.mul_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.mul_tensor(self.data, (other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)).data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __truediv__(self, other) -> "Tensor":
+    result_ptr = lib.div_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.div_tensor(self.data, (other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)).data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __neg__(self) -> "Tensor":
+    result_pointer = lib.neg_tensor(self.data).contents
+    out = Tensor(result_pointer, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __radd__(self, other): return self + other
+  def __rsub__(self, other): return self - other
+  def __rmul__(self, other): return self * other
+  def __rtruediv__(self, other): return (self / other) ** -1
+
+  def __pow__(self, exp) -> "Tensor":
+    if isinstance(exp, (int, float)): result_ptr = lib.pow_tensor(self.data, c_float(exp)).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __rpow__(self, base) -> "Tensor":
+    if isinstance(base, (int, float)): result_ptr = lib.pow_scalar(c_float(base), self.data).contents
+    else: raise NotImplementedError("__rpow__ with Tensor base not implemented yet")
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def log(self) -> "Tensor":
+    result_pointer = lib.log_tensor(self.data).contents
+    out = Tensor(result_pointer, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def exp(self) -> "Tensor":
+    result_pointer = lib.exp_tensor(self.data).contents
+    out = Tensor(result_pointer, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def abs(self) -> "Tensor":
+    result_pointer = lib.abs_tensor(self.data).contents
+    out = Tensor(result_pointer, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def sqrt(self) -> "Tensor":
+    result_pointer = lib.sqrt_tensor(self.data).contents
+    out = Tensor(result_pointer, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __matmul__(self, other):
+    other = other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)
+    if self.ndim <= 2 and other.ndim <= 2:
+      result_ptr = lib.matmul_tensor(self.data, other.data).contents
+    elif self.ndim == 3 and other.ndim == 3 and self.shape[0] == other.shape[0]:
+      result_ptr = lib.batch_matmul_tensor(self.data, other.data).contents
+    else:
+      result_ptr = lib.broadcasted_matmul_tensor(self.data, other.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    shape, ndim, size = lib.out_shape(out.data), self.ndim, lib.out_size(out.data)
+    out.shape, out.ndim, out.size = tuple([shape[i] for i in range(ndim)]), ndim, size
+    out.strides = ShapeHelp.get_strides(out.shape)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def dot(self, other):
+    other = other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)
+    if self.ndim <= 2 and other.ndim <= 2:
+      result_ptr = lib.dot_tensor(self.data, other.data).contents
+    elif self.ndim == 3 and other.ndim == 3 and self.shape[0] == other.shape[0]:
+      result_ptr = lib.batch_dot_tensor(self.data, other.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    shape, ndim, size = lib.out_shape(result_ptr), out.data.ndim, lib.out_size(result_ptr)
+    out.shape, out.ndim, out.size = tuple([shape[i] for i in range(ndim)]), ndim, size
+    out.strides = ShapeHelp.get_strides(out.shape)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def sin(self) -> "Tensor":
+    result_ptr = lib.sin_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def cos(self) -> "Tensor":
+    result_ptr = lib.cos_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def tan(self) -> "Tensor":
+    result_ptr = lib.tan_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def sinh(self) -> "Tensor":
+    result_ptr = lib.sinh_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def cosh(self) -> "Tensor":
+    result_ptr = lib.cosh_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def tanh(self) -> "Tensor":
+    result_ptr = lib.tanh_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
