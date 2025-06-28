@@ -147,6 +147,12 @@ class Tensor:
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
     return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
 
+  def sign(self) -> "Tensor":
+    result_pointer = lib.sign_tensor(self.data).contents
+    out = Tensor(result_pointer, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
   def sqrt(self) -> "Tensor":
     result_pointer = lib.sqrt_tensor(self.data).contents
     out = Tensor(result_pointer, self.dtype, self.requires_grad)

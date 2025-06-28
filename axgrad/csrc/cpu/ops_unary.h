@@ -9,6 +9,7 @@ extern "C" {
   void abs_tensor_ops(float* a, float* out, size_t size);
   void neg_tensor_ops(float* a, float* out, size_t size);
   void sqrt_tensor_ops(float* a, float* out, size_t size);
+  void sign_tensor_ops(float* a, float* out, size_t size);
 
   void sin_ops(float* a, float* out, size_t size);
   void cos_ops(float* a, float* out, size_t size);
