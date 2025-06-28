@@ -51,7 +51,7 @@ class Tensor:
     out.strides = ShapeHelp.get_strides(out.shape)
     return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
 
-  def reshape(self) -> "Tensor":
+  def reshape(self, new_shape: Union[list, tuple]) -> "Tensor":
     if isinstance(new_shape, tuple): new_shape = list(new_shape)
     new_size, ndim = 1, len(new_shape)
     for dim in new_shape: new_size *= dim
