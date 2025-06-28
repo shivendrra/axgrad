@@ -10,7 +10,7 @@ class SubBackwards:
 
 class MulBackwards:
   def __init__(self, x, y): self.input = [x, y]
-  def backward(self, grad): return [self.input[0] * grad, self.input[1] * grad]
+  def backward(self, grad): return [self.input[1] * grad, self.input[0] * grad]
 
 class DivBackwards:
   def __init__(self, x, y): self.input = [x, y]
@@ -27,6 +27,10 @@ class PowBackwards:
 class LogBackward:
   def __init__(self, x): self.input = [x]
   def backward(self, grad): return [grad / self.input[0]]
+
+class AbsBackward:
+  def __init__(self, x): self.input = [x]
+  def backward(self, grad): return [grad * self.input[0].sign()]
 
 class ExpBackward:
   def __init__(self, x): self.input = [x]
