@@ -14,3 +14,4 @@ void cosh_ops(float* a, float* out, size_t size) { for (size_t i = 0; i < size; 
 void tanh_ops(float* a, float* out, size_t size) { for (size_t i = 0; i < size; i++) { out[i] = tanhf(a[i]); } }
 void sqrt_tensor_ops(float* a, float* out, size_t size) { for (size_t i = 0; i < size; i++) { out[i] = sqrtf(a[i]); } }
 void neg_tensor_ops(float* a, float* out, size_t size) { for (size_t i = 0; i < size; i++) { out[i] = -a[i]; } }
+void sign_tensor_ops(float* a, float* out, size_t size) {for (size_t i = 0; i < size; i++) { out[i] = (a[i] > 0) ? 1.0f : ((a[i] < 0) ? -1.0f : 0.0f); } }

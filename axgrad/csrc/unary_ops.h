@@ -17,6 +17,7 @@ extern "C" {
   Tensor* abs_tensor(Tensor* a);
   Tensor* neg_tensor(Tensor* a);
   Tensor* sqrt_tensor(Tensor* a);
+  Tensor* sign_tensor(Tensor* a);
 }
 
 #endif  //!__UNARY_OPS__H__
