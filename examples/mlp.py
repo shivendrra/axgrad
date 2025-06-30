@@ -1,6 +1,6 @@
 import axgrad
 import axgrad.nn as nn
-from axgrad.nn import functional as F
+from axgrad.nn.modules import linear as F
 import matplotlib.pyplot as plt
 
 class MLP(nn.Module):
