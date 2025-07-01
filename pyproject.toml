@@ -1,0 +1,49 @@
+[build-system]
+requires = ["scikit-build-core", "cmake>=3.18", "ninja"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "axgrad"
+version = "0.0.1"
+description = "lightweight tensor library with autograd engine for training deep neural nets"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [{name = "Shivendra S", email = "shivharsh44@gmail.com"}]
+maintainers = [{name = "Shivendra S", email = "shivharsh44@gmail.com"}]
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+keywords = ["neural networks", "automatic differentiation", "deep learning", "machine learning"]
+dependencies = [
+    "numpy>=1.20.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.urls]
+Repository = "https://github.com/shivendrra/axgrad"
+Documentation = "https://github.com/shivendrra/axgrad/tree/main/docs/User.md"
+"Bug Tracker" = "https://github.com/shivendrra/axgrad/issues"
+
+[tool.scikit-build]
+cmake.source-dir = "."
+cmake.build-type = "Release"
+cmake.args = ["-G", "Ninja"]  # Force Ninja generator
+wheel.expand-macos-universal-tags = true
+wheel.install-dir = "axgrad"
+install.components = ["python_modules"]
+
+[tool.scikit-build.cmake.define]
+CMAKE_EXPORT_COMPILE_COMMANDS = "ON"
+BUILD_SHARED_LIBS = "ON"
+
+[tool.cibuildwheel]
+build = "cp311-* cp312-*"
+skip = "*-win32 *-manylinux_i686"
