@@ -9,27 +9,24 @@ class Module(ABC):
   def forward(self, *args, **kwargs): raise NotImplementedError("Forward function not implemented yet!")
   def __call__(self, *args, **kwds): return self.forward(*args, **kwds)
   def train(self):
-    for param in self.parameters(): param.requires_grad = True
+    for _, _, param in self.parameters(): param.requires_grad = True
   def eval(self):
-    for param in self.parameters(): param.requires_grad = False
+    for _, _, param in self.parameters(): param.requires_grad = False
   def parameters(self):
     for name, value in inspect.getmembers(self):
       if isinstance(value, Parameter):
         yield self, name, value
       elif isinstance(value, Module):
-        yield from value.parameters()
+        for module, param_name, param in value.parameters():
+          yield module, param_name, param
 
   def modules(self): yield from self._modules.values()
   def gradients(self):
     for module in self.modules():
       yield module._grads
 
-  def zero_grad(self):
-    for _, _, parameter in self.parameters():
-      parameter.zero_grad()
-
-  def get_name(self):
-    return self.__class__.__name__
+  def zero_grad(self): any(parameter.zero_grad() for _, _, parameter in self.parameters())
+  def get_name(self): return self.__class__.__name__
 
   def __repr__(self):
     string = f"{self.get_name()}("

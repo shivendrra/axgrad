@@ -1,5 +1,6 @@
 from ...tensor import Tensor
 from ..parameter import Parameter
+from ..module import Module
 from ..._core import lib
 from ...helpers import ShapeHelp, DtypeHelp
 from ...autograd.functions import *
@@ -21,7 +22,7 @@ def _tensor_matmul(x: Tensor, y: Tensor, dtype: str= "float32") -> Tensor:
   if out.requires_grad: out.grad_fn = MatmulBackwards(x, y)
   return out
 
-class Linear:
+class Linear(Module):
   def __init__(self, _in: int, _out: int, bias: bool = False, dtype: str= "float32"):
     self._in, self._out, self.bias, self.dtype = _in, _out, bias, dtype
 
@@ -31,10 +32,11 @@ class Linear:
     self.weight = Parameter((_out, _in), dtype)
     self.weight.set_name("weight")
     self._init_uniform_weights(self.weight, -std, std)
-
+    self.use_bias = False
     if bias:
       self.bias = Parameter((_out,), dtype)
       self.bias.set_name("bias")
+      self.use_bias = True
       self._init_zero_weights(self.bias)
     else: self.bias = None
   
@@ -62,15 +64,16 @@ class Linear:
       out = _tensor_matmul(x_reshaped, weight_t, self.dtype)
       new_shape = original_shape[:-1] + (self._out,)    # Reshape back to (..., _out)
       out = out.reshape(new_shape)
-    if self.bias: x + out
+    if self.use_bias: out + self.bias
     return out
 
   def __call__(self, x: Tensor) -> Tensor: return self.forward(x)
   def __repr__(self) -> str: return f"Linear(_in={self._in}, _out={self._out}, bias={self.use_bias})"
-
+  def inner_repr(self) -> str: return f"_in={self._in}, _out={self._out}, bias={self.use_bias}"
   def parameters(self):
-    if self.bias: return [self.weight, self.bias]
-    else: return [self.weight]
+    yield self, "weight", self.weight
+    if self.bias is not None:
+      yield self, "bias", self.bias
 
   def zero_grad(self):
     for param in self.parameters(): param.zero_grad()

@@ -11,3 +11,4 @@ class Tanh(Module):
     super().__init__()
   def forward(self, x: Tensor) -> Tensor: return x.tanh()
   def __repr__(self) -> str: return f"Tanh(inplace={self.inplace})"
+  def inner_repr(self) -> str: return f"inplace={self.inplace}"
