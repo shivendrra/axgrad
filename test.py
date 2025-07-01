@@ -1,36 +1,13 @@
-import axgrad as ax
+import axgrad.nn as nn
+from axgrad.utils import randn
 
-a = ax.Tensor([[4, 5], [-1, -4]], dtype="float32", requires_grad=True)
-b = ax.Tensor([[2, -1], [0, -1]], dtype="float32", requires_grad=True)
+x = randn(10, 20)
+y = randn(10, 10)
+linear = nn.Linear(20, 10)
+yp = linear(x)
+loss = ((y - yp) ** 2 / x.size).sum()
+loss.backward()
 
-c = a + b
-d = c * 1.3
-e = d.tanh()
-f = e.sum()
-
-f.backward()
-
-print("actual tensor:")
-print(a)
-print("grad: ")
-print(a.grad)
-print("actual tensor:")
-print(b)
-print("grad: ")
-print(b.grad)
-print("actual tensor:")
-print(c)
-print("grad: ")
-print(c.grad)
-print("actual tensor:")
-print(d)
-print("grad: ")
-print(d.grad)
-print("actual tensor:")
-print(e)
-print("grad: ")
-print(e.grad)
-print("actual tensor:")
-print(f)
-print("grad: ")
-print(f.grad)
+print(x.grad)
+print(y.grad)
+print(linear.weight.grad)
