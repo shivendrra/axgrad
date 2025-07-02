@@ -80,6 +80,38 @@ class TanhBackwards:
   def __init__(self, x, out): self.input, self.output = [x], out
   def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
 
+class SigmoidBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
+class ReluBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
+class EluBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
+class LeakyReluBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
+class GeluBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
+class SwishBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
+class SiluBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
+class SoftplusBackwards:
+  def __init__(self, x, out): self.input, self.output = [x], out
+  def backward(self, grad): return [grad * (self.output ** 2  - 1).__neg__()]
+
 class TransposeBackwards:
   def __init__(self, x): self.input = [x]
   def backward(self, grad): return [grad.transpose()]

@@ -259,6 +259,62 @@ class Tensor:
     if self.requires_grad: out.grad_fn = TanhBackwards(self, out)
     return out
 
+  def sigmoid(self) -> "Tensor":
+    result_ptr = lib.sigmoid_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = SigmoidBackwards(self, out)
+    return out
+
+  def relu(self) -> "Tensor":
+    result_ptr = lib.relu_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = ReluBackwards(self, out)
+    return out
+
+  def leaky_relu(self) -> "Tensor":
+    result_ptr = lib.leaky_relu_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = LeakyReluBackwards(self, out)
+    return out
+
+  def elu(self) -> "Tensor":
+    result_ptr = lib.elu_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = EluBackwards(self, out)
+    return out
+
+  def silu(self) -> "Tensor":
+    result_ptr = lib.silu_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = SiluBackwards(self, out)
+    return out
+
+  def swish(self) -> "Tensor":
+    result_ptr = lib.swish_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = SwishBackwards(self, out)
+    return out
+
+  def softplus(self) -> "Tensor":
+    result_ptr = lib.softplus_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = SoftplusBackwards(self, out)
+    return out
+
+  def gelu(self) -> "Tensor":
+    result_ptr = lib.gelu_tensor(self.data).contents
+    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = GeluBackwards(self, out)
+    return out
+
   def dot(self, other):
     other = other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)
     if self.ndim <= 2 and other.ndim <= 2:
