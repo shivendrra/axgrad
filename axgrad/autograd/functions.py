@@ -1,5 +1,8 @@
 import math
+from .._core import lib
+from ctypes import c_float
 
+# Keep existing functions that don't have C implementations
 class AddBackwards:
   def __init__(self, x, y): self.input = [x, y]
   def backward(self, grad): return [grad, grad]
@@ -58,97 +61,115 @@ class DotBackwards:
 
 class SinBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * self.input[0].cos()]
+  def backward(self, grad): 
+    from ..tensor import Tensor
+    out = Tensor(lib.sin_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class SinhBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * self.input[0].cosh()]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.sinh_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class CosBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * (-self.input[0].sin())]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.cos_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class CoshBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * self.input[0].sinh()]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.cosh_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class TanBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * (self.input[0].cos() ** -2)]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.tan_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class TanhBackwards:
   def __init__(self, x, out): self.input, self.output = [x], out
-  def backward(self, grad): return [grad * (1 - self.output ** 2)]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.tanh_backwards(self.output.data).contents, self.output.dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.output.shape, self.output.ndim, self.output.size, self.output.strides
+    return [grad * out]
 
 class SigmoidBackwards:
   def __init__(self, x, out): self.input, self.output = [x], out
-  def backward(self, grad): return [grad * (self.output * (1 - self.output))]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.sigmoid_backwards(self.output.data).contents, self.output.dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.output.shape, self.output.ndim, self.output.size, self.output.strides
+    return [grad * out]
 
 class ReluBackwards:
   def __init__(self, x, out): self.input, self.output = [x], out
   def backward(self, grad):
-    # ReLU derivative: 1 if x > 0, else 0
-    mask = self.output > 0
-    return [grad * mask]
+    from ..tensor import Tensor
+    out = Tensor(lib.relu_backwards(self.output.data).contents, self.output.dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.output.shape, self.output.ndim, self.output.size, self.output.strides
+    return [grad * out]
 
 class EluBackwards:
-  def __init__(self, x, out): self.input, self.output = [x], out
+  def __init__(self, x, out, alpha=1e-5): self.input, self.output, self.alpha = [x], out, alpha
   def backward(self, grad):
-    # ELU derivative: 1 if x > 0, else alpha * exp(x) = alpha + f(x) if x <= 0
-    # Since f(x) = alpha * (exp(x) - 1) for x <= 0, derivative is alpha * exp(x) = alpha + f(x)
-    x = self.input[0]
-    mask = x > 0
-    # For x > 0: derivative is 1, for x <= 0: derivative is output + alpha (but alpha is small, approximating as output + 1e-5)
-    derivative = mask * 1.0 + (1 - mask) * (self.output + 1e-5)
-    return [grad * derivative]
+    from ..tensor import Tensor
+    out = Tensor(lib.elu_backwards(self.input[0].data, c_float(self.alpha)).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class LeakyReluBackwards:
-  def __init__(self, x, out): self.input, self.output = [x], out
+  def __init__(self, x, out, eps=1e-5): self.input, self.output, self.eps = [x], out, eps
   def backward(self, grad):
-    # LeakyReLU derivative: 1 if x > 0, else eps (slope parameter)
-    x = self.input[0]
-    mask = x > 0
-    # Default eps = 1e-5 from the forward function
-    derivative = mask * 1.0 + (1 - mask) * 1e-5
-    return [grad * derivative]
+    from ..tensor import Tensor
+    out = Tensor(lib.leaky_relu_backwards(self.input[0].data, c_float(self.eps)).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class GeluBackwards:
   def __init__(self, x, out): self.input, self.output = [x], out
   def backward(self, grad):
-    # GELU derivative: 0.5 * (1 + tanh(sqrt(2/π) * (x + 0.044715 * x^3))) + 
-    #                  x * 0.5 * (1 - tanh^2(sqrt(2/π) * (x + 0.044715 * x^3))) * sqrt(2/π) * (1 + 3 * 0.044715 * x^2)
-    x = self.input[0]
-    sqrt_2_pi = (2.0 / math.pi) ** 0.5
-    inner = sqrt_2_pi * (x + 0.044715 * x ** 3)
-    tanh_inner = inner.tanh()
-    sech2_inner = 1 - tanh_inner ** 2
-    derivative = 0.5 * (1 + tanh_inner) + x * 0.5 * sech2_inner * sqrt_2_pi * (1 + 3 * 0.044715 * x ** 2)
-    return [grad * derivative]
+    from ..tensor import Tensor
+    out = Tensor(lib.gelu_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class SwishBackwards:
-  def __init__(self, x, out): self.input, self.output = [x], out
+  def __init__(self, x, out, beta=1e-5): self.input, self.output, self.beta = [x], out, beta
   def backward(self, grad):
-    # Swish derivative: beta * sigmoid(beta * x) + beta * x * sigmoid(beta * x) * (1 - sigmoid(beta * x))
-    # Since output = x * sigmoid(beta * x), and default beta = 1e-5
-    x = self.input[0]
-    beta = 1e-5  # default beta from forward function
-    sigmoid_val = (beta * x).sigmoid()
-    derivative = beta * sigmoid_val + beta * x * sigmoid_val * (1 - sigmoid_val)
-    return [grad * derivative]
+    from ..tensor import Tensor
+    out = Tensor(lib.swish_backwards(self.input[0].data, c_float(self.beta)).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class SiluBackwards:
   def __init__(self, x, out): self.input, self.output = [x], out
   def backward(self, grad):
-    # SiLU (Swish with beta=1) derivative: sigmoid(x) + x * sigmoid(x) * (1 - sigmoid(x))
-    x = self.input[0]
-    sigmoid_val = x.sigmoid()
-    derivative = sigmoid_val + x * sigmoid_val * (1 - sigmoid_val)
-    return [grad * derivative]
+    from ..tensor import Tensor
+    out = Tensor(lib.silu_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class SoftplusBackwards:
   def __init__(self, x, out): self.input, self.output = [x], out
   def backward(self, grad):
-    return [grad * self.input[0].sigmoid()]
+    from ..tensor import Tensor
+    out = Tensor(lib.softplus_backwards(self.input[0].data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [grad * out]
 
 class TransposeBackwards:
   def __init__(self, x): self.input = [x]
