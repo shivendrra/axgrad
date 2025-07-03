@@ -273,18 +273,22 @@ class Tensor:
     if self.requires_grad: out.grad_fn = ReluBackwards(self, out)
     return out
 
-  def leaky_relu(self, eps:float = 1e-5) -> "Tensor":
-    result_ptr = lib.leaky_relu_tensor(self.data, c_float(eps)).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+  def elu(self, alpha:float = 1e-5) -> "Tensor":
+    out = Tensor(lib.elu_tensor(self.data, c_float(alpha)).contents, self.dtype, self.requires_grad)
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = LeakyReluBackwards(self, out)
+    if self.requires_grad: out.grad_fn = EluBackwards(self, out, alpha)  # Passing alpha parameter
     return out
 
-  def elu(self, alpha:float = 1e-5) -> "Tensor":
-    result_ptr = lib.elu_tensor(self.data, c_float(alpha)).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
+  def leaky_relu(self, eps:float = 1e-5) -> "Tensor":
+    out = Tensor(lib.leaky_relu_tensor(self.data, c_float(eps)).contents, self.dtype, self.requires_grad)
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = EluBackwards(self, out)
+    if self.requires_grad: out.grad_fn = LeakyReluBackwards(self, out, eps)  # Passing eps parameter
+    return out
+
+  def swish(self, beta:float = 0.5) -> "Tensor":
+    out = Tensor(lib.swish_tensor(self.data, c_float(beta)).contents, self.dtype, self.requires_grad)
+    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
+    if self.requires_grad: out.grad_fn = SwishBackwards(self, out, beta)  # Passing beta parameter
     return out
 
   def silu(self) -> "Tensor":
@@ -292,13 +296,6 @@ class Tensor:
     out = Tensor(result_ptr, self.dtype, self.requires_grad)
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
     if self.requires_grad: out.grad_fn = SiluBackwards(self, out)
-    return out
-
-  def swish(self, beta:float = 1e-5) -> "Tensor":
-    result_ptr = lib.swish_tensor(self.data, c_float(beta)).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SwishBackwards(self, out)
     return out
 
   def softplus(self) -> "Tensor":

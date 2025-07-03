@@ -41,7 +41,7 @@ class Linear(Module):
     else: self.bias = None
   
   def _init_uniform_weights(self, param: Parameter, low: float, high: float):
-    uniform_data = lib.uniform_tensor(c_int(int(low * 1000)), c_int(int(high * 1000)), (c_int * param.ndim)(*param.shape), c_size_t(param.size),
+    uniform_data = lib.uniform_tensor(c_int(int(low * 10)), c_int(int(high * 10)), (c_int * param.ndim)(*param.shape), c_size_t(param.size),
       c_size_t(param.ndim), c_int(DtypeHelp._parse_dtype(param.dtype))).contents
     param.data = uniform_data
 
