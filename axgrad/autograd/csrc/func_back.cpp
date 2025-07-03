@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include "func_back.h"
-#include "../../cpu/ops_func.h"
+#include "../../csrc/cpu/ops_func.h"
 
 Tensor* sin_backwards(Tensor* a) {
   if (a == NULL) {

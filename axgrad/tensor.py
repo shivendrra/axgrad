@@ -273,15 +273,15 @@ class Tensor:
     if self.requires_grad: out.grad_fn = ReluBackwards(self, out)
     return out
 
-  def leaky_relu(self) -> "Tensor":
-    result_ptr = lib.leaky_relu_tensor(self.data).contents
+  def leaky_relu(self, eps:float = 1e-5) -> "Tensor":
+    result_ptr = lib.leaky_relu_tensor(self.data, c_float(eps)).contents
     out = Tensor(result_ptr, self.dtype, self.requires_grad)
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
     if self.requires_grad: out.grad_fn = LeakyReluBackwards(self, out)
     return out
 
-  def elu(self) -> "Tensor":
-    result_ptr = lib.elu_tensor(self.data).contents
+  def elu(self, alpha:float = 1e-5) -> "Tensor":
+    result_ptr = lib.elu_tensor(self.data, c_float(alpha)).contents
     out = Tensor(result_ptr, self.dtype, self.requires_grad)
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
     if self.requires_grad: out.grad_fn = EluBackwards(self, out)
@@ -294,8 +294,8 @@ class Tensor:
     if self.requires_grad: out.grad_fn = SiluBackwards(self, out)
     return out
 
-  def swish(self) -> "Tensor":
-    result_ptr = lib.swish_tensor(self.data).contents
+  def swish(self, beta:float = 1e-5) -> "Tensor":
+    result_ptr = lib.swish_tensor(self.data, c_float(beta)).contents
     out = Tensor(result_ptr, self.dtype, self.requires_grad)
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
     if self.requires_grad: out.grad_fn = SwishBackwards(self, out)
