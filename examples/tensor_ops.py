@@ -1,28 +1,27 @@
 import axgrad
-from axgrad import tensor, randn
+from axgrad import Tensor, randn
 
-a = [[1, -4],
-     [-2, 7]]
+a = [[1, -4], [-2, 7]]
+b = [[5, 1], [-9, -5]]
 
-b = [[5, 1],
-     [-9, -5]]
-
-a, b = tensor(a, requires_grad=True), tensor(b, requires_grad=True)
+a, b = Tensor(a, dtype="float32", requires_grad=True), Tensor(b, dtype="float32", requires_grad=True)
 
 ''' element level '''
-print("add: ", a + [2, 0])
-print("mul: ", a * [2, 0])
-print("sub: ", a - [2, 0])
-print("div: ", a / [2, 0])
+print("add: ", a + 2)
+print("mul: ", a * 2)
+print("sub: ", a - 2)
+print("div: ", a / 2)
 print("pow: ", a ** 2)
 
 ''' more operations '''
 print("shape: ", a.shape)
-print("transpose", a.T)
+print("transpose", a.transpose())
 print("sum: ", a.sum())
-print("matmul: ", axgrad.matmul(a, b))
+print("matmul: ", a @ b)
 
-a, b = tensor(randn(shape=(2, 4))), tensor(randn(shape=(2, 4)))
+a, b = randn(2, 4), randn(2, 4)
+a.requires_grad = True
+b.requires_grad = True
 
 c = a + b
 d = c * a

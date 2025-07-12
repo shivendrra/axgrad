@@ -1,6 +1,6 @@
 import math
 from .._core import lib
-from ctypes import c_float
+from ctypes import c_float, c_int
 
 # Keep existing functions that don't have C implementations
 class AddBackwards:
@@ -58,6 +58,71 @@ class MatmulBackwards:
 class DotBackwards:
   def __init__(self, x, y): self.input = [x, y]
   def backward(self, grad): return [grad @ self.input[1].transpose(), self.input[0].transpose() @ grad]
+
+class SumBackwards:
+  def __init__(self, x, axis, keepdims): 
+    self.input = [x]
+    self.axis, self.keepdims = axis, keepdims
+    self.o_shape, self.o_ndim, self.o_size = x.shape, x.ndim, x.size
+
+  def backward(self, grad):
+    from ..tensor import Tensor
+
+    if grad is None or grad.data is None: raise ValueError("Gradient cannot be None")
+    if self.o_size <= 0: raise ValueError("Invalid original tensor size")
+
+    if self.o_ndim == 0: return [grad]      # Handle scalar case (ndim=0) - just return the gradient as is
+    shape_array = (c_int * self.o_ndim)(*self.o_shape)
+    result_tensor = lib.sum_backwards(grad.data, shape_array, int(self.o_ndim), int(self.o_size), int(self.axis if self.axis is not None else -1)).contents      
+    out = Tensor(result_tensor, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size = self.o_shape, self.o_ndim, self.o_size
+    return [out]
+
+class MeanBackwards:
+  def __init__(self, x, axis, keepdims): 
+    self.input = [x]
+    self.axis, self.keepdims = axis, keepdims
+    self.o_shape, self.o_ndim, self.o_size = x.shape, x.ndim, x.size
+
+  def backward(self, grad):
+    from ..tensor import Tensor
+
+    if grad is None or grad.data is None: raise ValueError("Gradient cannot be None")
+    if self.o_size <= 0: raise ValueError("Invalid original tensor size")
+    if self.o_ndim == 0: return [grad]  # Handle scalar case (ndim=0) - just return the gradient as is
+    shape_array = (c_int * self.o_ndim)(*self.o_shape)
+    result_tensor = lib.mean_backwards(grad.data, shape_array, int(self.o_ndim), int(self.o_size), int(self.axis if self.axis is not None else -1)).contents
+    out = Tensor(result_tensor, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size = self.o_shape, self.o_ndim, self.o_size
+    return [out]
+
+class VarBackwards:
+  def __init__(self, x, axis, keepdims, ddof=0): 
+    self.input = [x]
+    self.axis, self.keepdims, self.ddof = axis, keepdims, ddof
+    self.o_shape, self.o_ndim, self.o_size = x.shape, x.ndim, x.size
+
+  def backward(self, grad):
+    from ..tensor import Tensor
+    shape_array = (c_int * self.o_ndim)(*self.o_shape)
+    result_tensor = lib.var_backwards(self.input[0].data, grad.data, shape_array, int(self.o_ndim), int(self.o_size), int(self.axis if self.axis is not None else -1), self.ddof).contents
+    out = Tensor(result_tensor, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size = self.o_shape, self.o_ndim, self.o_size
+    return [out]
+
+class StdBackwards:
+  def __init__(self, x, axis, keepdims, ddof=0): 
+    self.input = [x]
+    self.axis, self.keepdims, self.ddof = axis, keepdims, ddof
+    self.o_shape, self.o_ndim, self.o_size = x.shape, x.ndim, x.size
+
+  def backward(self, grad):
+    from ..tensor import Tensor
+    shape_array = (c_int * self.o_ndim)(*self.o_shape)
+    result_tensor = lib.std_backwards(self.input[0].data, grad.data, shape_array, int(self.o_ndim), int(self.o_size), int(self.axis if self.axis is not None else -1), self.ddof).contents
+    out = Tensor(result_tensor, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size = self.o_shape, self.o_ndim, self.o_size
+    return [out]
 
 class SinBackwards:
   def __init__(self, x): self.input = [x]

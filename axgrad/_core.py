@@ -89,6 +89,8 @@ _backward_funcs = {
   'relu_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'sigmoid_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
   'gelu_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'silu_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'softplus_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
   'leaky_relu_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'elu_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'swish_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)),
+  'sum_backwards': ([POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int], POINTER(CTensor)), 'mean_backwards': ([POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int], POINTER(CTensor)),
+  'var_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)), 'std_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)),
 }
 
 for name, (argtypes, restype) in _forward_funcs.items(): _setup_func(name, argtypes, restype)
