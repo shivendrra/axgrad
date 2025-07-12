@@ -1,12 +1,12 @@
 import axgrad.nn as nn
-from axgrad.utils import randn
+from axgrad.utils import randn, uniform
 from axgrad.nn import functional as F
 
 class MLP(nn.Module):
   def __init__(self, _in, _hid, _out, bias=False) -> None:
     super().__init__()
     self.layer1 = nn.Linear(_in, _hid, bias)
-    self.gelu = nn.Tanh()
+    self.gelu = nn.GELU()
     self.layer2 = nn.Linear(_hid, _out, bias)
 
   def forward(self, x):
@@ -15,13 +15,12 @@ class MLP(nn.Module):
     out = self.layer2(out)
     return out
 
-
 model = MLP(20, 10, 10)
-optimizer = nn.SGD(parameters=model.parameters(), lr=1e-2)
+optimizer = nn.SGD(parameters=model.parameters(), lr=1e-1)
 x = randn(10, 20)
 y = randn(10, 10)
 
-epoch = 50000
+epoch = 500
 losses = []
 steps = []
 
@@ -33,7 +32,7 @@ for n in range(1, epoch + 1):
   loss.backward()
   optimizer.step()
 
-  if n % 5000 == 0:
+  if n % 50 == 0:
     losses.append(loss.tolist())
     steps.append(n)
     print(f"{n}th step, loss: {loss.tolist():.6f}")

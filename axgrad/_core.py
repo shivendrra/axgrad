@@ -34,7 +34,7 @@ def _setup_func(name, argtypes, restype):
   func.argtypes, func.restype = argtypes, restype
   return func
 
-_funcs = {
+_forward_funcs = {
   'create_tensor': ([POINTER(c_float), c_size_t, POINTER(c_int), c_size_t, c_int], POINTER(CTensor)),
   'delete_tensor': ([POINTER(CTensor)], None), 'delete_data': ([POINTER(CTensor)], None),
   'delete_shape': ([POINTER(CTensor)], None), 'delete_strides': ([POINTER(CTensor)], None),
@@ -66,6 +66,10 @@ _funcs = {
   'sin_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'sinh_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'cos_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'cosh_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'tan_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'tanh_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'sigmoid_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'relu_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'gelu_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'silu_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'leaky_relu_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'elu_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)),
+  'softplus_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'swish_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)),
   'transpose_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'equal_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'reshape_tensor': ([POINTER(CTensor), POINTER(c_int), c_int], POINTER(CTensor)), 'squeeze_tensor': ([POINTER(CTensor), c_int], POINTER(CTensor)),
   'expand_dims_tensor': ([POINTER(CTensor), c_int], POINTER(CTensor)), 'flatten_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
@@ -79,4 +83,15 @@ _funcs = {
   'linspace_tensor': ([c_float, c_float, c_float, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor))
 }
 
-for name, (argtypes, restype) in _funcs.items(): _setup_func(name, argtypes, restype)
+_backward_funcs = {
+  'sin_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'cos_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'tan_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
+  'sinh_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'cosh_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'tanh_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
+  'relu_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'sigmoid_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
+  'gelu_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'silu_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'softplus_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
+  'leaky_relu_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'elu_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'swish_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)),
+  'sum_backwards': ([POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int], POINTER(CTensor)), 'mean_backwards': ([POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int], POINTER(CTensor)),
+  'var_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)), 'std_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)),
+}
+
+for name, (argtypes, restype) in _forward_funcs.items(): _setup_func(name, argtypes, restype)
+for name, (argtypes, restype) in _backward_funcs.items(): _setup_func(name, argtypes, restype)

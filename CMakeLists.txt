@@ -15,21 +15,28 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
-
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
 file(GLOB_RECURSE CSRC_FILES "axgrad/csrc/*.c" "axgrad/csrc/*.cpp")
-file(GLOB_RECURSE INC_FILES "axgrad/inc/*.h" "axgrad/inc/*.hpp")
+file(GLOB_RECURSE INC_FILES "axgrad/csrc/inc/*.h" "axgrad/csrc/inc/*.hpp")
+file(GLOB_RECURSE BACK_FILES "axgrad/autograd/csrc/*.c" "axgrad/autograd/csrc/*.cpp" "axgrad/autograd/csrc/*.h" "axgrad/autograd/csrc/*.hpp")
 
 message(STATUS "Found source files: ${CSRC_FILES}")
 message(STATUS "Found header files: ${INC_FILES}")
+message(STATUS "Found autograd files: ${BACK_FILES}")
 
 if(NOT CSRC_FILES)
   message(FATAL_ERROR "No source files found in axgrad/csrc/")
 endif()
+if(NOT INC_FILES)
+  message(FATAL_ERROR "No header files found in axgrad/csrc/inc")
+endif()
+if(NOT BACK_FILES)
+  message(FATAL_ERROR "No source files found in axgrad/autograd/csrc")
+endif()
 
-add_library(tensor SHARED ${CSRC_FILES})
-target_include_directories(tensor PRIVATE axgrad/inc)
+add_library(tensor SHARED ${CSRC_FILES} ${BACK_FILES})
+target_include_directories(tensor PRIVATE axgrad/csrc/inc axgrad/autograd/csrc)
 target_link_libraries(tensor PRIVATE Python::Module)
 
 if(WIN32)
