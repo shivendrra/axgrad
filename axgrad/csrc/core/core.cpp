@@ -58,7 +58,7 @@ Tensor* cast_tensor(Tensor* self, dtype_t new_dtype) {
   // converting to float for intermediate processing
   float* temp_float = convert_to_float32(self->data, self->dtype, self->size);
   if (temp_float == NULL) return NULL;
-  // creating new array with target dtype - create_tensor handles conversion
+  // creating new tensor with target dtype - create_tensor handles conversion
   Tensor* result = create_tensor(temp_float, self->ndim, self->shape, self->size, new_dtype);
 
   free(temp_float);   // Cleanup temporary float data  
@@ -78,7 +78,7 @@ Tensor* cast_tensor_simple(Tensor* self, dtype_t new_dtype) {
     exit(EXIT_FAILURE);
   }
   
-  // creating array structure with new data
+  // creating tensor structure with new data
   Tensor* result = (Tensor*)malloc(sizeof(Tensor));
   result->data = new_data;
   result->dtype = new_dtype;
@@ -135,7 +135,7 @@ Tensor* contiguous_tensor(Tensor* self) {
     return result;
   }
   
-  // creating new contiguous array
+  // creating new contiguous tensor
   Tensor* result = (Tensor*)malloc(sizeof(Tensor));
   result->dtype = self->dtype;
   result->ndim = self->ndim;
@@ -223,19 +223,19 @@ Tensor* reshape_view(Tensor* self, int* new_shape, size_t new_ndim) {
   
   // checking if reshape is compatible
   if (new_size != self->size) {
-    fprintf(stderr, "Cannot reshape array of size %zu into shape with size %zu\n", self->size, new_size);
+    fprintf(stderr, "Cannot reshape tensor of size %zu into shape with size %zu\n", self->size, new_size);
     return NULL;
   }
   
-  // for views, the original array must be contiguous
+  // for views, the original tensor must be contiguous
   if (!is_contiguous(self)) {
-    fprintf(stderr, "Cannot reshape non-contiguous array. Use contiguous() first.\n");
+    fprintf(stderr, "Cannot reshape non-contiguous tensor. Use contiguous() first.\n");
     return NULL;
   }
 
   Tensor* reshaped = (Tensor*)malloc(sizeof(Tensor));
   if (reshaped == NULL) {
-    fprintf(stderr, "Memory allocation failed for reshaped array!\n");
+    fprintf(stderr, "Memory allocation failed for reshaped tensor!\n");
     exit(EXIT_FAILURE);
   }
   
@@ -338,7 +338,7 @@ Tensor* copy_tensor(Tensor* self) {
     fprintf(stderr, "Couldn't allocate Tensor value pointers!\n");
     exit(EXIT_FAILURE);
   };
-  // creating new array - this will allocate new data
+  // creating new tensor - this will allocate new data
   Tensor* copy = create_tensor(temp_float, self->ndim, self->shape, self->size, self->dtype);
   free(temp_float);
   return copy;
@@ -588,11 +588,11 @@ void format_tensor(Tensor* self, const int* shape, int ndim, int level, int offs
 
 void print_tensor(Tensor* self) {
   if (self == NULL) {
-    printf("axon.array(NULL)\n");
+    printf("axon.tensor(NULL)\n");
     return;
   }
 
   char result[8192] = "";
   format_tensor(self, self->shape, self->ndim, 0, 0, result);
-  printf("axon.array(%s, dtype=%s)\n", result, get_dtype_name(self->dtype));
+  printf("axon.tensor(%s, dtype=%s)\n", result, get_dtype_name(self->dtype));
 }
