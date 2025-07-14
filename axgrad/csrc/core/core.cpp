@@ -58,7 +58,7 @@ Tensor* cast_tensor(Tensor* self, dtype_t new_dtype) {
   // converting to float for intermediate processing
   float* temp_float = convert_to_float32(self->data, self->dtype, self->size);
   if (temp_float == NULL) return NULL;
-  // creating new array with target dtype - create_tensor handles conversion
+  // creating new tensor with target dtype - create_tensor handles conversion
   Tensor* result = create_tensor(temp_float, self->ndim, self->shape, self->size, new_dtype);
 
   free(temp_float);   // Cleanup temporary float data  
@@ -78,7 +78,7 @@ Tensor* cast_tensor_simple(Tensor* self, dtype_t new_dtype) {
     exit(EXIT_FAILURE);
   }
   
-  // creating array structure with new data
+  // creating tensor structure with new data
   Tensor* result = (Tensor*)malloc(sizeof(Tensor));
   result->data = new_data;
   result->dtype = new_dtype;
@@ -135,7 +135,7 @@ Tensor* contiguous_tensor(Tensor* self) {
     return result;
   }
   
-  // creating new contiguous array
+  // creating new contiguous tensor
   Tensor* result = (Tensor*)malloc(sizeof(Tensor));
   result->dtype = self->dtype;
   result->ndim = self->ndim;
@@ -223,19 +223,19 @@ Tensor* reshape_view(Tensor* self, int* new_shape, size_t new_ndim) {
   
   // checking if reshape is compatible
   if (new_size != self->size) {
-    fprintf(stderr, "Cannot reshape array of size %zu into shape with size %zu\n", self->size, new_size);
+    fprintf(stderr, "Cannot reshape tensor of size %zu into shape with size %zu\n", self->size, new_size);
     return NULL;
   }
   
-  // for views, the original array must be contiguous
+  // for views, the original tensor must be contiguous
   if (!is_contiguous(self)) {
-    fprintf(stderr, "Cannot reshape non-contiguous array. Use contiguous() first.\n");
+    fprintf(stderr, "Cannot reshape non-contiguous tensor. Use contiguous() first.\n");
     return NULL;
   }
 
   Tensor* reshaped = (Tensor*)malloc(sizeof(Tensor));
   if (reshaped == NULL) {
-    fprintf(stderr, "Memory allocation failed for reshaped array!\n");
+    fprintf(stderr, "Memory allocation failed for reshaped tensor!\n");
     exit(EXIT_FAILURE);
   }
   
@@ -338,7 +338,7 @@ Tensor* copy_tensor(Tensor* self) {
     fprintf(stderr, "Couldn't allocate Tensor value pointers!\n");
     exit(EXIT_FAILURE);
   };
-  // creating new array - this will allocate new data
+  // creating new tensor - this will allocate new data
   Tensor* copy = create_tensor(temp_float, self->ndim, self->shape, self->size, self->dtype);
   free(temp_float);
   return copy;
@@ -412,6 +412,69 @@ int out_size(Tensor* self) {
     exit(EXIT_FAILURE);
   }
   return self->size;
+}
+
+int get_linear_index(Tensor* self, int* indices) {
+  if (self == NULL || indices == NULL) {
+    fprintf(stderr, "Invalid input parameters!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int linear_idx = 0;
+  for (int i = 0; i < self->ndim; i++) {
+    if (indices[i] < 0) indices[i] += self->shape[i];
+    if (indices[i] < 0 || indices[i] >= self->shape[i]) {
+      fprintf(stderr, "Index %d out of bounds for dimension %d with size %d\n",  indices[i], i, self->shape[i]);
+      exit(EXIT_FAILURE);
+    }
+    linear_idx += indices[i] * self->strides[i];
+  }
+  return linear_idx;
+}
+
+float get_item_tensor(Tensor* self, int* indices) {
+  if (self == NULL || indices == NULL) {
+    fprintf(stderr, "Invalid input parameters!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int linear_idx = get_linear_index(self, indices);
+  switch (self->dtype) {
+    case DTYPE_FLOAT32: return ((float*)self->data)[linear_idx];
+    case DTYPE_FLOAT64: return (float)((double*)self->data)[linear_idx];
+    case DTYPE_INT8: return (float)((int8_t*)self->data)[linear_idx];
+    case DTYPE_INT16: return (float)((int16_t*)self->data)[linear_idx];
+    case DTYPE_INT32: return (float)((int32_t*)self->data)[linear_idx];
+    case DTYPE_INT64: return (float)((int64_t*)self->data)[linear_idx];
+    case DTYPE_UINT8: return (float)((uint8_t*)self->data)[linear_idx];
+    case DTYPE_UINT16: return (float)((uint16_t*)self->data)[linear_idx];
+    case DTYPE_UINT32: return (float)((uint32_t*)self->data)[linear_idx];
+    case DTYPE_UINT64: return (float)((uint64_t*)self->data)[linear_idx];
+    case DTYPE_BOOL: return (float)((uint8_t*)self->data)[linear_idx];
+    default: return 0.0f;
+  }
+}
+
+void set_item_tensor(Tensor* self, int* indices, float value) {
+  if (self == NULL || indices == NULL) {
+    fprintf(stderr, "Invalid input parameters!\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  int linear_idx = get_linear_index(self, indices);
+  switch (self->dtype) {
+    case DTYPE_FLOAT32: ((float*)self->data)[linear_idx] = value; break;
+    case DTYPE_FLOAT64: ((double*)self->data)[linear_idx] = (double)value; break;
+    case DTYPE_INT8: ((int8_t*)self->data)[linear_idx] = (int8_t)value; break;
+    case DTYPE_INT16: ((int16_t*)self->data)[linear_idx] = (int16_t)value; break;
+    case DTYPE_INT32: ((int32_t*)self->data)[linear_idx] = (int32_t)value; break;
+    case DTYPE_INT64: ((int64_t*)self->data)[linear_idx] = (int64_t)value; break;
+    case DTYPE_UINT8: ((uint8_t*)self->data)[linear_idx] = (uint8_t)value; break;
+    case DTYPE_UINT16: ((uint16_t*)self->data)[linear_idx] = (uint16_t)value; break;
+    case DTYPE_UINT32: ((uint32_t*)self->data)[linear_idx] = (uint32_t)value; break;
+    case DTYPE_UINT64: ((uint64_t*)self->data)[linear_idx] = (uint64_t)value; break;
+    case DTYPE_BOOL: ((uint8_t*)self->data)[linear_idx] = (uint8_t)(value != 0); break;
+  }
 }
 
 // helper function to format element based on dtype
@@ -525,11 +588,11 @@ void format_tensor(Tensor* self, const int* shape, int ndim, int level, int offs
 
 void print_tensor(Tensor* self) {
   if (self == NULL) {
-    printf("axon.array(NULL)\n");
+    printf("axon.tensor(NULL)\n");
     return;
   }
 
   char result[8192] = "";
   format_tensor(self, self->shape, self->ndim, 0, 0, result);
-  printf("axon.array(%s, dtype=%s)\n", result, get_dtype_name(self->dtype));
+  printf("axon.tensor(%s, dtype=%s)\n", result, get_dtype_name(self->dtype));
 }

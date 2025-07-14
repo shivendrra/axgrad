@@ -37,6 +37,9 @@ extern "C" {
   int* out_shape(Tensor* self);
   int* out_strides(Tensor* self);
   int out_size(Tensor* self);
+  float get_item_tensor(Tensor* self, int* indices);
+  void set_item_tensor(Tensor* self, int* indices, float value);
+  int get_linear_index(Tensor* self, int* indices);
 
   // contiguous tensor related ops
   Tensor* contiguous_tensor(Tensor* self);

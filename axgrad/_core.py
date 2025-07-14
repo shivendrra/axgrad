@@ -41,6 +41,8 @@ _forward_funcs = {
   'print_tensor': ([POINTER(CTensor)], None), 'out_data': ([POINTER(CTensor)], POINTER(c_float)),
   'out_shape': ([POINTER(CTensor)], POINTER(c_int)), 'out_strides': ([POINTER(CTensor)], POINTER(c_int)),
   'out_size': ([POINTER(CTensor)], c_int), 'contiguous_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'get_item_tensor': ([POINTER(CTensor), POINTER(c_int)], c_float), 'set_item_tensor': ([POINTER(CTensor), POINTER(c_int), c_float], None),
+  'get_linear_index': ([POINTER(CTensor), POINTER(c_int)], c_int),
   'is_contiguous_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'make_contiguous_inplace_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'view_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'is_view_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'cast_tensor': ([POINTER(CTensor), c_int], POINTER(CTensor)), 'cast_tensor_simple': ([POINTER(CTensor), c_int], POINTER(CTensor)),
@@ -93,5 +95,13 @@ _backward_funcs = {
   'var_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)), 'std_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)),
 }
 
+_nn_funcs = {
+  'clip_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'clamp_tensor': ([POINTER(CTensor), c_float, c_float], POINTER(CTensor)),
+  'mm_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'std_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'rms_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'unit_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'l1_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'l2_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'robust_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+}
+
 for name, (argtypes, restype) in _forward_funcs.items(): _setup_func(name, argtypes, restype)
 for name, (argtypes, restype) in _backward_funcs.items(): _setup_func(name, argtypes, restype)
+for name, (argtypes, restype) in _nn_funcs.items(): _setup_func(name, argtypes, restype)
