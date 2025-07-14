@@ -9,6 +9,7 @@ from .ops.functional import register_functional_ops
 from .ops.unary import register_unary_ops
 from .ops.shape import register_shape_ops
 from .ops.redux import register_redux_ops
+from .ops.norm import register_norm_ops
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float32, float64, double = "float32", "float64", "double"
@@ -193,3 +194,4 @@ register_functional_ops()
 register_unary_ops()
 register_shape_ops()
 register_redux_ops()
+register_norm_ops()

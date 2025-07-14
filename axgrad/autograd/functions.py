@@ -247,3 +247,44 @@ class FlatBackwards:
 class ReshapeBackwards:
   def __init__(self, x): self.input = [x]
   def backward(self, grad): return [grad.reshape(self.input[0].shape)]
+
+class ClipBackwards:
+  def __init__(self, x, max_val): self.input, self.max_val = [x], max_val
+  def backward(self, grad): return [grad * (self.input[0] <= self.max_val)]
+
+class ClampBackwards:
+  def __init__(self, x, min_val, max_val):  self.input, self.min_val, self.max_val = [x], min_val, max_val
+  def backward(self, grad): return [grad * ((self.input[0] >= self.min_val) * (self.input[0] <= self.max_val))]
+
+class MinBackwards:
+  def __init__(self, x, axis, keepdims): 
+    self.input, self.axis, self.keepdims = [x], axis, keepdims
+    self.o_shape, self.o_ndim, self.o_size = x.shape, x.ndim, x.size
+  
+  def backward(self, grad):
+    if self.o_ndim == 0: return [grad]
+    min_vals = self.input[0].min(axis=self.axis, keepdims=True)
+    mask = (self.input[0] == min_vals).float()
+    if not self.keepdims and self.axis != -1:
+      expanded_shape = list(self.o_shape)
+      expanded_shape[self.axis] = 1
+      grad = grad.reshape(expanded_shape)
+    elif not self.keepdims and self.axis == -1: grad = grad.reshape((1,) * self.o_ndim)
+    return [grad * mask]
+
+class MaxBackwards:
+  def __init__(self, x, axis, keepdims): 
+    self.input, self.axis, self.keepdims = [x], axis, keepdims
+    self.o_shape, self.o_ndim, self.o_size = x.shape, x.ndim, x.size
+
+  def backward(self, grad):
+    if self.o_ndim == 0: return [grad]
+    max_vals = self.input[0].max(axis=self.axis, keepdims=True)
+    mask = (self.input[0] == max_vals).float()
+
+    if not self.keepdims and self.axis != -1:
+      expanded_shape = list(self.o_shape)
+      expanded_shape[self.axis] = 1
+      grad = grad.reshape(expanded_shape)
+    elif not self.keepdims and self.axis == -1: grad = grad.reshape((1,) * self.o_ndim)
+    return [grad * mask]

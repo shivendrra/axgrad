@@ -40,7 +40,7 @@ def min_tensor_ops(self, axis: int=-1, keepdims: bool=False):
     else: new_shape.pop(axis)
     out.shape = tuple(new_shape)
     out.size, out.ndim, out.strides = 1 if not new_shape else eval('*'.join(map(str, new_shape))), len(new_shape), ShapeHelp.get_strides(out.shape) if out.shape else []
-  # if self.requires_grad: out.grad_fn = MinBackwards(self, axis, keepdims)
+  if self.requires_grad: out.grad_fn = MinBackwards(self, axis, keepdims)
   return out
 
 def max_tensor_ops(self, axis: int=-1, keepdims: bool=False):
@@ -53,7 +53,7 @@ def max_tensor_ops(self, axis: int=-1, keepdims: bool=False):
     else: new_shape.pop(axis)
     out.shape = tuple(new_shape)
     out.size, out.ndim, out.strides = 1 if not new_shape else eval('*'.join(map(str, new_shape))), len(new_shape), ShapeHelp.get_strides(out.shape) if out.shape else []
-  # if self.requires_grad: out.grad_fn = MaxBackwards(self, axis, keepdims)
+  if self.requires_grad: out.grad_fn = MaxBackwards(self, axis, keepdims)
   return out
 
 def var_tensor_ops(self, axis: int=-1, ddof: int=0):
