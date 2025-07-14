@@ -1,5 +1,5 @@
 # axgrad
-![axon.jpg](https://github.com/shivendrra/axgrad/blob/main/axon.jpg)
+![axon.png](https://github.com/shivendrra/axgrad/blob/main/axon.png)
 My attempt to make something like [TinyGrad](https://github.com/tinygrad/tinygrad) or [PyTorch](https://github.com/pytorch/pytorch)
 A framework like PyTorch & MicroGrad written fully in python(i will add the c & cpp components for faster implementation though).
 It's supposed to be a good and lightweight C and Python based deep learning framework, which it's not, as of now(still building).
@@ -46,7 +46,7 @@ class MLP(nn.Module):
 refer to this [Example](https://github.com/shivendrra/axgrad/blob/main/examples/mlp.py) for detailed info on making mlp
 
 btw, here's the outputs i got from my implementation, that ran till 6k iters:
-![implemented results](https://github.com/shivendrra/axgrad/tree/dev/examples/mlp_model.png)
+![implemented results](https://github.com/shivendrra/axgrad/tree/dev/examples/mlp.png)
 
 ## Contribution
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
