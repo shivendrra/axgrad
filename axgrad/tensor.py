@@ -6,6 +6,8 @@ from .helpers import ShapeHelp, DtypeHelp
 from .autograd.functions import *
 from .ops.binary import register_binary_ops
 from .ops.functional import register_functional_ops
+from .ops.unary import register_unary_ops
+from .ops.shape import register_shape_ops
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float32, float64, double = "float32", "float64", "double"
@@ -71,28 +73,25 @@ class Tensor:
     assert self.ndim == 0 or (self.ndim == 1 and self.size == 1), "backward can only be called for scalar tensors"
     if gradient is None: gradient = Tensor([1.0], dtype=self.dtype)
     visited, topo_order = set(), []
-
     def build_topo(v):
       if v in visited or not v.requires_grad: return
       visited.add(v)
       if v.grad_fn: [build_topo(inp) for inp in v.grad_fn.input if isinstance(inp, Tensor)]
       topo_order.append(v)
-
     build_topo(self)
     self.grad = gradient if self.grad is None else self.grad + gradient
-
     for tensor in reversed(topo_order):
       if tensor.grad_fn and tensor.grad is not None:
         grads = tensor.grad_fn.backward(tensor.grad)
         for inp, grad in zip(tensor.grad_fn.input, grads):
-          if isinstance(inp, Tensor) and inp.requires_grad:
-            inp.grad = grad if inp.grad is None else inp.grad + grad
+          if isinstance(inp, Tensor) and inp.requires_grad: inp.grad = grad if inp.grad is None else inp.grad + grad
 
   def __setattr__(self, name, value):
     if name == "grad": [setattr(self, "_temp_value", hook(getattr(self, "_temp_value", value))) for hook in self.hooks]; value = getattr(self, "_temp_value", value)
     super().__setattr__(name, value)
   def register_hook(self, function): self.hooks.append(function)
   def __str__(self): return (lib.print_tensor(self.data), "")[1]
+
   def astype(self, dtype: DType) -> "Tensor":
     out = Tensor(lib.cast_tensor(self.data, c_int(DtypeHelp._parse_dtype(dtype))).contents, requires_grad=self.requires_grad)
     out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
@@ -188,31 +187,6 @@ class Tensor:
     elif self.ndim == 1: return data_tensor
     else: return ShapeHelp.reshape_list(data_tensor, self.shape)
 
-  def transpose(self) -> "Tensor":
-    assert self.ndim <= 3, ".transpose() ops limited to 3-d tensor"
-    out = Tensor(lib.transpose_tensor(self.data).contents, self.dtype, self.requires_grad)
-    out.shape, out.size, out.ndim = tuple(ShapeHelp.transpose_shape(self.shape)), self.size, self.ndim
-    out.strides = ShapeHelp.get_strides(out.shape)
-    if self.requires_grad: out.grad_fn = TransposeBackwards(self)
-    return out
-
-  def flatten(self) -> "Tensor":
-    out = Tensor(lib.flatten_tensor(self.data).contents, self.dtype, self.requires_grad)
-    out.shape, out.size, out.ndim = (self.size, ), self.size, 1
-    out.strides = ShapeHelp.get_strides(out.shape)
-    if self.requires_grad: out.grad_fn = FlatBackwards(self)
-    return out
-
-  def reshape(self, new_shape: Union[list, tuple]) -> "Tensor":
-    if isinstance(new_shape, tuple): new_shape = list(new_shape)
-    new_size, ndim = 1, len(new_shape)
-    for dim in new_shape: new_size *= dim
-    if new_size != self.size: raise ValueError(f"Cannot reshape Tensor of size {self.size} into shape {new_shape}")
-    out = Tensor(lib.reshape_tensor(self.data, (c_int * ndim)(*new_shape), c_int(ndim)).contents, self.dtype, self.requires_grad)
-    out.shape, out.size, out.ndim, out.strides = tuple(new_shape), self.size, ndim, ShapeHelp.get_strides(new_shape)
-    if self.requires_grad: out.grad_fn = ReshapeBackwards(self)
-    return out
-
   def sum(self, axis: int = -1, keepdims: bool = False) -> "Tensor":
     out = Tensor(lib.sum_tensor(self.data, c_int(axis), c_bool(keepdims)).contents, self.dtype, self.requires_grad)
     if axis == -1: out.shape, out.size, out.ndim = (1,) if keepdims else (), 1, 1 if keepdims else 0
@@ -225,46 +199,7 @@ class Tensor:
     if self.requires_grad: out.grad_fn = SumBackwards(self, axis, keepdims)
     return out
 
-  def __neg__(self) -> "Tensor":
-    result_pointer = lib.neg_tensor(self.data).contents
-    out = Tensor(result_pointer, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if out.requires_grad: out.grad_fn = NegBackwards(self)
-    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
-
-  def sign(self) -> "Tensor":
-    result_pointer = lib.sign_tensor(self.data).contents
-    out = Tensor(result_pointer, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
-
-  def log(self) -> "Tensor":
-    result_pointer = lib.log_tensor(self.data).contents
-    out = Tensor(result_pointer, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = LogBackwards(self)
-    return out
-
-  def exp(self) -> "Tensor":
-    result_pointer = lib.exp_tensor(self.data).contents
-    out = Tensor(result_pointer, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = ExpBackwards(self)
-    return out
-
-  def abs(self) -> "Tensor":
-    result_pointer = lib.abs_tensor(self.data).contents
-    out = Tensor(result_pointer, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = AbsBackwards(self)
-    return out
-
-  def sqrt(self) -> "Tensor":
-    result_pointer = lib.sqrt_tensor(self.data).contents
-    out = Tensor(result_pointer, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SqrtBackwards(self)
-    return out
-
 register_binary_ops()
 register_functional_ops()
+register_unary_ops()
+register_shape_ops()
