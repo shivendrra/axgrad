@@ -1,4 +1,4 @@
-from ctypes import c_float, c_size_t, c_int, c_bool
+from ctypes import c_float, c_size_t, c_int
 from typing import *
 
 from ._core import CTensor, lib, DType
@@ -8,6 +8,7 @@ from .ops.binary import register_binary_ops
 from .ops.functional import register_functional_ops
 from .ops.unary import register_unary_ops
 from .ops.shape import register_shape_ops
+from .ops.redux import register_redux_ops
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float32, float64, double = "float32", "float64", "double"
@@ -187,19 +188,8 @@ class Tensor:
     elif self.ndim == 1: return data_tensor
     else: return ShapeHelp.reshape_list(data_tensor, self.shape)
 
-  def sum(self, axis: int = -1, keepdims: bool = False) -> "Tensor":
-    out = Tensor(lib.sum_tensor(self.data, c_int(axis), c_bool(keepdims)).contents, self.dtype, self.requires_grad)
-    if axis == -1: out.shape, out.size, out.ndim = (1,) if keepdims else (), 1, 1 if keepdims else 0
-    else:
-      new_shape = list(self.shape)
-      if keepdims: new_shape[axis] = 1
-      else: new_shape.pop(axis)
-      out.shape = tuple(new_shape)
-      out.size, out.ndim, out.strides = 1 if not new_shape else eval('*'.join(map(str, new_shape))), len(new_shape), ShapeHelp.get_strides(out.shape) if out.shape else []
-    if self.requires_grad: out.grad_fn = SumBackwards(self, axis, keepdims)
-    return out
-
 register_binary_ops()
 register_functional_ops()
 register_unary_ops()
 register_shape_ops()
+register_redux_ops()
