@@ -4,6 +4,8 @@ from typing import *
 from ._core import CTensor, lib, DType
 from .helpers import ShapeHelp, DtypeHelp
 from .autograd.functions import *
+from .ops.binary import register_binary_ops
+from .ops.functional import register_functional_ops
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float32, float64, double = "float32", "float64", "double"
@@ -223,79 +225,12 @@ class Tensor:
     if self.requires_grad: out.grad_fn = SumBackwards(self, axis, keepdims)
     return out
 
-  def __add__(self, other) -> "Tensor":
-    other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-    result_ptr = lib.add_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.add_tensor(self.data, other_tensor.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if out.requires_grad: out.grad_fn = AddBackwards(self, other_tensor if isinstance(other, Tensor) else other)
-    return out
-
-  def __sub__(self, other) -> "Tensor":
-    other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-    result_ptr = lib.sub_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.sub_tensor(self.data, other_tensor.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if out.requires_grad: out.grad_fn = SubBackwards(self, other_tensor if isinstance(other, Tensor) else other)
-    return out
-
-  def __mul__(self, other) -> "Tensor":
-    other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-    result_ptr = lib.mul_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.mul_tensor(self.data, other_tensor.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if out.requires_grad: out.grad_fn = MulBackwards(self, other_tensor if isinstance(other, Tensor) else other)
-    return out
-
-  def __truediv__(self, other) -> "Tensor":
-    other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-    result_ptr = lib.div_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.div_tensor(self.data, other_tensor.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if out.requires_grad: out.grad_fn = DivBackwards(self, other_tensor if isinstance(other, Tensor) else other)
-    return out
-
-  def __matmul__(self, other):
-    other = other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)
-    if self.ndim <= 2 and other.ndim <= 2:
-      result_ptr = lib.matmul_tensor(self.data, other.data).contents
-    elif self.ndim == 3 and other.ndim == 3 and self.shape[0] == other.shape[0]:
-      result_ptr = lib.batch_matmul_tensor(self.data, other.data).contents
-    else:
-      result_ptr = lib.broadcasted_matmul_tensor(self.data, other.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad or other.requires_grad)
-    shape, ndim, size = lib.out_shape(out.data), self.ndim, lib.out_size(out.data)
-    out.shape, out.ndim, out.size = tuple([shape[i] for i in range(ndim)]), ndim, size
-    out.strides = ShapeHelp.get_strides(out.shape)
-    if out.requires_grad: out.grad_fn = MatmulBackwards(self, other)
-    return out
-
   def __neg__(self) -> "Tensor":
     result_pointer = lib.neg_tensor(self.data).contents
     out = Tensor(result_pointer, self.dtype, self.requires_grad)
     out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
     if out.requires_grad: out.grad_fn = NegBackwards(self)
     return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
-
-  def __radd__(self, other): return self + other
-  def __rsub__(self, other): return Tensor([other], self.dtype, self.requires_grad) - self
-  def __rmul__(self, other): return self * other
-  def __rtruediv__(self, other): return Tensor([other], self.dtype, self.requires_grad) / self
-
-  def __pow__(self, exp) -> "Tensor":
-    if isinstance(exp, (int, float)): result_ptr = lib.pow_tensor(self.data, c_float(exp)).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = PowBackwards(self, exp)
-    return out
-
-  def __rpow__(self, base) -> "Tensor":
-    if isinstance(base, (int, float)): result_ptr = lib.pow_scalar(c_float(base), self.data).contents
-    else: raise NotImplementedError("__rpow__ with Tensor base not implemented yet")
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = RPowBackwards(base, self)
-    return out
 
   def sign(self) -> "Tensor":
     result_pointer = lib.sign_tensor(self.data).contents
@@ -331,110 +266,5 @@ class Tensor:
     if self.requires_grad: out.grad_fn = SqrtBackwards(self)
     return out
 
-  def sin(self) -> "Tensor":
-    result_ptr = lib.sin_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SinBackwards(self)
-    return out
-
-  def cos(self) -> "Tensor":
-    result_ptr = lib.cos_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = CosBackwards(self)
-    return out
-
-  def tan(self) -> "Tensor":
-    result_ptr = lib.tan_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = TanBackwards(self)
-    return out
-
-  def sinh(self) -> "Tensor":
-    result_ptr = lib.sinh_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SinhBackwards(self)
-    return out
-
-  def cosh(self) -> "Tensor":
-    result_ptr = lib.cosh_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = CoshBackwards(self)
-    return out
-
-  def tanh(self) -> "Tensor":
-    result_ptr = lib.tanh_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = TanhBackwards(self, out)
-    return out
-
-  def sigmoid(self) -> "Tensor":
-    result_ptr = lib.sigmoid_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SigmoidBackwards(self, out)
-    return out
-
-  def relu(self) -> "Tensor":
-    result_ptr = lib.relu_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = ReluBackwards(self, out)
-    return out
-
-  def elu(self, alpha:float = 1e-5) -> "Tensor":
-    out = Tensor(lib.elu_tensor(self.data, c_float(alpha)).contents, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = EluBackwards(self, out, alpha)  # Passing alpha parameter
-    return out
-
-  def leaky_relu(self, eps:float = 1e-5) -> "Tensor":
-    out = Tensor(lib.leaky_relu_tensor(self.data, c_float(eps)).contents, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = LeakyReluBackwards(self, out, eps)  # Passing eps parameter
-    return out
-
-  def swish(self, beta:float = 0.5) -> "Tensor":
-    out = Tensor(lib.swish_tensor(self.data, c_float(beta)).contents, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SwishBackwards(self, out, beta)  # Passing beta parameter
-    return out
-
-  def silu(self) -> "Tensor":
-    result_ptr = lib.silu_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SiluBackwards(self, out)
-    return out
-
-  def softplus(self) -> "Tensor":
-    result_ptr = lib.softplus_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = SoftplusBackwards(self, out)
-    return out
-
-  def gelu(self) -> "Tensor":
-    result_ptr = lib.gelu_tensor(self.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad)
-    out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-    if self.requires_grad: out.grad_fn = GeluBackwards(self, out)
-    return out
-
-  def dot(self, other):
-    other = other if isinstance(other, (CTensor, Tensor)) else Tensor(other, self.dtype)
-    if self.ndim <= 2 and other.ndim <= 2:
-      result_ptr = lib.dot_tensor(self.data, other.data).contents
-    elif self.ndim == 3 and other.ndim == 3 and self.shape[0] == other.shape[0]:
-      result_ptr = lib.batch_dot_tensor(self.data, other.data).contents
-    out = Tensor(result_ptr, self.dtype, self.requires_grad or other.requires_grad)
-    shape, ndim, size = lib.out_shape(result_ptr), out.data.ndim, lib.out_size(result_ptr)
-    out.shape, out.ndim, out.size = tuple([shape[i] for i in range(ndim)]), ndim, size
-    out.strides = ShapeHelp.get_strides(out.shape)
-    if out.requires_grad: out.grad_fn = DotBackwards(self, other)
-    return out
+register_binary_ops()
+register_functional_ops()
