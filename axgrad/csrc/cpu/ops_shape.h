@@ -21,6 +21,8 @@ extern "C" {
   void transpose_2d_tensor_ops(float* a, float* out, int* shape);
   void transpose_3d_tensor_ops(float* a, float* out, int* shape);
   void transpose_ndim_tensor_ops(float* a, float* out, int* shape, int ndim);
+  void compute_broadcast_indices(int linear_index, int* broadcasted_shape, int max_ndim,
+      int a_ndim, int b_ndim, int* a_shape, int* b_shape, int* index_a, int* index_b);
 }
 
 #endif
