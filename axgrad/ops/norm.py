@@ -68,8 +68,6 @@ def robust_norm_tensor_ops(self):
 
 def register_norm_ops():
   from ..tensor import Tensor
-  Tensor.clip = clip_tensor_ops
-  Tensor.clamp = clamp_tensor_ops
   Tensor.mm_norm = mm_norm_tensor_ops
   Tensor.std_norm = std_norm_tensor_ops
   Tensor.rms_norm = rms_norm_tensor_ops

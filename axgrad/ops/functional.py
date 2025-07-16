@@ -111,20 +111,3 @@ def silu_tensor_ops(self):
   out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
   if self.requires_grad: out.grad_fn = SiluBackwards(self, out)
   return out
-
-def register_functional_ops():
-  from ..tensor import Tensor
-  Tensor.sin = sin_tensor_ops
-  Tensor.cos = cos_tensor_ops
-  Tensor.tan = tan_tensor_ops
-  Tensor.sinh = sinh_tensor_ops
-  Tensor.cosh = cosh_tensor_ops
-  Tensor.tanh = tanh_tensor_ops
-  Tensor.sigmoid = sigmoid_tensor_ops
-  Tensor.relu = relu_tensor_ops
-  Tensor.gelu = gelu_tensor_ops
-  Tensor.silu = silu_tensor_ops
-  Tensor.swish = swish_tensor_ops
-  Tensor.elu = elu_tensor_ops
-  Tensor.leaky_relu = leaky_relu_tensor_ops
-  Tensor.softplus = softplus_tensor_ops

@@ -49,13 +49,3 @@ def sqrt_tensor_ops(self):
   out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
   if self.requires_grad: out.grad_fn = SqrtBackwards(self)
   return out
-
-def register_unary_ops():
-  from ..tensor import Tensor
-  Tensor.__neg__ = neg_tensor_ops
-  Tensor.sqrt = sqrt_tensor_ops
-  Tensor.log = log_tensor_ops
-  Tensor.abs = abs_tensor_ops
-  Tensor.sign = sign_tensor_ops
-  Tensor.exp = exp_tensor_ops
-  Tensor.sqrt = sqrt_tensor_ops

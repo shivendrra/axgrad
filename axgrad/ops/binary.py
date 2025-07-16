@@ -99,17 +99,3 @@ def rmul_tensor_ops(self, other):
 def rdiv_tensor_ops(self, other):
   from ..tensor import Tensor
   return Tensor([other], self.dtype, self.requires_grad) / self
-
-def register_binary_ops():
-  from ..tensor import Tensor
-  Tensor.__add__ = add_tensor_ops
-  Tensor.__radd__ = radd_tensor_ops
-  Tensor.__sub__ = sub_tensor_ops
-  Tensor.__rsub__ = rsub_tensor_ops
-  Tensor.__mul__ = mul_tensor_ops
-  Tensor.__rmul__ = rmul_tensor_ops
-  Tensor.__truediv__ = div_tensor_ops
-  Tensor.__rtruediv__ = rdiv_tensor_ops
-  Tensor.__pow__ = pow_tensor_ops
-  Tensor.__rpow__ = rpow_tensor_ops
-  Tensor.__matmul__ = matmul_tensor_ops

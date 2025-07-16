@@ -31,9 +31,3 @@ def reshape_tensor_ops(self):
   out.shape, out.size, out.ndim, out.strides = tuple(new_shape), self.size, ndim, ShapeHelp.get_strides(new_shape)
   if self.requires_grad: out.grad_fn = ReshapeBackwards(self)
   return out
-
-def register_shape_ops():
-  from ..tensor import Tensor
-  Tensor.transpose = transpose_tensor_ops
-  Tensor.flatten = flatten_tensor_ops
-  Tensor.reshape = reshape_tensor_ops
