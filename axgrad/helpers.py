@@ -11,6 +11,15 @@ class ShapeHelp:
   def reshape_list(flat_list:list, shape: tuple) -> list: return flat_list[:shape[0]] if len(shape) == 1 else [ShapeHelp.reshape_list(flat_list[i * (len(flat_list) // shape[0]):(i + 1) * (len(flat_list) // shape[0])], shape[1:]) for i in range(shape[0])]
   def get_strides(shape: tuple) -> list: return [] if not shape else [1] if len(shape) == 1 else [functools.reduce(lambda a, b: a * b, shape[i+1:], 1) for i in range(len(shape))]
   def process_shape(shape: tuple) -> list: return (lambda s: (s, eval("*".join(map(str, s))), len(s), (c_int * len(s))(*s)))(list(shape[0]) if len(shape) == 1 and isinstance(shape[0], (list, tuple)) else list(shape))
+  def is_broadcastable(shape_a:tuple, shape_b:tuple) -> bool:
+    max_len, min_len = max(len(shape_a), len(shape_b)), min(len(shape_a), len(shape_b))
+    longer, shorter = (shape_a, shape_b) if len(shape_a) >= len(shape_b) else (shape_b, shape_a)
+    return all(s == l or s == 1 or l == 1 for s, l in zip(shorter[::-1], longer[max_len-min_len:][::-1]))
+  def broadcast_shapes(shape_a:tuple, shape_b:tuple) -> tuple:
+    max_len, longer, shorter = max(len(shape_a), len(shape_b)), (shape_a if len(shape_a) >= len(shape_b) else shape_b), (shape_b if len(shape_a) >= len(shape_b) else shape_a)
+    padded_shorter, result = (1,) * (max_len - len(shorter)) + shorter, []
+    for i in range(max_len): result.append(max(longer[i], padded_shorter[i]))
+    return tuple(result), tuple(result)
 
 class DtypeHelp:
   # dtype related helper functions
