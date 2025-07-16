@@ -189,6 +189,36 @@ class Tensor:
     elif self.ndim == 1: return data_tensor
     else: return ShapeHelp.reshape_list(data_tensor, self.shape)
 
+  def __eq__(self, other):
+    other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+    out = Tensor(lib.equal_tensor(self.data, other.data).contents, DType.BOOL)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __ne__(self, other):
+    other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+    out = Tensor(lib.equal_tensor(self.data, other.data).contents, DType.BOOL)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __gt__(self, other):
+    other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+    out = Tensor(lib.greater_tensor(self.data, other.data).contents, DType.BOOL)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __ge__(self, other):
+    other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+    out = Tensor(lib.greater_equal_tensor(self.data, other.data).contents, DType.BOOL)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __lt__(self, other):
+    other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+    out = Tensor(lib.smaller_tensor(self.data, other.data).contents, DType.BOOL)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __le__(self, other):
+    other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+    out = Tensor(lib.smaller_equal_tensor(self.data, other.data).contents, DType.BOOL)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
 register_binary_ops()
 register_functional_ops()
 register_unary_ops()

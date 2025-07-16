@@ -72,7 +72,9 @@ _forward_funcs = {
   'gelu_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'silu_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'leaky_relu_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'elu_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)),
   'softplus_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'swish_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)),
-  'transpose_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'equal_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'transpose_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'equal_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'not_equal_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'greater_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'smaller_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'greater_equal_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'smaller_equal_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'reshape_tensor': ([POINTER(CTensor), POINTER(c_int), c_int], POINTER(CTensor)), 'squeeze_tensor': ([POINTER(CTensor), c_int], POINTER(CTensor)),
   'expand_dims_tensor': ([POINTER(CTensor), c_int], POINTER(CTensor)), 'flatten_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'sum_tensor': ([POINTER(CTensor), c_int, ctypes.c_bool], POINTER(CTensor)), 'min_tensor': ([POINTER(CTensor), c_int, ctypes.c_bool], POINTER(CTensor)),
@@ -102,6 +104,20 @@ _nn_funcs = {
   'l1_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'l2_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'robust_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
 }
 
+_vector_funcs = {
+  'vector_dot': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_matrix_dot': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'vector_inner': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_outer': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'vector_cross': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_cross_axis': ([POINTER(CTensor), POINTER(CTensor), c_int], POINTER(CTensor)),
+  'linear_1d_tensor': ([POINTER(CTensor), POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'linear_2d_tensor': ([POINTER(CTensor), POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'linear_transform_tensor': ([POINTER(CTensor), POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'det_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_det_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'eig_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eig_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'eigv_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eigv_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'eigh_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eigh_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'eighv_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eighv_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+}
+
 for name, (argtypes, restype) in _forward_funcs.items(): _setup_func(name, argtypes, restype)
 for name, (argtypes, restype) in _backward_funcs.items(): _setup_func(name, argtypes, restype)
 for name, (argtypes, restype) in _nn_funcs.items(): _setup_func(name, argtypes, restype)
+for name, (argtypes, restype) in _vector_funcs.items(): _setup_func(name, argtypes, restype)
