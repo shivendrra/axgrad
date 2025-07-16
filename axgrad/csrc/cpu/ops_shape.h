@@ -6,6 +6,8 @@
 extern "C" {
   void reassign_tensor_ops(float* a, float* out, size_t size);
   void equal_tensor_ops(float* a, float* b, float* out, size_t size);
+  void greater_tensor_ops(float* a, float* b, float* out, size_t size);
+  void smaller_tensor_ops(float* a, float* b, float* out, size_t size);
   void transpose_1d_tensor_ops(float* a, float* out, int* shape);
   void transpose_2d_tensor_ops(float* a, float* out, int* shape);
   void transpose_3d_tensor_ops(float* a, float* out, int* shape);

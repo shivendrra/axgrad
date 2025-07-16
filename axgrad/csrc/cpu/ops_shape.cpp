@@ -10,6 +10,14 @@ void equal_tensor_ops(float* a, float* b, float* out, size_t size) {
   for (int i = 0; i < size; i++) { out[i] = (a[i] == b[i]) ? 1 : 0;}
 }
 
+void greater_tensor_ops(float* a, float* b, float* out, size_t size) {
+  for (int i = 0; i < size; i++) { out[i] = (a[i] > b[i]) ? 1: 0;}
+}
+
+void smaller_tensor_ops(float* a, float* b, float* out, size_t size) {
+  for (int i = 0; i < size; i++) { out[i] = (a[i] < b[i]) ? 1: 0;}
+}
+
 void transpose_1d_tensor_ops(float* a, float* out, int* shape) {
   for (int i = 0; i < shape[0]; i++) { out[i] = a[i]; }
 }
