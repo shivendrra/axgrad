@@ -2,37 +2,20 @@
 #include <stddef.h>
 #include "ops_shape.h"
 
-void reassign_tensor_ops(float* a, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = a[i]; }
-}
-
-void equal_tensor_ops(float* a, float* b, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = (a[i] == b[i]) ? 1 : 0;}
-}
-
-void not_equal_tensor_ops(float* a, float* b, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = (a[i] != b[i]) ? 1 : 0;}
-}
-
-void greater_tensor_ops(float* a, float* b, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = (a[i] > b[i]) ? 1: 0;}
-}
-
-void greater_equal_tensor_ops(float* a, float* b, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = (a[i] >= b[i]) ? 1: 0;}
-}
-
-void smaller_tensor_ops(float* a, float* b, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = (a[i] < b[i]) ? 1: 0;}
-}
-
-void smaller_equal_tensor_ops(float* a, float* b, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = (a[i] <= b[i]) ? 1: 0;}
-}
-
-void transpose_1d_tensor_ops(float* a, float* out, int* shape) {
-  for (int i = 0; i < shape[0]; i++) { out[i] = a[i]; }
-}
+void reassign_tensor_ops(float* a, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = a[i]; } }
+void equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] == b[i]) ? 1 : 0;} }
+void equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] == b) ? 1 : 0;} }
+void not_equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] != b[i]) ? 1 : 0;} }
+void not_equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] != b) ? 1 : 0;} }
+void greater_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] > b[i]) ? 1: 0;} }
+void greater_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] > b) ? 1 : 0;} }
+void greater_equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] >= b[i]) ? 1: 0;} }
+void greater_equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] >= b) ? 1 : 0;} }
+void smaller_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] < b[i]) ? 1: 0;} }
+void smaller_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] < b) ? 1: 0;} }
+void smaller_equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] <= b[i]) ? 1: 0;} }
+void smaller_equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] <= b) ? 1: 0;} }
+void transpose_1d_tensor_ops(float* a, float* out, int* shape) { for (int i = 0; i < shape[0]; i++) { out[i] = a[i]; } }
 
 void transpose_2d_tensor_ops(float* a, float* out, int* shape) {
   int rows = shape[0], cols = shape[1];
