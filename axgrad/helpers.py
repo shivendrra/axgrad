@@ -63,7 +63,7 @@ class Slice:
       lib.set_item_tensor(self.parent_tensor.data, indices_ctypes, c_float(value))
     else: raise TypeError("Index must be int or tuple of ints")
 
-def __set_item_tensor(self, key, value):
+def _set_item_tensor(self, key, value):
   from .tensor import Tensor
   if self.ndim == 0: raise TypeError("0-d tensor cannot be indexed")
   if isinstance(key, int):
@@ -103,7 +103,7 @@ def __set_item_tensor(self, key, value):
     lib.set_item_tensor(self.data, indices_ctypes, c_float(value))
   else: raise TypeError("Index must be int or tuple of ints")
 
-def __iter_item_tensor(self):
+def _iter_item_tensor(self):
   if self.ndim == 0: raise TypeError("Iteration over 0-d tensor")
   for i in range(self.shape[0]):
     if self.ndim == 1: yield self[i]
@@ -121,7 +121,7 @@ def __iter_item_tensor(self):
         row_data.append(value)
       yield ShapeHelp.reshape_list(row_data, self.shape[1:])
 
-def __get_item_tensor(self, key):
+def _get_item_tensor(self, key):
   if self.ndim == 0: raise TypeError("0-d tensor cannot be indexed")
   if isinstance(key, int):
     if key < 0: key += self.shape[0]

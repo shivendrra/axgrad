@@ -2,7 +2,7 @@ from ctypes import c_float, c_size_t, c_int
 from typing import *
 
 from ._core import CTensor, lib, DType
-from .helpers import ShapeHelp, DtypeHelp, Slice, __set_item_tensor, __iter_item_tensor, __get_item_tensor
+from .helpers import ShapeHelp, DtypeHelp, Slice, _set_item_tensor, _iter_item_tensor, _get_item_tensor
 from .autograd.functions import *
 from .ops.binary import *
 from .ops.functional import *
@@ -57,9 +57,9 @@ class Tensor:
     out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
     return out
 
-  def __getitem__(self, key): __get_item_tensor(self, key)
-  def __setitem__(self, key, value): __set_item_tensor(self, key, value)
-  def __iter__(self): __iter_item_tensor(self)
+  def __getitem__(self, key): return _get_item_tensor(self, key)
+  def __setitem__(self, key, value): _set_item_tensor(self, key, value)
+  def __iter__(self): return _iter_item_tensor(self)
 
   def tolist(self) -> List[Any]:
     data_ptr = lib.out_data(self.data)
