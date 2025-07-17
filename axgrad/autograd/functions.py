@@ -19,10 +19,6 @@ class DivBackwards:
   def __init__(self, x, y): self.input = [x, y]
   def backward(self, grad): return [grad * (self.input[1] ** -1), grad * (-self.input[0] / (self.input[1] ** 2))]
 
-class NegBackwards:
-  def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad.__neg__()]
-
 class PowBackwards:
   def __init__(self, x, exp): self.input = [x, exp]
   def backward(self, grad):
@@ -34,7 +30,6 @@ class PowBackwards:
 class RPowBackwards:
   def __init__(self, base, exp): self.input = [base, exp]
   def backward(self, grad): return [None, grad * (self.input[0] ** self.input[1]) * math.log(self.input[0])]
-
 
 class MatmulBackwards:
   def __init__(self, x, y): self.input = [x, y]

@@ -6,50 +6,58 @@ from ctypes import c_float
 
 def add_tensor_ops(self, other):
   from ..tensor import Tensor
-  other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-  if self.shape != other.shape:
-    if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.add_broadcasted_tensor(self.data, other.data).contents
-    else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
-  else: result_ptr = lib.add_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.add_tensor(self.data, other_tensor.data).contents
+  other = other if isinstance(other, Tensor) or isinstance(other, (int, float)) else Tensor(other, self.dtype, False)
+  if isinstance(other, (int, float)): result_ptr = lib.add_scalar_tensor(self.data, c_float(other)).contents
+  else:
+    if self.shape == other.shape: result_ptr = lib.add_tensor(self.data, other.data).contents
+    else:
+      if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.add_broadcasted_tensor(self.data, other.data).contents
+      else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
   out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
   out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-  if out.requires_grad: out.grad_fn = AddBackwards(self, other_tensor if isinstance(other, Tensor) else other)
+  if out.requires_grad: out.grad_fn = AddBackwards(self, other if isinstance(other, Tensor) else other)
   return out
 
 def sub_tensor_ops(self, other):
   from ..tensor import Tensor
-  other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-  if self.shape != other.shape:
-    if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.sub_broadcasted_tensor(self.data, other.data).contents
-    else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
-  else: result_ptr = lib.sub_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.sub_tensor(self.data, other_tensor.data).contents
+  other = other if isinstance(other, Tensor) or isinstance(other, (int, float)) else Tensor(other, self.dtype, False)
+  if isinstance(other, (int, float)): result_ptr = lib.sub_scalar_tensor(self.data, c_float(other)).contents
+  else:
+    if self.shape == other.shape: result_ptr = lib.sub_tensor(self.data, other.data).contents
+    else:
+      if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.sub_broadcasted_tensor(self.data, other.data).contents
+      else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
   out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
   out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-  if out.requires_grad: out.grad_fn = SubBackwards(self, other_tensor if isinstance(other, Tensor) else other)
+  if out.requires_grad: out.grad_fn = SubBackwards(self, other if isinstance(other, Tensor) else other)
   return out
 
 def mul_tensor_ops(self, other):
   from ..tensor import Tensor
-  other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-  if self.shape != other.shape:
-    if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.mul_broadcasted_tensor(self.data, other.data).contents
-    else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
-  else: result_ptr = lib.mul_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.mul_tensor(self.data, other_tensor.data).contents
+  other = other if isinstance(other, Tensor) or isinstance(other, (int, float)) else Tensor(other, self.dtype, False)
+  if isinstance(other, (int, float)): result_ptr = lib.mul_scalar_tensor(self.data, c_float(other)).contents
+  else:
+    if self.shape == other.shape: result_ptr = lib.mul_tensor(self.data, other.data).contents
+    else:
+      if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.mul_broadcasted_tensor(self.data, other.data).contents
+      else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
   out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
   out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-  if out.requires_grad: out.grad_fn = SubBackwards(self, other_tensor if isinstance(other, Tensor) else other)
+  if out.requires_grad: out.grad_fn = SubBackwards(self, other if isinstance(other, Tensor) else other)
   return out
 
 def div_tensor_ops(self, other):
   from ..tensor import Tensor
-  other_tensor = other if isinstance(other, Tensor) else Tensor([other] if isinstance(other, (int, float)) else other, self.dtype)
-  if self.shape != other.shape:
-    if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.div_broadcasted_tensor(self.data, other.data).contents
-    else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
-  else: result_ptr = lib.div_scalar_tensor(self.data, c_float(other)).contents if isinstance(other, (int, float)) else lib.div_tensor(self.data, other_tensor.data).contents
+  other = other if isinstance(other, Tensor) or isinstance(other, (int, float)) else Tensor(other, self.dtype, False)
+  if isinstance(other, (int, float)): result_ptr = lib.div_scalar_tensor(self.data, c_float(other)).contents
+  else:
+    if self.shape == other.shape: result_ptr = lib.div_tensor(self.data, other.data).contents
+    else:
+      if ShapeHelp.is_broadcastable(self.shape, other.shape): result_ptr = lib.div_broadcasted_tensor(self.data, other.data).contents
+      else: raise ValueError(f"Shapes {self.shape} & {other.shape} are incompatible for broadcasting")
   out = Tensor(result_ptr, self.dtype, self.requires_grad or (isinstance(other, Tensor) and other.requires_grad))
   out.shape, out.ndim, out.size, out.strides = self.shape, self.ndim, self.size, self.strides
-  if out.requires_grad: out.grad_fn = SubBackwards(self, other_tensor if isinstance(other, Tensor) else other)
+  if out.requires_grad: out.grad_fn = SubBackwards(self, other if isinstance(other, Tensor) else other)
   return out
 
 def matmul_tensor_ops(self, other):

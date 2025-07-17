@@ -6,7 +6,7 @@ from .helpers import ShapeHelp, DtypeHelp, Slice, _set_item_tensor, _iter_item_t
 from .autograd.functions import *
 from .ops.binary import *
 from .ops.functional import *
-from .ops.unary import log_tensor_ops, sign_tensor_ops, sqrt_tensor_ops, abs_tensor_ops, exp_tensor_ops
+from .ops.unary import log_tensor_ops, sign_tensor_ops, sqrt_tensor_ops, abs_tensor_ops, exp_tensor_ops, neg_tensor_ops
 from .ops.shape import flatten_tensor_ops, transpose_tensor_ops, reshape_tensor_ops
 from .ops.redux import sum_tensor_ops, var_tensor_ops, mean_tensor_ops, std_tensor_ops, max_tensor_ops, min_tensor_ops
 from .ops.norm import clip_tensor_ops, clamp_tensor_ops
@@ -29,13 +29,16 @@ class Tensor:
       self.data = lib.create_tensor(self._data_ctypes, c_size_t(self.ndim), self._shape_ctypes, c_size_t(self.size), c_int(DtypeHelp._parse_dtype(self.dtype)))
     self.requires_grad, self.hooks, self.grad_fn, self.grad = requires_grad, [], None, None
 
+  def __hash__(self):
+    return id(self)
+
   def backward(self, gradient=None):
     assert self.ndim == 0 or (self.ndim == 1 and self.size == 1), "backward can only be called for scalar tensors"
     if gradient is None: gradient = Tensor([1.0], dtype=self.dtype)
     visited, topo_order = set(), []
     def build_topo(v):
-      if v in visited or not v.requires_grad: return
-      visited.add(v)
+      if id(v) in visited or not v.requires_grad: return
+      visited.add(id(v))
       if v.grad_fn: [build_topo(inp) for inp in v.grad_fn.input if isinstance(inp, Tensor)]
       topo_order.append(v)
     build_topo(self)
@@ -124,9 +127,10 @@ class Tensor:
   def __rmul__(self, other): return rmul_tensor_ops(self, other)
   def __truediv__(self, other): return div_tensor_ops(self, other)
   def __rtruediv__(self, other): return rdiv_tensor_ops(self, other)
-  def __pow__(self, exp): return pow_tensor_ops(self, exp)
-  def __rpow__(self, base): return rpow_tensor_ops(self, base)
+  def __pow__(self, exp: Union[float, int]): return pow_tensor_ops(self, exp)
+  def __rpow__(self, base: 'Tensor'): return rpow_tensor_ops(self, base)
   def __matmul__(self, other): return matmul_tensor_ops(self, other)
+  def __neg__(self): return neg_tensor_ops(self)
   def log(self): return log_tensor_ops(self)
   def exp(self): return exp_tensor_ops(self)
   def sign(self): return sign_tensor_ops(self)
@@ -146,14 +150,14 @@ class Tensor:
   def swish(self, beta: float=0.5): return swish_tensor_ops(self, beta)
   def silu(self): return silu_tensor_ops(self)
   def softplus(self): return softplus_tensor_ops(self)
-  def sum(self): return sum_tensor_ops(self)
-  def mean(self): return mean_tensor_ops(self)
-  def var(self): return var_tensor_ops(self)
-  def std(self): return std_tensor_ops(self)
-  def max(self): return max_tensor_ops(self)
-  def min(self): return min_tensor_ops(self)
+  def sum(self, axis: int=-1, keepdims: bool=False): return sum_tensor_ops(self, axis, keepdims)
+  def mean(self, axis: int=-1, keepdims: bool=False): return mean_tensor_ops(self, axis, keepdims)
+  def var(self, axis: int=-1, ddof: int=0): return var_tensor_ops(self, axis, ddof)
+  def std(self, axis: int=-1, ddof: int=0): return std_tensor_ops(self, axis, ddof)
+  def max(self, axis: int=-1, keepdims: bool=False): return max_tensor_ops(self, axis, keepdims)
+  def min(self, axis: int=-1, keepdims: bool=False): return min_tensor_ops(self, axis, keepdims)
   def transpose(self): return transpose_tensor_ops(self)
   def flatten(self): return flatten_tensor_ops(self)
-  def reshape(self): return reshape_tensor_ops(self)
+  def reshape(self, new_shape: Union[Tuple, List]): return reshape_tensor_ops(self, new_shape)
   def clip(self, max_val: float): return clip_tensor_ops(self, max_val)
   def clamp(self, min_val: float,  max_val: float): return clamp_tensor_ops(self, min_val, max_val)

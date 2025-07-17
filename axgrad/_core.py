@@ -94,6 +94,8 @@ _backward_funcs = {
   'mm_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'rms_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'std_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'l1_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'l2_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'unit_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'robust_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'log_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'exp_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
+  'abs_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'sqrt_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
 }
 
 _nn_funcs = {

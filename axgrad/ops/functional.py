@@ -1,5 +1,5 @@
 from .._core import CTensor, lib, DType
-from ..autograd.functions import *
+from ..autograd.unary import *
 from typing import *
 from ctypes import c_float
 

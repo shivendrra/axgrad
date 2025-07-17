@@ -1,6 +1,10 @@
 from .._core import lib
 from ctypes import c_float
 
+class NegBackwards:
+  def __init__(self, x): self.input = [x]
+  def backward(self, grad): return [grad.__neg__()]
+
 class LogBackwards:
   def __init__(self, x): self.input = [x]
   def backward(self, grad):
