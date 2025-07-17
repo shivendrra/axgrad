@@ -3,19 +3,35 @@ from ctypes import c_float
 
 class LogBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad / self.input[0]]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.log_backwards(self.input[0].data, grad.data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [out]
 
 class AbsBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * self.input[0].sign()]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.abs_backwards(self.input[0].data, grad.data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [out]
 
 class ExpBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * self.input[0].exp()]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.exp_backwards(self.input[0].data, grad.data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [out]
 
 class SqrtBackwards:
   def __init__(self, x): self.input = [x]
-  def backward(self, grad): return [grad * (0.5 / self.input[0].sqrt())]
+  def backward(self, grad):
+    from ..tensor import Tensor
+    out = Tensor(lib.sqrt_backwards(self.input[0].data, grad.data).contents, self.input[0].dtype, False)
+    out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
+    return [out]
 
 class SinBackwards:
   def __init__(self, x): self.input = [x]

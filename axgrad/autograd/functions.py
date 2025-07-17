@@ -121,14 +121,6 @@ class ReshapeBackwards:
   def __init__(self, x): self.input = [x]
   def backward(self, grad): return [grad.reshape(self.input[0].shape)]
 
-class ClipBackwards:
-  def __init__(self, x, max_val): self.input, self.max_val = [x], max_val
-  def backward(self, grad): return [grad * (self.input[0] <= self.max_val)]
-
-class ClampBackwards:
-  def __init__(self, x, min_val, max_val):  self.input, self.min_val, self.max_val = [x], min_val, max_val
-  def backward(self, grad): return [grad * ((self.input[0] >= self.min_val) * (self.input[0] <= self.max_val))]
-
 class MinBackwards:
   def __init__(self, x, axis, keepdims): 
     self.input, self.axis, self.keepdims = [x], axis, keepdims
