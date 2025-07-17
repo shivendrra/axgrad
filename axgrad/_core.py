@@ -90,6 +90,10 @@ _backward_funcs = {
   'leaky_relu_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'elu_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'swish_backwards': ([POINTER(CTensor), c_float], POINTER(CTensor)),
   'sum_backwards': ([POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int], POINTER(CTensor)), 'mean_backwards': ([POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int], POINTER(CTensor)),
   'var_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)), 'std_backwards': ([POINTER(CTensor), POINTER(CTensor), POINTER(c_int), c_int, c_size_t, c_int, c_int], POINTER(CTensor)),
+  'clip_backwards': ([POINTER(CTensor), POINTER(CTensor), c_float], POINTER(CTensor)), 'clamp_backwards': ([POINTER(CTensor), POINTER(CTensor), c_float, c_float], POINTER(CTensor)),
+  'mm_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'rms_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'std_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'l1_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'l2_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
+  'unit_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'robust_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
 }
 
 _nn_funcs = {
