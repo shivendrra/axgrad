@@ -2,61 +2,19 @@ from ctypes import c_float, c_size_t, c_int
 from typing import *
 
 from ._core import CTensor, lib, DType
-from .helpers import ShapeHelp, DtypeHelp
+from .helpers import ShapeHelp, DtypeHelp, Slice, _set_item_tensor, _iter_item_tensor, _get_item_tensor
 from .autograd.functions import *
-from .ops.binary import register_binary_ops
-from .ops.functional import register_functional_ops
-from .ops.unary import register_unary_ops
-from .ops.shape import register_shape_ops
-from .ops.redux import register_redux_ops
-from .ops.norm import register_norm_ops
+from .ops.binary import *
+from .ops.functional import *
+from .ops.unary import log_tensor_ops, sign_tensor_ops, sqrt_tensor_ops, abs_tensor_ops, exp_tensor_ops, neg_tensor_ops
+from .ops.shape import flatten_tensor_ops, transpose_tensor_ops, reshape_tensor_ops
+from .ops.redux import sum_tensor_ops, var_tensor_ops, mean_tensor_ops, std_tensor_ops, max_tensor_ops, min_tensor_ops
+from .ops.norm import clip_tensor_ops, clamp_tensor_ops
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float32, float64, double = "float32", "float64", "double"
 uint8, uint16, uint32, uint64 = "uint8", "uint16", "uint32", "uint64"
 boolean = "bool"
-
-class Slice:
-  def __init__(self, parent_tensor, row_index, shape, size, strides):
-    self.parent_tensor, self.row_index, self.shape, self.size, self.strides, self.ndim = parent_tensor, row_index, shape, size, strides, len(shape)
-  def __getitem__(self, sub_key):
-    if isinstance(sub_key, int):
-      if sub_key < 0: sub_key += self.shape[0]
-      if sub_key < 0 or sub_key >= self.shape[0]: raise IndexError(f"Index {sub_key} out of bounds")
-      if self.ndim == 1:
-        indices = [self.row_index, sub_key]
-        indices_ctypes = (c_int * len(indices))(*indices)
-        return lib.get_item_tensor(self.parent_tensor.data, indices_ctypes)
-      else: return Slice(self.parent_tensor, self.row_index, self.shape[1:], self.size // self.shape[0], self.strides[1:])
-    elif isinstance(sub_key, tuple):
-      indices = [self.row_index] + list(sub_key)
-      if len(indices) > self.parent_tensor.ndim: raise IndexError(f"Too many indices")
-      indices += [0] * (self.parent_tensor.ndim - len(indices))
-      indices_ctypes = (c_int * len(indices))(*indices)
-      return lib.get_item_tensor(self.parent_tensor.data, indices_ctypes)
-    else: raise TypeError("Index must be int or tuple of ints")
-
-  def __setitem__(self, sub_key, value):
-    if isinstance(sub_key, int):
-      if sub_key < 0: sub_key += self.shape[0]
-      if sub_key < 0 or sub_key >= self.shape[0]: raise IndexError(f"Index {sub_key} out of bounds")
-      indices = [self.row_index, sub_key]
-      if len(indices) < self.parent_tensor.ndim: indices += [0] * (self.parent_tensor.ndim - len(indices))
-      if isinstance(value, Tensor):
-        if value.size != 1: raise ValueError("Can only assign scalar tensors")
-        value = value.tolist()
-      indices_ctypes = (c_int * len(indices))(*indices)
-      lib.set_item_tensor(self.parent_tensor.data, indices_ctypes, c_float(value))
-    elif isinstance(sub_key, tuple):
-      indices = [self.row_index] + list(sub_key)
-      if len(indices) > self.parent_tensor.ndim: raise IndexError(f"Too many indices")
-      indices += [0] * (self.parent_tensor.ndim - len(indices))
-      if isinstance(value, Tensor):
-        if value.size != 1: raise ValueError("Can only assign scalar tensors")
-        value = value.tolist()      
-      indices_ctypes = (c_int * len(indices))(*indices)
-      lib.set_item_tensor(self.parent_tensor.data, indices_ctypes, c_float(value))
-    else: raise TypeError("Index must be int or tuple of ints")
 
 class Tensor:
   int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean = int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean
@@ -71,13 +29,16 @@ class Tensor:
       self.data = lib.create_tensor(self._data_ctypes, c_size_t(self.ndim), self._shape_ctypes, c_size_t(self.size), c_int(DtypeHelp._parse_dtype(self.dtype)))
     self.requires_grad, self.hooks, self.grad_fn, self.grad = requires_grad, [], None, None
 
+  def __hash__(self):
+    return id(self)
+
   def backward(self, gradient=None):
     assert self.ndim == 0 or (self.ndim == 1 and self.size == 1), "backward can only be called for scalar tensors"
     if gradient is None: gradient = Tensor([1.0], dtype=self.dtype)
     visited, topo_order = set(), []
     def build_topo(v):
-      if v in visited or not v.requires_grad: return
-      visited.add(v)
+      if id(v) in visited or not v.requires_grad: return
+      visited.add(id(v))
       if v.grad_fn: [build_topo(inp) for inp in v.grad_fn.input if isinstance(inp, Tensor)]
       topo_order.append(v)
     build_topo(self)
@@ -99,88 +60,9 @@ class Tensor:
     out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
     return out
 
-  def __getitem__(self, key):
-    if self.ndim == 0: raise TypeError("0-d tensor cannot be indexed")
-    if isinstance(key, int):
-      if key < 0: key += self.shape[0]
-      if key < 0 or key >= self.shape[0]: raise IndexError(f"Index {key} out of bounds for dimension 0 with size {self.shape[0]}")
-
-      if self.ndim == 1:
-        indices = [key]
-        indices_ctypes = (c_int * len(indices))(*indices)
-        return lib.get_item_tensor(self.data, indices_ctypes)
-      else:
-        new_shape = self.shape[1:]
-        new_size = self.size // self.shape[0]
-        new_strides = self.strides[1:]
-        return Slice(self, key, new_shape, new_size, new_strides)
-
-    elif isinstance(key, tuple):
-      if len(key) > self.ndim: raise IndexError(f"Too many indices for tensor: got {len(key)}, expected {self.ndim}")
-      indices = list(key) + [0] * (self.ndim - len(key))
-      indices_ctypes = (c_int * len(indices))(*indices)
-      return lib.get_item_tensor(self.data, indices_ctypes)
-    else: raise TypeError("Index must be int or tuple of ints")
-
-  def __setitem__(self, key, value):
-    if self.ndim == 0: raise TypeError("0-d tensor cannot be indexed")
-    if isinstance(key, int):
-      if key < 0: key += self.shape[0]
-      if key < 0 or key >= self.shape[0]: raise IndexError(f"Index {key} out of bounds for dimension 0 with size {self.shape[0]}")
-      
-      if self.ndim == 1:
-        indices = [key]
-        if isinstance(value, Tensor):
-          if value.size != 1: raise ValueError("Can only assign scalar tensors")
-          value = value.tolist()
-        indices_ctypes = (c_int * len(indices))(*indices)
-        lib.set_item_tensor(self.data, indices_ctypes, c_float(value))
-      else:
-        if isinstance(value, (list, tuple)):
-          flat_value = ShapeHelp.flatten(value)
-          expected_size = self.size // self.shape[0]
-          if len(flat_value) != expected_size: raise ValueError(f"Cannot assign {len(flat_value)} values to slice of size {expected_size}")
-          
-          for i, val in enumerate(flat_value):
-            linear_idx = key * self.strides[0] + i
-            temp_indices = []
-            temp_linear = linear_idx
-            for dim in range(self.ndim - 1, -1, -1):
-              temp_indices.insert(0, temp_linear % self.shape[dim])
-              temp_linear //= self.shape[dim]
-            indices_ctypes = (c_int * len(temp_indices))(*temp_indices)
-            lib.set_item_tensor(self.data, indices_ctypes, c_float(val))
-        else:
-          raise ValueError("Cannot assign scalar to multi-dimensional slice")
-    elif isinstance(key, tuple):
-      if len(key) > self.ndim: raise IndexError(f"Too many indices for tensor: got {len(key)}, expected {self.ndim}")
-      indices = list(key) + [0] * (self.ndim - len(key))
-      if isinstance(value, Tensor):
-        if value.size != 1: raise ValueError("Can only assign scalar tensors")
-        value = value.tolist()
-      indices_ctypes = (c_int * len(indices))(*indices)
-      lib.set_item_tensor(self.data, indices_ctypes, c_float(value))
-    else: raise TypeError("Index must be int or tuple of ints")
-
-  def __iter__(self):
-    if self.ndim == 0: raise TypeError("Iteration over 0-d tensor")
-    for i in range(self.shape[0]):
-      if self.ndim == 1: yield self[i]
-      else:
-        row_data = []
-        offset = i * self.strides[0]
-        row_size = self.size // self.shape[0]
-        for j in range(row_size):
-          linear_idx, indices = offset + j, []
-          temp_idx = linear_idx
-          for dim in range(self.ndim - 1, 0, -1):
-            indices.insert(0, temp_idx % self.shape[dim])
-            temp_idx //= self.shape[dim]
-          indices.insert(0, i)
-          indices_ctypes = (c_int * len(indices))(*indices)
-          value = lib.get_item_tensor(self.data, indices_ctypes)
-          row_data.append(value)
-        yield ShapeHelp.reshape_list(row_data, self.shape[1:])
+  def __getitem__(self, key): return _get_item_tensor(self, key)
+  def __setitem__(self, key, value): _set_item_tensor(self, key, value)
+  def __iter__(self): return _iter_item_tensor(self)
 
   def tolist(self) -> List[Any]:
     data_ptr = lib.out_data(self.data)
@@ -189,9 +71,93 @@ class Tensor:
     elif self.ndim == 1: return data_tensor
     else: return ShapeHelp.reshape_list(data_tensor, self.shape)
 
-register_binary_ops()
-register_functional_ops()
-register_unary_ops()
-register_shape_ops()
-register_redux_ops()
-register_norm_ops()
+  def __eq__(self, other):
+    if isinstance(other, (int, float)):
+      out = Tensor(lib.equal_scalar(self.data, c_float(other)).contents, DType.BOOL, self.requires_grad)
+    else:
+      other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+      out = Tensor(lib.equal_tensor(self.data, other.data).contents, DType.BOOL, self.requires_grad)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __ne__(self, other):
+    if isinstance(other, (int, float)):
+      out = Tensor(lib.not_equal_scalar(self.data, c_float(other)).contents, DType.BOOL, self.requires_grad)
+    else:
+      other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+      out = Tensor(lib.equal_tensor(self.data, other.data).contents, DType.BOOL, self.requires_grad)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __gt__(self, other):
+    if isinstance(other, (int, float)):
+      out = Tensor(lib.greater_scalar(self.data, c_float(other)).contents, DType.BOOL, self.requires_grad)
+    else:
+      other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+      out = Tensor(lib.greater_tensor(self.data, other.data).contents, DType.BOOL, self.requires_grad)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __ge__(self, other):
+    if isinstance(other, (int, float)):
+      out = Tensor(lib.greater_equal_scalar(self.data, c_float(other)).contents, DType.BOOL, self.requires_grad)
+    else:
+      other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+      out = Tensor(lib.greater_equal_tensor(self.data, other.data).contents, DType.BOOL, self.requires_grad)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __lt__(self, other):
+    if isinstance(other, (int, float)):
+      out = Tensor(lib.smaller_scalar(self.data, c_float(other)).contents, DType.BOOL, self.requires_grad)
+    else:
+      other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+      out = Tensor(lib.smaller_tensor(self.data, other.data).contents, DType.BOOL, self.requires_grad)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __le__(self, other):
+    if isinstance(other, (int, float)):
+      out = Tensor(lib.smaller_equal_scalar(self.data, c_float(other)).contents, DType.BOOL, self.requires_grad)
+    else:
+      other = other if isinstance(other, Tensor) else Tensor(other, self.dtype, False)
+      out = Tensor(lib.smaller_equal_tensor(self.data, other.data).contents, DType.BOOL, self.requires_grad)
+    return (setattr(out, "grad", self.grad), setattr(out, "hooks", self.hooks), setattr(out, "grad_fn", self.grad_fn), out)[3] if self.requires_grad else out
+
+  def __add__(self, other): return add_tensor_ops(self, other)
+  def __radd__(self, other): return radd_tensor_ops(self, other)
+  def __sub__(self, other): return sub_tensor_ops(self, other)
+  def __rsub__(self, other): return rsub_tensor_ops(self, other)
+  def __mul__(self, other): return mul_tensor_ops(self, other)
+  def __rmul__(self, other): return rmul_tensor_ops(self, other)
+  def __truediv__(self, other): return div_tensor_ops(self, other)
+  def __rtruediv__(self, other): return rdiv_tensor_ops(self, other)
+  def __pow__(self, exp: Union[float, int]): return pow_tensor_ops(self, exp)
+  def __rpow__(self, base: 'Tensor'): return rpow_tensor_ops(self, base)
+  def __matmul__(self, other): return matmul_tensor_ops(self, other)
+  def __neg__(self): return neg_tensor_ops(self)
+  def log(self): return log_tensor_ops(self)
+  def exp(self): return exp_tensor_ops(self)
+  def sign(self): return sign_tensor_ops(self)
+  def abs(self): return abs_tensor_ops(self)
+  def sqrt(self): return sqrt_tensor_ops(self)
+  def sin(self): return sin_tensor_ops(self)
+  def cos(self): return cos_tensor_ops(self)
+  def tan(self): return tan_tensor_ops(self)
+  def sinh(self): return sinh_tensor_ops(self)
+  def cosh(self): return cosh_tensor_ops(self)
+  def tanh(self): return tanh_tensor_ops(self)
+  def sigmoid(self): return sigmoid_tensor_ops(self)
+  def relu(self): return relu_tensor_ops(self)
+  def gelu(self): return gelu_tensor_ops(self)
+  def elu(self, alpha: float=1e-5): return elu_tensor_ops(self, alpha)
+  def leakyrelu(self, eps: float=1e-5): return leaky_relu_tensor_ops(self, eps)
+  def swish(self, beta: float=0.5): return swish_tensor_ops(self, beta)
+  def silu(self): return silu_tensor_ops(self)
+  def softplus(self): return softplus_tensor_ops(self)
+  def sum(self, axis: int=-1, keepdims: bool=False): return sum_tensor_ops(self, axis, keepdims)
+  def mean(self, axis: int=-1, keepdims: bool=False): return mean_tensor_ops(self, axis, keepdims)
+  def var(self, axis: int=-1, ddof: int=0): return var_tensor_ops(self, axis, ddof)
+  def std(self, axis: int=-1, ddof: int=0): return std_tensor_ops(self, axis, ddof)
+  def max(self, axis: int=-1, keepdims: bool=False): return max_tensor_ops(self, axis, keepdims)
+  def min(self, axis: int=-1, keepdims: bool=False): return min_tensor_ops(self, axis, keepdims)
+  def transpose(self): return transpose_tensor_ops(self)
+  def flatten(self): return flatten_tensor_ops(self)
+  def reshape(self, new_shape: Union[Tuple, List]): return reshape_tensor_ops(self, new_shape)
+  def clip(self, max_val: float): return clip_tensor_ops(self, max_val)
+  def clamp(self, min_val: float,  max_val: float): return clamp_tensor_ops(self, min_val, max_val)

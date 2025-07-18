@@ -1,18 +1,22 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <stddef.h>
 #include "ops_shape.h"
 
-void reassign_tensor_ops(float* a, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = a[i]; }
-}
-
-void equal_tensor_ops(float* a, float* b, float* out, size_t size) {
-  for (int i = 0; i < size; i++) { out[i] = (a[i] == b[i]) ? 1 : 0;}
-}
-
-void transpose_1d_tensor_ops(float* a, float* out, int* shape) {
-  for (int i = 0; i < shape[0]; i++) { out[i] = a[i]; }
-}
+void reassign_tensor_ops(float* a, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = a[i]; } }
+void equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] == b[i]) ? 1 : 0;} }
+void equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] == b) ? 1 : 0;} }
+void not_equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] != b[i]) ? 1 : 0;} }
+void not_equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] != b) ? 1 : 0;} }
+void greater_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] > b[i]) ? 1: 0;} }
+void greater_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] > b) ? 1 : 0;} }
+void greater_equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] >= b[i]) ? 1: 0;} }
+void greater_equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] >= b) ? 1 : 0;} }
+void smaller_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] < b[i]) ? 1: 0;} }
+void smaller_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] < b) ? 1: 0;} }
+void smaller_equal_tensor_ops(float* a, float* b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] <= b[i]) ? 1: 0;} }
+void smaller_equal_scalar_ops(float* a, float b, float* out, size_t size) { for (int i = 0; i < size; i++) { out[i] = (a[i] <= b) ? 1: 0;} }
+void transpose_1d_tensor_ops(float* a, float* out, int* shape) { for (int i = 0; i < shape[0]; i++) { out[i] = a[i]; } }
 
 void transpose_2d_tensor_ops(float* a, float* out, int* shape) {
   int rows = shape[0], cols = shape[1];
@@ -82,4 +86,29 @@ void transpose_ndim_tensor_ops(float* a, float* out, int* shape, int ndim) {
     }
     out[out_idx] = a[in_idx];     // copying the element
   }
+}
+
+void compute_broadcast_indices(int linear_index, int* broadcasted_shape, int max_ndim,  int a_ndim, int b_ndim, int* a_shape, int* b_shape, int* index_a, int* index_b) {
+  int *strides_a = (int*)malloc(max_ndim * sizeof(int)), *strides_b = (int*)malloc(max_ndim * sizeof(int));
+  if (strides_a == NULL || strides_b == NULL) {
+    fprintf(stderr, "Couldn't assign the strides to memory, operation failed!\n");
+    exit(1);
+  }
+
+  int stride_a = 1, stride_b = 1;
+  for (int i = max_ndim - 1; i >= 0; i--) {
+    int dim_a = (i >= max_ndim - a_ndim) ? a_shape[i - (max_ndim - a_ndim)] : 1, dim_b = (i >= max_ndim - b_ndim) ? b_shape[i - (max_ndim - b_ndim)] : 1;
+    strides_a[i] = (dim_a == broadcasted_shape[i]) ? stride_a : 0, strides_b[i] = (dim_b == broadcasted_shape[i]) ? stride_b : 0;
+    stride_a *= dim_a, stride_b *= dim_b;
+  }
+  *index_a = 0; *index_b = 0;
+  int temp_index = linear_index;
+  for (int j = max_ndim - 1; j >= 0; j--) {
+    int pos = temp_index % broadcasted_shape[j];
+    temp_index /= broadcasted_shape[j];
+    if (strides_a[j] != 0) *index_a += pos * strides_a[j];
+    if (strides_b[j] != 0) *index_b += pos * strides_b[j];
+  }
+  free(strides_a);
+  free(strides_b);
 }

@@ -14,32 +14,18 @@
 
 import axgrad as ax
 
-a = ax.randn(2, 5)
+a, b = ax.randn(2, 5), ax.randn(2, 5)
 
-print("Original tensor:")
-print(a)
-print(f"a[0][1] = {a[0][1]}")
-print(f"a[1][1] = {a[1][1]}")
+print(a == b)
+print(a != b)
+print(a > b)
+print(a < b)
+print(a >= b)
+print(a <= b)
 
-print("\nAssigning values...")
-a[0][1] = 10
-a[1][1] = 20
-
-print("\nAfter assignment:")
-print(a)
-print(f"a[0][1] = {a[0][1]}")
-print(f"a[1][1] = {a[1][1]}")
-
-print("\nTesting iteration:")
-for i, row in enumerate(a):
-  print(f"Row {i}: {row}")
-  print("row elements:")
-  for j in row:
-    print("element: ", j)
-
-print("\nTesting tuple indexing:")
-print(f"a[0, 1] = {a[0, 1]}")
-print(f"a[1, 1] = {a[1, 1]}")
-
-a[0, 2] = 99
-print(f"After a[0, 2] = 99: {a}")
+print(a == 2.0)
+print(a != 2.0)
+print(a > 2.0)
+print(a < 2.0)
+print(a >= 2.0)
+print(a <= 2.0)

@@ -159,6 +159,388 @@ Tensor* equal_tensor(Tensor* a, Tensor* b) {
   return result;
 }
 
+Tensor* equal_scalar(Tensor* a, float b) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  equal_scalar_ops(a_float, b, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
+Tensor* not_equal_tensor(Tensor* a, Tensor* b) {
+  if (a == NULL || b == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  if (a->ndim != b->ndim) {
+    fprintf(stderr, "tensors must have same dimensions %d and %d for equal\n", a->ndim, b->ndim);
+    exit(EXIT_FAILURE);
+  }
+
+  // checking if shapes match
+  for (size_t i = 0; i < a->ndim; i++) {
+    if (a->shape[i] != b->shape[i]) {
+      fprintf(stderr, "tensors must have the same shape for comparison\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  float* b_float = convert_to_float32(b->data, b->dtype, b->size);
+  if (a_float == NULL || b_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    if (b_float) free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  // perform the equality comparison
+  not_equal_tensor_ops(a_float, b_float, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(b_float);
+  free(out);
+  return result;
+}
+
+Tensor* not_equal_scalar(Tensor* a, float b) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  not_equal_scalar_ops(a_float, b, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
+Tensor* greater_tensor(Tensor* a, Tensor* b) {
+  if (a == NULL || b == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  if (a->ndim != b->ndim) {
+    fprintf(stderr, "tensors must have same dimensions %d and %d for equal\n", a->ndim, b->ndim);
+    exit(EXIT_FAILURE);
+  }
+
+  // checking if shapes match
+  for (size_t i = 0; i < a->ndim; i++) {
+    if (a->shape[i] != b->shape[i]) {
+      fprintf(stderr, "tensors must have the same shape for comparison\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  float* b_float = convert_to_float32(b->data, b->dtype, b->size);
+  if (a_float == NULL || b_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    if (b_float) free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  // perform the equality comparison
+  greater_tensor_ops(a_float, b_float, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(b_float);
+  free(out);
+  return result;
+}
+
+Tensor* greater_scalar(Tensor* a, float b) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  greater_scalar_ops(a_float, b, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
+Tensor* greater_equal_tensor(Tensor* a, Tensor* b) {
+  if (a == NULL || b == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  if (a->ndim != b->ndim) {
+    fprintf(stderr, "tensors must have same dimensions %d and %d for equal\n", a->ndim, b->ndim);
+    exit(EXIT_FAILURE);
+  }
+
+  // checking if shapes match
+  for (size_t i = 0; i < a->ndim; i++) {
+    if (a->shape[i] != b->shape[i]) {
+      fprintf(stderr, "tensors must have the same shape for comparison\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  float* b_float = convert_to_float32(b->data, b->dtype, b->size);
+  if (a_float == NULL || b_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    if (b_float) free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  // perform the equality comparison
+  greater_equal_tensor_ops(a_float, b_float, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(b_float);
+  free(out);
+  return result;
+}
+
+Tensor* greater_equal_scalar(Tensor* a, float b) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  greater_equal_scalar_ops(a_float, b, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
+Tensor* smaller_tensor(Tensor* a, Tensor* b) {
+  if (a == NULL || b == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  if (a->ndim != b->ndim) {
+    fprintf(stderr, "tensors must have same dimensions %d and %d for equal\n", a->ndim, b->ndim);
+    exit(EXIT_FAILURE);
+  }
+
+  // checking if shapes match
+  for (size_t i = 0; i < a->ndim; i++) {
+    if (a->shape[i] != b->shape[i]) {
+      fprintf(stderr, "tensors must have the same shape for comparison\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  float* b_float = convert_to_float32(b->data, b->dtype, b->size);
+  if (a_float == NULL || b_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    if (b_float) free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  // perform the equality comparison
+  smaller_tensor_ops(a_float, b_float, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(b_float);
+  free(out);
+  return result;
+}
+
+Tensor* smaller_scalar(Tensor* a, float b) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  smaller_scalar_ops(a_float, b, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
+Tensor* smaller_equal_tensor(Tensor* a, Tensor* b) {
+  if (a == NULL || b == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  if (a->ndim != b->ndim) {
+    fprintf(stderr, "tensors must have same dimensions %d and %d for equal\n", a->ndim, b->ndim);
+    exit(EXIT_FAILURE);
+  }
+
+  // checking if shapes match
+  for (size_t i = 0; i < a->ndim; i++) {
+    if (a->shape[i] != b->shape[i]) {
+      fprintf(stderr, "tensors must have the same shape for comparison\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  float* b_float = convert_to_float32(b->data, b->dtype, b->size);
+  if (a_float == NULL || b_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    if (b_float) free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    free(b_float);
+    exit(EXIT_FAILURE);
+  }
+  // perform the equality comparison
+  smaller_equal_tensor_ops(a_float, b_float, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(b_float);
+  free(out);
+  return result;
+}
+
+Tensor* smaller_equal_scalar(Tensor* a, float b) {
+  if (a == NULL) {
+    fprintf(stderr, "Tensor value pointers are null!\n");
+    exit(EXIT_FAILURE);
+  }
+  // converting both tensors to float32 for computation
+  float* a_float = convert_to_float32(a->data, a->dtype, a->size);
+  if (a_float == NULL) {
+    fprintf(stderr, "Memory allocation failed during dtype conversion\n");
+    if (a_float) free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  float* out = (float*)malloc(a->size * sizeof(float));
+  if (out == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    free(a_float);
+    exit(EXIT_FAILURE);
+  }
+  smaller_equal_scalar_ops(a_float, b, out, a->size);
+  // comparison operations always return boolean type
+  dtype_t result_dtype = DTYPE_BOOL;
+  Tensor* result = create_tensor(out, a->ndim, a->shape, a->size, result_dtype);
+  free(a_float);
+  free(out);
+  return result;
+}
+
 Tensor* squeeze_tensor(Tensor* a, int axis) {
   if (a == NULL) {
     fprintf(stderr, "Tensor value pointers are null!\n");

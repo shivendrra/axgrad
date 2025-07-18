@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include "cpu/ops_norm.h"
+#include "../cpu/ops_norm.h"
 #include "norm.h"
 
 Tensor* clip_tensor(Tensor* a, float max_val) {

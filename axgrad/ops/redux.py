@@ -79,12 +79,3 @@ def std_tensor_ops(self, axis: int=-1, ddof: int=0):
     out.size, out.ndim, out.strides = 1 if not new_shape else eval('*'.join(map(str, new_shape))), len(new_shape), ShapeHelp.get_strides(out.shape) if out.shape else []
   if self.requires_grad: out.grad_fn = StdBackwards(self, axis, None, ddof)
   return out
-
-def register_redux_ops():
-  from ..tensor import Tensor
-  Tensor.sum = sum_tensor_ops
-  Tensor.mean = mean_tensor_ops
-  Tensor.max = max_tensor_ops
-  Tensor.min = min_tensor_ops
-  Tensor.var = var_tensor_ops
-  Tensor.std = std_tensor_ops
