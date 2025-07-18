@@ -12,7 +12,7 @@ class MSELoss:
     assert pred.shape == target.shape, f"Prediction shape {pred.shape} doesn't match target shape {target.shape}"
     # Calculate (pred - target)^2
     diff = pred - target
-    squared_diff = diff * diff
+    squared_diff = diff ** 2
     if self.reduction == "none": return squared_diff
     elif self.reduction == "sum": return squared_diff.sum()
     else: return squared_diff.sum() * (1.0 / target.size)  # mean
