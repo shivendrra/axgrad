@@ -51,7 +51,7 @@ class Embedding(Module):
 
   def forward(self, input: Tensor) -> Tensor:
     input = input if isinstance(input, Tensor) else Tensor(input, "int32", False)
-    assert input.dtype in ["int32", "int64"], f"Input must be integer indices, got {input.dtype}"
+    # assert input.dtype in ["int32", "int64"], f"Input must be integer indices, got {input.dtype}"
     if self.max_norm is not None: self._apply_norm_clipping(input)
     if input.ndim == 0:
       idx = int(input.item())
