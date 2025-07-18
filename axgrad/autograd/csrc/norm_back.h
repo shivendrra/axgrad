@@ -6,7 +6,7 @@
 
 extern "C" {
   Tensor* clip_backwards(Tensor* a, Tensor* grad, float max_val);
-  Tensor* clamp_backwards(Tensor* a, Tensor* grad, float max_val, float min_val);
+  Tensor* clamp_backwards(Tensor* a, Tensor* grad, float min_val, float max_val);
   Tensor* mm_norm_backwards(Tensor* a, Tensor* grad);
   Tensor* std_norm_backwards(Tensor* a, Tensor* grad);
   Tensor* rms_norm_backwards(Tensor* a, Tensor* grad);

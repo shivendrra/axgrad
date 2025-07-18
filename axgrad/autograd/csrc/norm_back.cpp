@@ -25,7 +25,7 @@ Tensor* clip_backwards(Tensor* a, Tensor* grad, float max_val) {
   return result;
 }
 
-Tensor* clamp_backwards(Tensor* a, Tensor* grad, float max_val, float min_val) {
+Tensor* clamp_backwards(Tensor* a, Tensor* grad, float min_val, float max_val) {
   if (a == NULL || grad == NULL) {
     fprintf(stderr, "Tensor value pointers are null!\n");
     exit(EXIT_FAILURE);

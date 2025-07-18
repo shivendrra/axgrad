@@ -13,7 +13,7 @@ class ClampBackwards:
   def __init__(self, x, min_val, max_val):  self.input, self.min_val, self.max_val = [x], min_val, max_val
   def backward(self, grad):
     from ..tensor import Tensor
-    out = Tensor(lib.clamp_backwards(self.input[0].data, grad.data, c_float(self.max_val), c_float(self.min_val)).contents, self.input[0].dtype, False)
+    out = Tensor(lib.clamp_backwards(self.input[0].data, grad.data, c_float(self.min_val), c_float(self.max_val)).contents, self.input[0].dtype, False)
     out.shape, out.ndim, out.size, out.strides = self.input[0].shape, self.input[0].ndim, self.input[0].size, self.input[0].strides
     return [out]
 

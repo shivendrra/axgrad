@@ -15,7 +15,7 @@ void clip_backwards_ops(float* a, float* grad, float* out, float max_val, size_t
 }
 
 // out_grad = grad * (x <= max_val) * (x >= min_val)
-void clamp_backwards_ops(float* a, float* grad, float* out, float max_val, float min_val, size_t size) {
+void clamp_backwards_ops(float* a, float* grad, float* out, float min_val, float max_val, size_t size) {
   float *temp1 = (float*)malloc(size * sizeof(float)), *temp2 = (float*)malloc(size * sizeof(float)), *temp3 = (float*)malloc(size * sizeof(float));
   smaller_equal_scalar_ops(a, max_val, temp1, size);
   greater_equal_scalar_ops(a, min_val, temp2, size);
