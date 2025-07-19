@@ -38,50 +38,83 @@ class Module(ABC):
     for _, _, param in self.parameters(): total += param.size
     return total
 
-  def save(self, filepath):
+  def _build_module_path_map(self):
+    module_to_path = {self: ""}        
+    def traverse(current_module, current_path):
+      for attr_name in dir(current_module):
+        if attr_name.startswith('_'): continue
+        try:
+          attr_value = getattr(current_module, attr_name)
+          if isinstance(attr_value, Module) and attr_value is not current_module:
+            new_path = f"{current_path}.{attr_name}" if current_path else attr_name
+            module_to_path[attr_value] = new_path
+            traverse(attr_value, new_path)     # recursively traverse submodules
+        except: continue
+    traverse(self, "")
+    return module_to_path
+
+  def save(self, filepath:str):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    state_dict = {}     # Create state dict
+    module_to_path, state_dict = self._build_module_path_map(), {}
     for module, param_name, param in self.parameters():
-      # Create a hierarchical key like "layer1.weight", "layer1.bias", etc.
-      if module is self: key = param_name
-      else:
-        module_name = None
-        for name, mod in self._modules.items():
-          if mod is module:
-            module_name = name
-            break
-        if module_name: key = f"{module_name}.{param_name}"
-        else: key = param_name
-      state_dict[key] = param.tolist()    
+      module_path = module_to_path.get(module, "")
+      if module_path: key = f"{module_path}.{param_name}"
+      else: key = param_name
+      state_dict[key] = param.tolist()
     with open(filepath, 'wb') as f: pickle.dump(state_dict, f)
-    print(f"Model saved to {filepath}")
+    print(f"Saved {len(state_dict)} parameters to {filepath}")
 
-  def load(self, filepath):
-    with open(filepath, 'rb') as f: state_dict = pickle.load(f)
-    param_map = {}
+  def load(self, filepath: str):
+    with open(filepath, 'rb') as f: state_dict = pickle.load(f)        
+    module_to_path = self._build_module_path_map()
+    param_map = {} # creating parameter mapping with proper hierarchical keys
     for module, param_name, param in self.parameters():
-      if module is self: key = param_name
-      else:
-        # Find the module name by searching through _modules
-        module_name = None
-        for name, mod in self._modules.items():
-          if mod is module:
-            module_name = name
-            break
+      module_path = module_to_path.get(module, "")
+      if module_path: key = f"{module_path}.{param_name}"
+      else: key = param_name
+      param_map[key] = param
 
-        if module_name: key = f"{module_name}.{param_name}"
-        else: key = param_name
-        param_map[key] = param
-
+    loaded_count = 0
     for key, data in state_dict.items():
       if key in param_map:
-        # Create new tensor with the loaded data
-        new_tensor = Tensor(data, dtype=param_map[key].dtype)
-        # Copy the data to the parameter
-        param_map[key].data = new_tensor.data
-        param_map[key].shape = new_tensor.shape
-        param_map[key].size = new_tensor.size
-        param_map[key].ndim = new_tensor.ndim
-        param_map[key].strides = new_tensor.strides
-      else: print(f"Warning: Parameter '{key}' not found in model")
-    print(f"Model loaded from {filepath}")
+        param = param_map[key]
+        new_tensor = Tensor(data, dtype=param.dtype)
+        param.data = new_tensor.data
+        param.shape = new_tensor.shape
+        param.size = new_tensor.size
+        param.ndim = new_tensor.ndim
+        param.strides = new_tensor.strides
+        loaded_count += 1
+      else: print(f"  WARNING: {key} not found in current model")
+    print(f"Successfully loaded {loaded_count}/{len(state_dict)} parameters")
+
+  def named_parameters(self):
+    """ Alternative method that yields (name, parameter) tuples with proper hierarchical naming """
+    module_to_path = self._build_module_path_map()        
+    for module, param_name, param in self.parameters():
+      module_path = module_to_path.get(module, "")
+      if module_path: full_name = f"{module_path}.{param_name}"
+      else: full_name = param_name
+      yield full_name, param
+
+  def state_dict(self):
+    state = {}
+    for name, param in self.named_parameters(): state[name] = param.tolist()
+    return state
+
+  def load_state_dict(self, state_dict):
+    param_map = {}
+    for name, param in self.named_parameters(): param_map[name] = param
+    loaded_count = 0
+    for name, data in state_dict.items():
+      if name in param_map:
+        param = param_map[name]
+        new_tensor = Tensor(data, dtype=param.dtype)
+        param.data = new_tensor.data
+        param.shape = new_tensor.shape
+        param.size = new_tensor.size
+        param.ndim = new_tensor.ndim
+        param.strides = new_tensor.strides
+        loaded_count += 1
+      else: print(f"  WARNING: {name} not found in current model")
+    print(f"Successfully loaded {loaded_count}/{len(state_dict)} parameters")
