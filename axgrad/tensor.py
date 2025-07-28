@@ -7,7 +7,7 @@ from .autograd.functions import *
 from .ops.binary import *
 from .ops.functional import *
 from .ops.unary import log_tensor_ops, sign_tensor_ops, sqrt_tensor_ops, abs_tensor_ops, exp_tensor_ops, neg_tensor_ops
-from .ops.shape import flatten_tensor_ops, transpose_tensor_ops, reshape_tensor_ops
+from .ops.shape import flatten_tensor_ops, transpose_tensor_ops, reshape_tensor_ops, squeeze_tensor_ops, unsqueeze_tensor_ops, contiguous_tensor_ops, view_tensor_ops, make_contiguous_tensor_ops
 from .ops.redux import sum_tensor_ops, var_tensor_ops, mean_tensor_ops, std_tensor_ops, max_tensor_ops, min_tensor_ops
 from .ops.norm import clip_tensor_ops, clamp_tensor_ops
 
@@ -17,8 +17,7 @@ uint8, uint16, uint32, uint64 = "uint8", "uint16", "uint32", "uint64"
 boolean = "bool"
 
 class Tensor:
-  int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean = int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean
-  
+  int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean = int8, int16, int32, int64, long, float32, float64, double, uint8, uint16, uint32, uint64, boolean  
   def __init__(self, data: Union[List[Any], int, float], dtype: str=float32, requires_grad: bool=False):
     if isinstance(data, CTensor): self.data, self.shape, self.size, self.ndim, self.strides, self.dtype = data, (), 0, 0, [], dtype or "float32"
     elif isinstance(data, Tensor): self.data, self.shape, self.dtype, self.size, self.ndim, self.strides = data.data, data.shape, dtype or data.dtype, data.size, data.ndim, data.strides
@@ -28,9 +27,6 @@ class Tensor:
       self._data_ctypes, self._shape_ctypes = (c_float * self.size)(*data.copy()), (c_int * self.ndim)(*shape)
       self.data = lib.create_tensor(self._data_ctypes, c_size_t(self.ndim), self._shape_ctypes, c_size_t(self.size), c_int(DtypeHelp._parse_dtype(self.dtype)))
     self.requires_grad, self.hooks, self.grad_fn, self.grad = requires_grad, [], None, None
-
-  def __hash__(self):
-    return id(self)
 
   def backward(self, gradient=None):
     assert self.ndim == 0 or (self.ndim == 1 and self.size == 1), "backward can only be called for scalar tensors"
@@ -52,17 +48,21 @@ class Tensor:
   def __setattr__(self, name, value):
     if name == "grad": [setattr(self, "_temp_value", hook(getattr(self, "_temp_value", value))) for hook in self.hooks]; value = getattr(self, "_temp_value", value)
     super().__setattr__(name, value)
+
   def register_hook(self, function): self.hooks.append(function)
   def __str__(self): return (lib.print_tensor(self.data), "")[1]
+  def __hash__(self): return id(self)
+  def __getitem__(self, key): return _get_item_tensor(self, key)
+  def __setitem__(self, key, value): _set_item_tensor(self, key, value)
+  def __iter__(self): return _iter_item_tensor(self)
+  def contiguous(self): return contiguous_tensor_ops(self)
+  def make_contiguous(self): return make_contiguous_tensor_ops(self)
+  def view(self): return view_tensor_ops(self)
 
   def astype(self, dtype: DType) -> "Tensor":
     out = Tensor(lib.cast_tensor(self.data, c_int(DtypeHelp._parse_dtype(dtype))).contents, requires_grad=self.requires_grad)
     out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
     return out
-
-  def __getitem__(self, key): return _get_item_tensor(self, key)
-  def __setitem__(self, key, value): _set_item_tensor(self, key, value)
-  def __iter__(self): return _iter_item_tensor(self)
 
   def tolist(self) -> List[Any]:
     data_ptr = lib.out_data(self.data)
@@ -161,3 +161,5 @@ class Tensor:
   def reshape(self, new_shape: Union[Tuple, List]): return reshape_tensor_ops(self, new_shape)
   def clip(self, max_val: float): return clip_tensor_ops(self, max_val)
   def clamp(self, min_val: float,  max_val: float): return clamp_tensor_ops(self, min_val, max_val)
+  def squeeze(self, axis: int): return squeeze_tensor_ops(self, axis)
+  def unsqueeze(self, axis: int): return unsqueeze_tensor_ops(self, axis)
