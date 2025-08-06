@@ -15,7 +15,6 @@ extern "C" {
   Tensor* batched_eigv_tensor(Tensor* a);    // batched eigen vectors
   Tensor* batched_eigh_tensor(Tensor* a);      // batched eigen hermitian values
   Tensor* batched_eighv_tensor(Tensor* a);      // batched eigen hermitian vectors
-  Tensor** batched_qr_tensor(Tensor* a);
   Tensor** qr_tensor(Tensor* a);
   Tensor** batched_qr_tensor(Tensor* a);
   Tensor** lu_tensor(Tensor* a);

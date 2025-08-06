@@ -109,13 +109,14 @@ _vector_funcs = {
   'vector_dot': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_matrix_dot': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'vector_inner': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_outer': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'vector_cross': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_cross_axis': ([POINTER(CTensor), POINTER(CTensor), c_int], POINTER(CTensor)),
-  'linear_1d_tensor': ([POINTER(CTensor), POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'linear_2d_tensor': ([POINTER(CTensor), POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
-  'linear_transform_tensor': ([POINTER(CTensor), POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
-  'det_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_det_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'det_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_det_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'inv_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'solve_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'lstsq_tensor': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'eig_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eig_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'eigv_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eigv_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'eigh_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eigh_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'eighv_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'batched_eighv_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
+  'svd_tensor': ([POINTER(CTensor)], POINTER(POINTER(CTensor))), 'qr_tensor': ([POINTER(CTensor)], POINTER(POINTER(CTensor))), 'batched_qr_tensor': ([POINTER(CTensor)], POINTER(POINTER(CTensor))),
+  'lu_tensor': ([POINTER(CTensor)], POINTER(POINTER(CTensor))), 'batched_lu_tensor': ([POINTER(CTensor)], POINTER(POINTER(CTensor))),
 }
 
 for name, (argtypes, restype) in _forward_funcs.items(): _setup_func(name, argtypes, restype)
