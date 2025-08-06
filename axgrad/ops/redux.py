@@ -58,7 +58,7 @@ def max_tensor_ops(self, axis: int=-1, keepdims: bool=False):
 
 def var_tensor_ops(self, axis: int=-1, ddof: int=0):
   from ..tensor import Tensor
-  out = Tensor(lib.min_tensor(self.data, c_int(axis), c_int(ddof)).contents, self.dtype, self.requires_grad)
+  out = Tensor(lib.var_tensor(self.data, c_int(axis), c_int(ddof)).contents, self.dtype, self.requires_grad)
   if axis == -1: out.shape, out.size, out.ndim = (), 1, 0
   else:
     new_shape = list(self.shape)

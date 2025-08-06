@@ -15,7 +15,7 @@ void div_scalar_backwards_ops(float scalar, float* grad, float* grad_a, size_t s
 void abs_backwards_ops(float* a, float* grad, float* out, size_t size) {
   float* temp = (float*)malloc(size * sizeof(float));
   sign_tensor_ops(a, temp, size);
-  mul_ops(a, grad, out, size);
+  mul_ops(temp, grad, out, size);
   free(temp);
 }
 

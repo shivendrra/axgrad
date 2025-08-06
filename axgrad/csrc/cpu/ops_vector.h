@@ -6,6 +6,7 @@
 extern "C" {
   void vector_dot_ops(float* a, float* b, float* out, size_t size);
   void vector_matrix_dot_ops(float* vec, float* mat, float* out, size_t size_v, size_t size_m);
+  void matrix_vector_dot_ops(float* vec, float* mat, float* out, size_t size_v, size_t size_m);
   void vector_outer_product_ops(float* a, float* b, float* out, size_t size_n, size_t size_m);
   void vector_inner_product_ops(float* a, float* b, float* out, size_t size);
   void cross_1d_ops(float* a, float* b, float* out, size_t size);

@@ -1,9 +1,10 @@
-from .loss import MSELoss, MAELoss
+from .loss import MSELoss, MAELoss, CrossEntropy
 from ..tensor import Tensor
 from .module import Module
 
 def mse(pred: Tensor, target: Tensor, reduction: str = "mean") -> Tensor: return MSELoss(reduction)(pred, target)
 def mae(pred: Tensor, target: Tensor, reduction: str = "mean") -> Tensor: return MAELoss(reduction)(pred, target)
+def cross_entropy(pred: Tensor, target: Tensor, reduction: "sum") -> Tensor: return CrossEntropy(reduction)(pred, target)
 
 class Tanh(Module):
   def __init__(self, inplace: Tensor = False):
