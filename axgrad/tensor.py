@@ -2,7 +2,7 @@ from ctypes import c_float, c_size_t, c_int
 from typing import *
 
 from ._core import CTensor, lib, DType
-from .helpers import ShapeHelp, DtypeHelp, Slice, _set_item_tensor, _iter_item_tensor, _get_item_tensor
+from .helpers import ShapeHelp, DtypeHelp, _set_item_tensor, _iter_item_tensor, _get_item_tensor
 from .autograd.functions import *
 from .ops.binary import *
 from .ops.functional import *
@@ -64,12 +64,13 @@ class Tensor:
     out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
     return out
 
-  def tolist(self) -> List[Any]:
-    data_ptr = lib.out_data(self.data)
-    data_tensor = [data_ptr[i] for i in range(self.size)]
-    if self.ndim == 0: return data_tensor[0]
-    elif self.ndim == 1: return data_tensor
-    else: return ShapeHelp.reshape_list(data_tensor, self.shape)
+  def tolist(self):
+    if self.size == 0: return []
+    if self.ndim == 0: 
+      indices_ctypes = (c_int * 1)(0)
+      return lib.get_item_tensor(self.data, indices_ctypes)
+    elif self.ndim == 1: return [self[i] for i in range(self.shape[0])]
+    else: return [self[i] for i in range(self.shape[0])]
 
   def __eq__(self, other):
     if isinstance(other, (int, float)):
