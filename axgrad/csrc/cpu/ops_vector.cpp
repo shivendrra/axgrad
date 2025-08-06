@@ -13,9 +13,16 @@ void vector_matrix_dot_ops(float* vec, float* mat, float* out, size_t size_v, si
   size_t cols = size_m / size_v;
   for (size_t j = 0; j < cols; j++) {
     out[j] = 0.0f;
-    for (size_t i = 0; i < size_v; i++) {
-      out[j] += vec[i] * mat[i * cols + j];   // M stored in row-major order
-    }
+    for (size_t i = 0; i < size_v; i++) out[j] += vec[i] * mat[i * cols + j];   // M stored in row-major order
+  }
+}
+
+// matrix-vector multiplication: out = mat * vec
+void matrix_vector_dot_ops(float* mat, float* vec, float* out, size_t size_m, size_t size_v) {
+  size_t rows = size_m / size_v;
+  for (size_t i = 0; i < rows; i++) {
+    out[i] = 0.0f;
+    for (size_t j = 0; j < size_v; j++) out[i] += mat[i * size_v + j] * vec[j];   // M stored in row-major order
   }
 }
 
@@ -83,14 +90,14 @@ void cross_1d_ops(float* a, float* b, float* out, size_t size) {
   }
 }
 
-// Cross product for 2D tensors (matrix of vectors)
+// Cross product for 2D arrays (matrix of vectors)
 void cross_2d_ops(float* a, float* b, float* out, size_t rows, size_t cols, size_t axis) {
   size_t shape[2] = {rows, cols};
   size_t stride[2] = {cols, 1};  // Row-major stride
   cross_product_ops(a, b, out, shape, 2, axis, stride, stride);
 }
 
-// Cross product for 3D tensors (tensor of vectors)
+// Cross product for 3D arrays (tensor of vectors)
 void cross_3d_ops(float* a, float* b, float* out, size_t dim0, size_t dim1, size_t dim2, size_t axis) {
   size_t shape[3] = {dim0, dim1, dim2};
   size_t stride[3] = {dim1 * dim2, dim2, 1};  // Row-major stride
