@@ -480,42 +480,18 @@ void set_item_tensor(Tensor* self, int* indices, float value) {
 // helper function to format element based on dtype
 void format_element_by_dtype(void* data, dtype_t dtype, size_t index, char* buffer) {
   switch (dtype) {
-    case DTYPE_FLOAT32:
-      sprintf(buffer, "%.3f", ((float*)data)[index]);
-      break;
-    case DTYPE_FLOAT64:
-      sprintf(buffer, "%.4f", ((double*)data)[index]);
-      break;
-    case DTYPE_INT8:
-      sprintf(buffer, "%d.", ((int8_t*)data)[index]);
-      break;
-    case DTYPE_INT16:
-      sprintf(buffer, "%d.", ((int16_t*)data)[index]);
-      break;
-    case DTYPE_INT32:
-      sprintf(buffer, "%d.", ((int32_t*)data)[index]);
-      break;
-    case DTYPE_INT64:
-      sprintf(buffer, "%lld.", (long long)((int64_t*)data)[index]);
-      break;
-    case DTYPE_UINT8:
-      sprintf(buffer, "%u.", ((uint8_t*)data)[index]);
-      break;
-    case DTYPE_UINT16:
-      sprintf(buffer, "%u.", ((uint16_t*)data)[index]);
-      break;
-    case DTYPE_UINT32:
-      sprintf(buffer, "%u.", ((uint32_t*)data)[index]);
-      break;
-    case DTYPE_UINT64:
-      sprintf(buffer, "%llu.", (unsigned long long)((uint64_t*)data)[index]);
-      break;
-    case DTYPE_BOOL:
-      sprintf(buffer, "%s", ((uint8_t*)data)[index] ? "True" : "False");
-      break;
-    default:
-      sprintf(buffer, "0");
-      break;
+    case DTYPE_FLOAT32: sprintf(buffer, "%.3f", ((float*)data)[index]); break;
+    case DTYPE_FLOAT64: sprintf(buffer, "%.4f", ((double*)data)[index]); break;
+    case DTYPE_INT8: sprintf(buffer, "%d.", ((int8_t*)data)[index]); break;
+    case DTYPE_INT16: sprintf(buffer, "%d.", ((int16_t*)data)[index]); break;
+    case DTYPE_INT32: sprintf(buffer, "%d.", ((int32_t*)data)[index]); break;
+    case DTYPE_INT64: sprintf(buffer, "%lld.", (long long)((int64_t*)data)[index]); break;
+    case DTYPE_UINT8: sprintf(buffer, "%u.", ((uint8_t*)data)[index]); break;
+    case DTYPE_UINT16: sprintf(buffer, "%u.", ((uint16_t*)data)[index]); break;
+    case DTYPE_UINT32: sprintf(buffer, "%u.", ((uint32_t*)data)[index]); break;
+    case DTYPE_UINT64: sprintf(buffer, "%llu.", (unsigned long long)((uint64_t*)data)[index]); break;
+    case DTYPE_BOOL: sprintf(buffer, "%s", ((uint8_t*)data)[index] ? "True" : "False"); break;
+    default: sprintf(buffer, "0"); break;
   }
 }
 

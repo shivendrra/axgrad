@@ -22,9 +22,10 @@ class Tensor:
     if isinstance(data, CTensor): self.data, self.shape, self.size, self.ndim, self.strides, self.dtype = data, (), 0, 0, [], dtype or "float32"
     elif isinstance(data, Tensor): self.data, self.shape, self.dtype, self.size, self.ndim, self.strides = data.data, data.shape, dtype or data.dtype, data.size, data.ndim, data.strides
     else:
-      data, shape = ShapeHelp.flatten([data] if isinstance(data, (int, float)) else data), tuple(ShapeHelp.get_shape(data))
-      self.size, self.ndim, self.dtype, self.shape, self.strides = len(data), len(shape), dtype or "float32", shape, ShapeHelp.get_strides(shape)
-      self._data_ctypes, self._shape_ctypes = (c_float * self.size)(*data.copy()), (c_int * self.ndim)(*shape)
+      flat_data, shape = [float(data)], () if isinstance(data, (int, float)) else ShapeHelp.flatten(data), tuple(ShapeHelp.get_shape(data))
+      self.size, self.ndim, self.dtype, self.shape = len(flat_data), len(shape), dtype or "float32", shape
+      self.strides = ShapeHelp.get_strides(shape) if shape else []
+      self._data_ctypes, self._shape_ctypes = (c_float * self.size)(*flat_data.copy()), (c_int * self.ndim)(*shape)
       self.data = lib.create_tensor(self._data_ctypes, c_size_t(self.ndim), self._shape_ctypes, c_size_t(self.size), c_int(DtypeHelp._parse_dtype(self.dtype)))
     self.requires_grad, self.hooks, self.grad_fn, self.grad = requires_grad, [], None, None
 
