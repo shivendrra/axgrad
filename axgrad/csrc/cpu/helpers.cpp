@@ -40,79 +40,62 @@ void fill_uniform(float* out, float low, float high, size_t size) {
 void fill_randint(float* out, int low, int high, size_t size) {
   if (!out || high <= low) return;
   ensure_rng_initialized();
-
   // allocating temporary integer tensor
   int* temp = (int*)malloc(sizeof(int) * size);
   if (!temp) return;
-
   rng_randint(&global_rng, temp, size, low, high);  
-  // converting integers to floats
-  for (size_t i = 0; i < size; i++) {
-    out[i] = (float)temp[i];
-  }
+  for (size_t i = 0; i < size; i++) out[i] = (float)temp[i];  // converting integers to floats
   free(temp);
 }
 
 void ones_like_tensor_ops(float* out, size_t size) {
   if (!out) return;
-  for (size_t i = 0; i < size; i++) {
-    out[i] = 1.0f;
-  }
+  for (size_t i = 0; i < size; i++) out[i] = 1.0f;
 }
 
 void zeros_like_tensor_ops(float* out, size_t size) {
   if (!out) return;
   // using memset for better performance on large tensors
-  if (size > 1000) {
-    memset(out, 0, size * sizeof(float));
-  } else {
-    for (size_t i = 0; i < size; i++) {
-      out[i] = 0.0f;
-    }
-  }
+  if (size > 1000) { memset(out, 0, size * sizeof(float)); }
+  else { for (size_t i = 0; i < size; i++) out[i] = 0.0f; }
 }
 
 void ones_tensor_ops(float* out, size_t size) {
   if (!out) return;
-  for (size_t i = 0; i < size; i++) {
-    out[i] = 1.0f;
-  }
+  for (size_t i = 0; i < size; i++) out[i] = 1.0f;
 }
 
 void zeros_tensor_ops(float* out, size_t size) {
   if (!out) return;
   // using memset for better performance on large tensors
-  if (size > 1000) {
-    memset(out, 0, size * sizeof(float));
-  } else {
-    for (size_t i = 0; i < size; i++) {
-      out[i] = 0.0f;
-    }
-  }
+  if (size > 1000) { memset(out, 0, size * sizeof(float)); }
+  else { for (size_t i = 0; i < size; i++) out[i] = 0.0f; }
 }
 
 void fill_tensor_ops(float* out, float value, size_t size) {
   if (!out) return;
-
   // optimized filling for special values
-  if (value == 0.0f) {
-    zeros_tensor_ops(out, size);
-    return;
-  }
-  if (value == 1.0f) {
-    ones_tensor_ops(out, size);
-    return;
-  }
-
-  // general case
-  for (size_t i = 0; i < size; i++) {
-    out[i] = value;
-  }
+  if (value == 0.0f) { zeros_tensor_ops(out, size); return; }
+  if (value == 1.0f) { ones_tensor_ops(out, size); return; }
+  for (size_t i = 0; i < size; i++) out[i] = value;   // general case
 }
 
 void linspace_tensor_ops(float* out, float start, float step_size, size_t size) {
   if (!out) return;
-  for (size_t i = 0; i < size; i++) {
-    out[i] = start + (float)i * step_size;
+  for (size_t i = 0; i < size; i++) { out[i] = start + (float)i * step_size; } }
+
+size_t arange_size(float start, float stop, float step) {
+  if (step == 0.0f) return 0;
+  if ((step > 0 && start >= stop) || (step < 0 && start <= stop)) return 0;
+  return (size_t)ceil((double)(stop - start) / (double)step);
+}
+
+void arange_tensor_ops(float* out, float start, float stop, float step, size_t max_size) {
+  if (!out || step == 0.0f) return;
+  size_t i = 0;
+  float val = start;
+  while (i < max_size && ((step > 0) ? (val < stop) : (val > stop))) {
+    out[i++] = val;
+    val += step;
   }
 }
