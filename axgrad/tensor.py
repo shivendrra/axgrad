@@ -60,7 +60,7 @@ class Tensor:
   def view(self): return view_tensor_ops(self)
 
   def astype(self, dtype: DType) -> "Tensor":
-    out = Tensor(lib.cast_tensor(self.data, c_int(DtypeHelp._parse_dtype(dtype))).contents, requires_grad=self.requires_grad)
+    out = Tensor(lib.cast_tensor(self.data, c_int(DtypeHelp._parse_dtype(dtype))).contents, dtype=dtype, requires_grad=self.requires_grad)
     out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
     return out
 
@@ -164,5 +164,3 @@ class Tensor:
   def clamp(self, min_val: float,  max_val: float): return clamp_tensor_ops(self, min_val, max_val)
   def squeeze(self, axis: int): return squeeze_tensor_ops(self, axis)
   def unsqueeze(self, axis: int): return unsqueeze_tensor_ops(self, axis)
-
-register_norm_ops()

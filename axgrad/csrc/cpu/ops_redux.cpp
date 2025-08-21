@@ -6,47 +6,27 @@
 
 void max_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides, int* res_shape, int axis, int ndim) {
   if (axis == -1) {
-    // global min - find minimum of all elements
-    float min_val = a[0];  // initialize with first element instead of INFINITY
-    for (int i = 1; i < size; i++) {
-      min_val = fmax(min_val, a[i]);
-    }
-    *out = min_val;
+    // global max - find maximum of all elements
+    float max_val = a[0];  // initialize with first element instead of INFINITY
+    for (int i = 1; i < size; i++) max_val = fmax(max_val, a[i]);
+    *out = max_val;
   } else {
-    // axis-specific min
-    if (axis < 0 || axis >= ndim) {
-      printf("Invalid axis\n");
-      return;
-    }
-
-    // calculate output size (product of all dimensions except the axis dimension)
-    int out_size = 1;
-    for (int i = 0; i < ndim; i++) {
-      if (i != axis) {
-        out_size *= shape[i];
-      }
-    }
-    // initialize output tensor to positive infinity
-    for (int i = 0; i < out_size; i++) {
-      out[i] = INFINITY;
-    }
-    // iterate through all elements in the input tensor
-    for (int i = 0; i < size; i++) {
-      // convert linear index to multi-dimensional coordinates
-      int coords[ndim];
-      int temp_i = i;
+    // axis-specific max
+    if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
+    int out_size = 1; // calculate output size (product of all dimensions except the axis dimension)
+    for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
+    for (int i = 0; i < out_size; i++) out[i] = INFINITY; // initialize output tensor to positive infinity
+    for (int i = 0; i < size; i++) {      // iterate through all elements in the input tensor
+      int coords[ndim], temp_i = i;   // convert linear index to multi-dimensional coordinates
       for (int d = ndim - 1; d >= 0; d--) {
         coords[d] = temp_i % shape[d];
         temp_i /= shape[d];
       }
-
-      // calculate output index by removing the axis dimension
-      int out_idx = 0;
-      int multiplier = 1;
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }      
      out[out_idx] = fmax(out[out_idx], a[i]);
@@ -58,45 +38,25 @@ void min_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
   if (axis == -1) {
     // global min - find minimum of all elements
     float min_val = a[0];  // initialize with first element instead of INFINITY
-    for (int i = 1; i < size; i++) {
-      min_val = fmin(min_val, a[i]);
-    }
+    for (int i = 1; i < size; i++) min_val = fmin(min_val, a[i]);
     *out = min_val;
   } else {
-    // axis-specific min
-    if (axis < 0 || axis >= ndim) {
-      printf("Invalid axis\n");
-      return;
-    }
-
-    // calculate output size (product of all dimensions except the axis dimension)
+    if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
     int out_size = 1;
-    for (int i = 0; i < ndim; i++) {
-      if (i != axis) {
-        out_size *= shape[i];
-      }
-    }
-    // initialize output tensor to positive infinity
-    for (int i = 0; i < out_size; i++) {
-      out[i] = INFINITY;
-    }
-    // iterate through all elements in the input tensor
+    for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
+    for (int i = 0; i < out_size; i++) out[i] = INFINITY;
     for (int i = 0; i < size; i++) {
-      // convert linear index to multi-dimensional coordinates
-      int coords[ndim];
-      int temp_i = i;
+      int coords[ndim], temp_i = i;
       for (int d = ndim - 1; d >= 0; d--) {
         coords[d] = temp_i % shape[d];
         temp_i /= shape[d];
       }
 
-      // calculate output index by removing the axis dimension
-      int out_idx = 0;
-      int multiplier = 1;
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }      
      out[out_idx] = fmin(out[out_idx], a[i]);
@@ -108,44 +68,26 @@ void sum_tensor_ops(float* a, float* out, int* shape, int* strides, int size, in
   if (axis == -1) {
     // global sum - sum all elements
     float sum = 0.0;
-    for (int i = 0; i < size; i++) {
-      sum += a[i];
-    }
+    for (int i = 0; i < size; i++) sum += a[i];
     *out = sum;
   } else {
     // axis-specific sum
-    if (axis < 0 || axis >= ndim) {
-      printf("Invalid Axis\n");
-      return;
-    }    
+    if (axis < 0 || axis >= ndim) { printf("Invalid Axis\n"); return; }
     // calculate output size (product of all dimensions except the axis dimension)
     int out_size = 1;
-    for (int i = 0; i < ndim; i++) {
-      if (i != axis) {
-        out_size *= shape[i];
-      }
-    }
-    
-    // initialize output tensor to zero
-    for (int i = 0; i < out_size; i++) {
-      out[i] = 0.0;
-    }
-    
-    // iterate through all elements in the input tensor
+    for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
+    for (int i = 0; i < out_size; i++) out[i] = 0.0;
     for (int i = 0; i < size; i++) {
-      // convert linear index to multi-dimensional coordinates
-      int coords[ndim];
-      int temp_i = i;
+      int coords[ndim], temp_i = i;
       for (int d = ndim - 1; d >= 0; d--) {
         coords[d] = temp_i % shape[d];
         temp_i /= shape[d];
       }
-      int out_idx = 0;
-      int multiplier = 1;
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }
       out[out_idx] += a[i];
@@ -156,47 +98,30 @@ void sum_tensor_ops(float* a, float* out, int* shape, int* strides, int size, in
 void mean_tensor_ops(float* a, float* out, int* shape, int* strides, int size, int* res_shape, int axis, int ndim) {
   if (axis == -1) {
     float sum = 0.0;
-    for (int i = 0; i < size; i++) {
-      sum += a[i];
-    }
+    for (int i = 0; i < size; i++) sum += a[i];
     *out = sum / size;
   } else {
-    if (axis < 0 || axis >= ndim) {
-      printf("Invalid Axis\n");
-      return;
-    }
+    if (axis < 0 || axis >= ndim) { printf("Invalid Axis\n"); return; }
     int out_size = 1;
-    for (int i = 0; i < ndim; i++) {
-      if (i != axis) {
-        out_size *= shape[i];
-      }
-    }
-
-    for (int i = 0; i < out_size; i++) {
-      out[i] = 0.0;
-    }
-
+    for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
+    for (int i = 0; i < out_size; i++) out[i] = 0.0;
     for (int i = 0; i < size; i++) {
-      int coords[ndim];
-      int temp_i = i;
+      int coords[ndim], temp_i = i;
       for (int d = ndim - 1; d >= 0; d--) {
         coords[d] = temp_i % shape[d];
         temp_i /= shape[d];
       }
-      int out_idx = 0;
-      int multiplier = 1;
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }
       out[out_idx] += a[i];
     }
     int axis_size = shape[axis];
-    for (int i = 0; i < out_size; i++) {
-      out[i] /= axis_size;
-    }
+    for (int i = 0; i < out_size; i++) out[i] /= axis_size;
   }
 }
 
@@ -204,9 +129,7 @@ void var_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
   if (axis == -1) {
     // global variance - calculate variance of all elements
     float mean = 0.0;   // first pass: calculate mean
-    for (int i = 0; i < size; i++) {
-      mean += a[i];
-    }
+    for (int i = 0; i < size; i++) mean += a[i];
     mean /= size;
     float variance = 0.0;     // second pass: calculate variance
     for (int i = 0; i < size; i++) {
@@ -216,77 +139,45 @@ void var_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
 
     // divide by (N - ddof) for sample variance, or N for population variance
     int denominator = size - ddof;
-    if (denominator <= 0) {
-      printf("Warning: ddof >= sample size, setting variance to 0\n");
-      *out = 0.0;
-    } else {
-      *out = variance / denominator;
-    }
+    if (denominator <= 0) { printf("Warning: ddof >= sample size, setting variance to 0\n"); *out = 0.0; }
+    else { *out = variance / denominator; }
   } else {
-    // axis-specific variance
-    if (axis < 0 || axis >= ndim) {
-      printf("Invalid axis\n");
-      return;
-    }
-    // calculate output size (product of all dimensions except the axis dimension)
+    if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
     int out_size = 1;
-    for (int i = 0; i < ndim; i++) {
-      if (i != axis) {
-        out_size *= shape[i];
-      }
-    }
+    for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
     int axis_size = shape[axis];
-
-    // initialize output tensors
     float* means = (float*)calloc(out_size, sizeof(float));
-    if (means == NULL) {
-      printf("Memory allocation failed for means\n");
-      return;
-    }
-    for (int i = 0; i < out_size; i++) {
-      out[i] = 0.0;
-    }
-
-    // first pass: calculate means for each output position
+    for (int i = 0; i < out_size; i++) out[i] = 0.0;
     for (int i = 0; i < size; i++) {
-      // convert linear index to multi-dimensional coordinates
-      int coords[ndim];
-      int temp_i = i;
+      int coords[ndim], temp_i = i;
       for (int d = ndim - 1; d >= 0; d--) {
         coords[d] = temp_i % shape[d];
         temp_i /= shape[d];
       }      
-      // calculate output index by removing the axis dimension
-      int out_idx = 0;
-      int multiplier = 1;
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }
       means[out_idx] += a[i];       // accumulate sum for mean calculation
     }
-
-    // divide by axis size to get means
-    for (int i = 0; i < out_size; i++) {
-      means[i] /= axis_size;
-    }
+    for (int i = 0; i < out_size; i++) means[i] /= axis_size;
     // second pass: calculate variance for each output position
     for (int i = 0; i < size; i++) {
       // convert linear index to multi-dimensional coordinates
-      int coords[ndim];
-      int temp_i = i;
+      int coords[ndim], temp_i = i;
       for (int d = ndim - 1; d >= 0; d--) {
         coords[d] = temp_i % shape[d];
         temp_i /= shape[d];
       }
 
-      int out_idx = 0, multiplier = 1;  // calculate output index by removing the axis dimension
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }
       float diff = a[i] - means[out_idx]; // accumulate squared differences
@@ -297,14 +188,8 @@ void var_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
     int denominator = axis_size - ddof;
     if (denominator <= 0) {
       printf("Warning: ddof >= sample size, setting variance to 0\n");
-      for (int i = 0; i < out_size; i++) {
-        out[i] = 0.0;
-      }
-    } else {
-      for (int i = 0; i < out_size; i++) {
-        out[i] /= denominator;
-      }
-    }
+      for (int i = 0; i < out_size; i++) out[i] = 0.0;
+    } else { for (int i = 0; i < out_size; i++) out[i] /= denominator; }
     free(means);
   }
 }
@@ -313,9 +198,7 @@ void std_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
   if (axis == -1) {
     // global standard deviation - calculate std of all elements
     float mean = 0.0; // first pass: calculate mean
-    for (int i = 0; i < size; i++) {
-      mean += a[i];
-    }
+    for (int i = 0; i < size; i++) mean += a[i];
     mean /= size;
     float variance = 0.0; // second pass: calculate variance
     for (int i = 0; i < size; i++) {
@@ -328,15 +211,10 @@ void std_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
     if (denominator <= 0) {
       printf("Warning: ddof >= sample size, setting std to 0\n");
       *out = 0.0;
-    } else {
-      *out = sqrtf(variance / denominator);
-    }
+    } else { *out = sqrtf(variance / denominator); }
   } else {
     // axis-specific standard deviation
-    if (axis < 0 || axis >= ndim) {
-      printf("Invalid axis\n");
-      return;
-    }
+    if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
     // calculate output size (product of all dimensions except the axis dimension)
     int out_size = 1;
     for (int i = 0; i < ndim; i++) {
@@ -366,12 +244,11 @@ void std_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
         temp_i /= shape[d];
       }
       // calculate output index by removing the axis dimension
-      int out_idx = 0;
-      int multiplier = 1;
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }
       // accumulate sum for mean calculation
@@ -379,26 +256,21 @@ void std_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
     }
 
     // divide by axis size to get means
-    for (int i = 0; i < out_size; i++) {
-      means[i] /= axis_size;
-    }
+    for (int i = 0; i < out_size; i++) means[i] /= axis_size;
 
     // second pass: calculate variance for each output position
     for (int i = 0; i < size; i++) {
-      // convert linear index to multi-dimensional coordinates
       int coords[ndim];
       int temp_i = i;
       for (int d = ndim - 1; d >= 0; d--) {
         coords[d] = temp_i % shape[d];
         temp_i /= shape[d];
       }
-      // calculate output index by removing the axis dimension
-      int out_idx = 0;
-      int multiplier = 1;
+      int out_idx = 0, multiplier = 1, res_dim = 0;
       for (int d = ndim - 1; d >= 0; d--) {
         if (d != axis) {
           out_idx += coords[d] * multiplier;
-          multiplier *= shape[d];
+          multiplier *= res_shape[res_dim];
         }
       }
       // accumulate squared differences
@@ -409,13 +281,9 @@ void std_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides,
     int denominator = axis_size - ddof;
     if (denominator <= 0) {
       printf("Warning: ddof >= sample size, setting std to 0\n");
-      for (int i = 0; i < out_size; i++) {
-        out[i] = 0.0;
-      }
+      for (int i = 0; i < out_size; i++) out[i] = 0.0;
     } else {
-      for (int i = 0; i < out_size; i++) {
-        out[i] = sqrtf(out[i] / denominator);
-      }
+      for (int i = 0; i < out_size; i++) out[i] = sqrtf(out[i] / denominator);
     }
 
     free(means);
