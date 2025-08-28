@@ -34,7 +34,7 @@ class LeakyReLU(Module):
   def __init__(self, eps: float = 1e-3, inplace: Tensor = False):
     self.inplace, self.eps = inplace, eps
     super().__init__()
-  def forward(self, x: Tensor) -> Tensor: return x.leaky_relu(self.eps)
+  def forward(self, x: Tensor) -> Tensor: return x.leakyrelu(self.eps)
   def __repr__(self) -> str: return f"LeakyReLU(eps={self.eps}, inplace={self.inplace})"
   def inner_repr(self) -> str: return f"inplace={self.inplace}"
 
