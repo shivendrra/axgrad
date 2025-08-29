@@ -22,7 +22,7 @@ class Parameter(Tensor):
       zeros_data = lib.zeros_tensor((c_int * self.ndim)(*self.shape), c_size_t(self.size), c_size_t(self.ndim), c_int(DtypeHelp._parse_dtype(self.dtype))).contents
       self.grad = Tensor(zeros_data, self.dtype, requires_grad=False)
       self.grad.shape, self.grad.size, self.grad.ndim, self.grad.strides = self.shape, self.size, self.ndim, self.strides
-  
+
   def __repr__(self) -> str:
     name_str = f"({self.get_name()})" if self._name else ""
     return f"Parameter{name_str} containing:\n{super().__str__()}"
@@ -30,7 +30,7 @@ class Parameter(Tensor):
   def clone(self) -> "Parameter":
     data_list = self.tolist()
     new_param = Parameter.__new__(Parameter)
-    new_param.__init__(self.shape, self.dtype, self.requires_grad)
+    new_param.__init__(self.shape, self.dtype)
 
     if isinstance(data_list, list): flat_data = ShapeHelp.flatten(data_list)
     else: flat_data = [data_list]

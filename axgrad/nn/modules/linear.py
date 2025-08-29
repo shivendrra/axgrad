@@ -76,4 +76,4 @@ class Linear(Module):
       yield self, "bias", self.bias
 
   def zero_grad(self):
-    for param in self.parameters(): param.zero_grad()
+    for _, _, param in self.parameters(): param.zero_grad()

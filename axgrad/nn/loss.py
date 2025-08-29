@@ -45,8 +45,11 @@ class CrossEntropy:
   def forward(self, pred: Tensor, target: Tensor) -> Tensor:
     max_logits = pred.max(axis=1, keepdims=True)
     log_probs = pred - max_logits - ((pred - max_logits).exp()).sum(axis=1, keepdims=True).log()
-    N = pred.shape[0]
-    loss = -log_probs[N, target]
+
+    N, C = pred.shape[0], pred.shape[1]
+    target_one_hot = Tensor([[1.0 if j == int(target.tolist()[i]) else 0.0 for j in range(C)] for i in range(N)])
+    loss = -(log_probs * target_one_hot).sum(axis=1)
+
     if self.reduction == "none": return loss
     elif self.reduction == "sum": return loss.sum()
     else: return loss.mean()
