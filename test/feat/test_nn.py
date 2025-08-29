@@ -119,7 +119,7 @@ class TestLoss:
   def test_functional_cross_entropy(self):
     pred = Tensor([[1.0, 2.0, 3.0]])
     target = Tensor([2])
-    loss = nn.cross_entropy(pred, target)
+    loss = nn.cross_entropy(pred, target, reduction="sum")
     assert loss.ndim == 0
 
 class TestActivations:
@@ -304,7 +304,7 @@ class TestModule:
   def test_module_parameters(self):
     linear = nn.Linear(5, 3)
     params = list(linear.parameters())
-    assert len(params) == 2
+    assert len(params) == 1
 
   def test_module_train_eval(self):
     linear = nn.Linear(5, 3)
@@ -320,17 +320,17 @@ class TestModule:
     linear = nn.Linear(3, 2)
     for _, _, param in linear.parameters():
       param.grad = Tensor([1, 2, 3])
-    
+
     linear.zero_grad()
 
   def test_module_n_params(self):
-    linear = nn.Linear(5, 3)
+    linear = nn.Linear(5, 3, bias=True)
     n_params = linear.n_params()
     expected = 5 * 3 + 3
     assert n_params == expected
 
   def test_module_named_parameters(self):
-    linear = nn.Linear(3, 2)
+    linear = nn.Linear(3, 2, bias=True)
     named_params = list(linear.named_parameters())
     assert len(named_params) == 2
     
@@ -339,7 +339,7 @@ class TestModule:
     assert "bias" in names
 
   def test_module_state_dict(self):
-    linear = nn.Linear(2, 1)
+    linear = nn.Linear(2, 1, bias=True)
     state_dict = linear.state_dict()
     assert "weight" in state_dict
     assert "bias" in state_dict
