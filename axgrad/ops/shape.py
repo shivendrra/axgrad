@@ -63,6 +63,7 @@ def contiguous_tensor_ops(self):
 def make_contiguous_tensor_ops(self) -> None:
   lib.make_contiguous_inplace_tensor(self.data)
   self.strides = ShapeHelp.get_strides(self.shape)  # updating strides since they may have changed
+  return self
 
 def view_tensor_ops(self):
   from ..tensor import Tensor

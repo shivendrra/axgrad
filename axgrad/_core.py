@@ -79,7 +79,7 @@ _forward_funcs = {
   'zeros_tensor': ([POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'ones_tensor': ([POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)),
   'randn_tensor': ([POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'randint_tensor': ([c_int, c_int, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)),
   'uniform_tensor': ([c_int, c_int, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'fill_tensor': ([c_float, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)),
-  'linspace_tensor': ([c_float, c_float, c_float, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor))
+  'linspace_tensor': ([c_float, c_float, c_float, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'arange_tensor': ([c_float, c_float, c_float, c_int], POINTER(CTensor))
 }
 
 _backward_funcs = {

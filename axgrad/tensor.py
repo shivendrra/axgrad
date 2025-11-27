@@ -9,7 +9,6 @@ from .ops.functional import *
 from .ops.unary import log_tensor_ops, sign_tensor_ops, sqrt_tensor_ops, abs_tensor_ops, exp_tensor_ops, neg_tensor_ops
 from .ops.shape import flatten_tensor_ops, transpose_tensor_ops, reshape_tensor_ops, squeeze_tensor_ops, unsqueeze_tensor_ops, contiguous_tensor_ops, view_tensor_ops, make_contiguous_tensor_ops
 from .ops.redux import sum_tensor_ops, var_tensor_ops, mean_tensor_ops, std_tensor_ops, max_tensor_ops, min_tensor_ops
-from .ops.norm import clip_tensor_ops, clamp_tensor_ops, register_norm_ops
 
 int8, int16, int32, int64, long = "int8", "int16", "int32", "int64", "long"
 float32, float64, double = "float32", "float64", "double"
@@ -60,7 +59,7 @@ class Tensor:
   def view(self): return view_tensor_ops(self)
 
   def astype(self, dtype: DType) -> "Tensor":
-    out = Tensor(lib.cast_tensor(self.data, c_int(DtypeHelp._parse_dtype(dtype))).contents, requires_grad=self.requires_grad)
+    out = Tensor(lib.cast_tensor(self.data, c_int(DtypeHelp._parse_dtype(dtype))).contents, dtype=dtype, requires_grad=self.requires_grad)
     out.shape, out.size, out.ndim, out.strides = self.shape, self.size, self.ndim, self.strides
     return out
 
@@ -160,9 +159,7 @@ class Tensor:
   def transpose(self): return transpose_tensor_ops(self)
   def flatten(self): return flatten_tensor_ops(self)
   def reshape(self, new_shape: Union[Tuple, List]): return reshape_tensor_ops(self, new_shape)
-  def clip(self, max_val: float): return clip_tensor_ops(self, max_val)
-  def clamp(self, min_val: float,  max_val: float): return clamp_tensor_ops(self, min_val, max_val)
+  # def clip(self, max_val: float): return clip_tensor_ops(self, max_val)
+  # def clamp(self, min_val: float,  max_val: float): return clamp_tensor_ops(self, min_val, max_val)
   def squeeze(self, axis: int): return squeeze_tensor_ops(self, axis)
   def unsqueeze(self, axis: int): return unsqueeze_tensor_ops(self, axis)
-
-register_norm_ops()

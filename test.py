@@ -1,165 +1,143 @@
-#!/usr/bin/env python3
-"""
-Test cases for Tensor indexing and slicing functionality
-Tests all __getitem__, __setitem__, and __iter__ operations
-"""
+import axgrad.nn as nn
+from axgrad.utils import randn, randint
+from axgrad.nn import functional as F
+import os
 
-from axgrad import Tensor
 
-def test_tensor_indexing():
-  print("=== Testing Tensor Indexing & Slicing ===\n")
-  
-  # Test 1: 1-D Tensor indexing
-  print("Test 1: 1-D Tensor indexing")
-  tensor_1d = Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
-  print(f"Original 1-D tensor: {tensor_1d}")
-  
-  # Single element access
-  elem = tensor_1d[0]
-  print(f"tensor_1d[0] = {elem} (type: {type(elem)})")
-  assert isinstance(elem, float), f"Expected float, got {type(elem)}"
-  assert elem == 1.0, f"Expected 1.0, got {elem}"
-  
-  # Negative indexing
-  elem_neg = tensor_1d[-1]
-  print(f"tensor_1d[-1] = {elem_neg} (type: {type(elem_neg)})")
-  assert elem_neg == 5.0, f"Expected 5.0, got {elem_neg}"
-  
-  # Single element assignment
-  tensor_1d[1] = 10.0
-  elem_modified = tensor_1d[1]
-  print(f"After tensor_1d[1] = 10.0: tensor_1d[1] = {elem_modified}")
-  assert elem_modified == 10.0, f"Expected 10.0, got {elem_modified}"
-  print("✓ 1-D indexing passed\n")
-  
-  # Test 2: 2-D Tensor indexing
-  print("Test 2: 2-D Tensor indexing")
-  tensor_2d = Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
-  print(f"Original 2-D tensor: {tensor_2d}")
-  
-  # Row access (should return list)
-  row = tensor_2d[0]
-  print(f"tensor_2d[0] = {row} (type: {type(row)})")
-  assert isinstance(row, list), f"Expected list, got {type(row)}"
-  assert row == [1.0, 2.0, 3.0], f"Expected [1.0, 2.0, 3.0], got {row}"
-  
-  # Single element access with tuple
-  elem = tensor_2d[1, 2]
-  print(f"tensor_2d[1, 2] = {elem} (type: {type(elem)})")
-  assert isinstance(elem, float), f"Expected float, got {type(elem)}"
-  assert elem == 6.0, f"Expected 6.0, got {elem}"
-  
-  # Single element assignment with tuple
-  tensor_2d[0, 0] = 99.0
-  elem_modified = tensor_2d[0, 0]
-  print(f"After tensor_2d[0, 0] = 99.0: tensor_2d[0, 0] = {elem_modified}")
-  assert elem_modified == 99.0, f"Expected 99.0, got {elem_modified}"
-  
-  # Row assignment
-  tensor_2d[2] = [70.0, 80.0, 90.0]
-  row_modified = tensor_2d[2]
-  print(f"After tensor_2d[2] = [70.0, 80.0, 90.0]: tensor_2d[2] = {row_modified}")
-  assert row_modified == [70.0, 80.0, 90.0], f"Expected [70.0, 80.0, 90.0], got {row_modified}"
-  print("✓ 2-D indexing passed\n")
-  
-  # Test 3: 3-D Tensor indexing
-  print("Test 3: 3-D Tensor indexing")
-  tensor_3d = Tensor([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]])
-  print(f"Original 3-D tensor: {tensor_3d}")
-  
-  # 2-D slice access
-  slice_2d = tensor_3d[0]
-  print(f"tensor_3d[0] = {slice_2d} (type: {type(slice_2d)})")
-  assert isinstance(slice_2d, list), f"Expected list, got {type(slice_2d)}"
-  assert slice_2d == [[1.0, 2.0], [3.0, 4.0]], f"Expected [[1.0, 2.0], [3.0, 4.0]], got {slice_2d}"
-  
-  # 1-D slice access
-  slice_1d = tensor_3d[1, 0]
-  print(f"tensor_3d[1, 0] = {slice_1d} (type: {type(slice_1d)})")
-  assert isinstance(slice_1d, float), f"Expected float, got {type(slice_1d)}"
-  
-  # Single element access
-  elem = tensor_3d[1, 1, 0]
-  print(f"tensor_3d[1, 1, 0] = {elem} (type: {type(elem)})")
-  assert isinstance(elem, float), f"Expected float, got {type(elem)}"
-  assert elem == 7.0, f"Expected 7.0, got {elem}"
-  
-  # Single element assignment
-  tensor_3d[0, 0, 1] = 20.0
-  elem_modified = tensor_3d[0, 0, 1]
-  print(f"After tensor_3d[0, 0, 1] = 20.0: tensor_3d[0, 0, 1] = {elem_modified}")
-  assert elem_modified == 20.0, f"Expected 20.0, got {elem_modified}"
-  print("✓ 3-D indexing passed\n")
-  
-  # Test 4: Iterator functionality
-  print("Test 4: Iterator functionality")
-  tensor_iter = Tensor([10.0, 20.0, 30.0])
-  print(f"Original tensor for iteration: {tensor_iter}")
-  
-  # Test iteration over 1-D tensor
-  iter_values = list(tensor_iter)
-  print(f"Iteration values: {iter_values}")
-  assert iter_values == [10.0, 20.0, 30.0], f"Expected [10.0, 20.0, 30.0], got {iter_values}"
-  assert all(isinstance(v, float) for v in iter_values), "All iteration values should be floats"
-  
-  # Test iteration over 2-D tensor
-  tensor_2d_iter = Tensor([[1.0, 2.0], [3.0, 4.0]])
-  iter_2d_values = list(tensor_2d_iter)
-  print(f"2-D iteration values: {iter_2d_values}")
-  assert iter_2d_values == [[1.0, 2.0], [3.0, 4.0]], f"Expected [[1.0, 2.0], [3.0, 4.0]], got {iter_2d_values}"
-  print("✓ Iterator functionality passed\n")
-  
-  # Test 5: Edge cases and error handling
-  print("Test 5: Edge cases and error handling")
-  
-  # Index out of bounds
-  try:
-    _ = tensor_1d[10]
-    assert False, "Should have raised IndexError"
-  except IndexError as e:
-    print(f"✓ Out of bounds index correctly raised: {e}")
-  
-  # Too many indices
-  try:
-    _ = tensor_1d[0, 1]
-    assert False, "Should have raised IndexError"
-  except IndexError as e:
-    print(f"✓ Too many indices correctly raised: {e}")
-  
-  # 0-D tensor indexing (should fail)
-  try:
-    scalar_tensor = Tensor([5.0])
-    scalar_tensor.ndim = 0  # Simulate 0-D tensor
-    _ = scalar_tensor[0]
-    assert False, "Should have raised TypeError"
-  except TypeError as e:
-    print(f"✓ 0-D tensor indexing correctly raised: {e}")
-  
-  print("✓ Edge cases passed\n")
-  
-  # Test 6: Assignment with different value types
-  print("Test 6: Assignment with different value types")
-  test_tensor = Tensor([1.0, 2.0, 3.0])
-  
-  # Assign Tensor value (scalar)
-  scalar_tensor = Tensor([42.0])
-  test_tensor[0] = scalar_tensor
-  assert test_tensor[0] == 42.0, f"Expected 42.0, got {test_tensor[0]}"
-  print("✓ Tensor scalar assignment passed")
-  
-  # Assign list value (single element)
-  test_tensor[1] = [55.0]
-  assert test_tensor[1] == 55.0, f"Expected 55.0, got {test_tensor[1]}"
-  print("✓ List scalar assignment passed")
-  
-  # Assign float value
-  test_tensor[2] = 77.0
-  assert test_tensor[2] == 77.0, f"Expected 77.0, got {test_tensor[2]}"
-  print("✓ Float assignment passed\n")
-  
-  print("🎉 All tensor indexing and slicing tests passed!")
+class MLP(nn.Module):
+  def __init__(self, _in, _hid, _out, bias=False) -> None:
+    super().__init__()
+    self.embedd = nn.Embedding(100, _in)
+    self.layer1 = nn.Linear(_in, _hid, bias)
+    self.gelu = nn.GELU()
+    self.layer2 = nn.Linear(_hid, _out, bias)
 
-if __name__ == "__main__":
-  # Note: This assumes the Tensor class is imported
-  # from your_module import Tensor
-  test_tensor_indexing()
+  def forward(self, x):
+    out = self.embedd(x)
+    out = self.layer1(out)
+    out = self.gelu(out)
+    out = self.layer2(out)
+    return out
+
+# Create model and optimizer
+model = MLP(20, 10, 10)
+optimizer = nn.SGD(parameters=model.parameters(), lr=1e-5)
+x = randint(0, 100, 10)
+y = randn(10, 10)
+
+# Check if saved model exists
+model_path = "models/mlp_checkpoint.pkl"
+start_epoch = 1
+losses = []
+steps = []
+
+if os.path.exists(model_path):
+  print("Found existing model, loading...")
+  model.load(model_path)
+  # Optionally, you could also save/load optimizer state and training progress
+  print("Model loaded successfully!")
+  start_epoch = 1  # You could save/load the actual epoch number too
+else:
+  print("No existing model found, starting fresh training...")
+
+# First training phase
+print("\n=== PHASE 1: Initial Training ===")
+epoch = 5000
+end_epoch = start_epoch + epoch - 1
+
+for n in range(start_epoch, end_epoch + 1):
+  out = model.forward(x)
+  loss = F.mae(out, y)
+
+  optimizer.zero_grad()
+  loss.backward()
+  optimizer.step()
+
+  if n % 500 == 0:
+    losses.append(loss.tolist())
+    steps.append(n)
+    print(f"{n}th step, loss: {loss.tolist():.6f}")
+
+print(f"\nTotal parameters: {model.n_params()}")
+
+# Save the model
+print(f"\nSaving model to {model_path}...")
+model.save(model_path)
+
+# Simulate loading the model (like restarting the program)
+print("\n=== PHASE 2: Loading and Continuing Training ===")
+print("Simulating program restart...")
+
+# Create a new model instance (as if starting fresh)
+model_reloaded = MLP(20, 10, 10)
+print(f"New model initialized with {model_reloaded.n_params()} parameters")
+
+# Load the saved weights
+print("Loading saved model...")
+model_reloaded.load(model_path)
+
+# Create new optimizer for the reloaded model
+optimizer_reloaded = nn.SGD(parameters=model_reloaded.parameters(), lr=1e-5)
+
+# Continue training with the reloaded model
+print("Continuing training with reloaded model...")
+continue_epoch = 5000
+start_step = end_epoch + 1
+final_epoch = start_step + continue_epoch - 1
+
+for n in range(start_step, final_epoch + 1):
+  out = model_reloaded.forward(x)
+  loss = F.mae(out, y)
+
+  optimizer_reloaded.zero_grad()
+  loss.backward()
+  optimizer_reloaded.step()
+
+  if n % 500 == 0:
+    losses.append(loss.tolist())
+    steps.append(n)
+    print(f"{n}th step, loss: {loss.tolist():.6f}")
+
+print(f"\nFinal model has {model_reloaded.n_params()} parameters")
+print("Training completed!")
+
+# Save final model
+final_model_path = "models/mlp_final.pkl"
+print(f"\nSaving final model to {final_model_path}...")
+model_reloaded.save(final_model_path)
+
+print("\n=== Training Summary ===")
+print(f"Total training steps: {final_epoch}")
+print(f"Initial loss: {losses[0]:.6f}")
+print(f"Final loss: {losses[-1]:.6f}")
+print(f"Models saved to: {model_path} and {final_model_path}")
+
+import matplotlib.pyplot as plt
+
+y_list = y.flatten().tolist()
+out_list = out.flatten().tolist()
+
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+plt.plot(steps, losses, marker="o", linestyle="-", color="b")
+plt.title("Learning Curve")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.grid()
+plt.xticks(steps)
+
+plt.subplot(1, 2, 2)
+plt.scatter(
+  range(y.size), y_list, color="b", label="Actual Values"
+)  # Actual values in blue
+plt.scatter(
+  range(out.size), out_list, color="r", label="Predicted Values"
+)  # Predicted values in red
+plt.title("Predictions vs Targets")
+plt.xlabel("Sample Index")
+plt.ylabel("Value")
+plt.legend()
+plt.grid()
+
+plt.tight_layout()
+plt.show()
