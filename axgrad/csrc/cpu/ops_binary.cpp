@@ -2,8 +2,83 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <math.h>
-#include "ops_binary.h"
+#include <immintrin.h>
+#include <omp.h>
 #include "ops_shape.h"
+#include "ops_binary.h"
+
+void add_ops_avx2(float* a, float* b, float* out, size_t size) {
+  for (size_t i = 0; i < size; i += 8) {
+    if (i + 8 <= size) { // AVX2: Process 8 floats at once
+      __m256 va = _mm256_loadu_ps(a + i);
+      __m256 vb = _mm256_loadu_ps(b + i);
+      _mm256_storeu_ps(out + i, _mm256_add_ps(va, vb));
+    } else {  // Scalar tail handling (1-7 remaining elements)
+      for (size_t j = i; j < size; j++) out[j] = a[j] + b[j];
+      break;  // Exit since this is the last chunk
+    }
+  }
+}
+
+void sub_ops_avx2(float* a, float* b, float* out, size_t size) {
+  for (size_t i = 0; i < size; i += 8) {
+    if (i + 8 <= size) { // AVX2: Process 8 floats at once
+      __m256 va = _mm256_loadu_ps(a + i);
+      __m256 vb = _mm256_loadu_ps(b + i);
+      _mm256_storeu_ps(out + i, _mm256_sub_ps(va, vb));
+    } else {  // Scalar tail handling (1-7 remaining elements)
+      for (size_t j = i; j < size; j++) out[j] = a[j] + b[j];
+      break;  // Exit since this is the last chunk
+    }
+  }
+}
+
+void mul_ops_avx2(float* a, float* b, float* out, size_t size) {
+  for (size_t i = 0; i < size; i += 8) {
+    if (i + 8 <= size) { // AVX2: Process 8 floats at once
+      __m256 va = _mm256_loadu_ps(a + i);
+      __m256 vb = _mm256_loadu_ps(b + i);
+      _mm256_storeu_ps(out + i, _mm256_mul_ps(va, vb));
+    } else {  // Scalar tail handling (1-7 remaining elements)
+      for (size_t j = i; j < size; j++) out[j] = a[j] + b[j];
+      break;  // Exit since this is the last chunk
+    }
+  }
+}
+
+void div_ops_avx2(float* a, float* b, float* out, size_t size) {
+  for (size_t i = 0; i < size; i += 8) {
+    if (i + 8 <= size) { // AVX2: Process 8 floats at once
+      __m256 va = _mm256_loadu_ps(a + i);
+      __m256 vb = _mm256_loadu_ps(b + i);
+      _mm256_storeu_ps(out + i, _mm256_div_ps(va, vb));
+    } else {  // Scalar tail handling (1-7 remaining elements)
+      for (size_t j = i; j < size; j++) out[j] = a[j] + b[j];
+      break;  // Exit since this is the last chunk
+    }
+  }
+}
+
+void add_ops_hybrid(float* a, float* b, float* out, size_t size) {
+  #pragma omp parallel for schedule(static)
+  add_ops_avx2(a, b, out, size);
+}
+
+void sub_ops_hybrid(float* a, float* b, float* out, size_t size) {
+  #pragma omp parallel for schedule(static)
+  sub_ops_avx2(a, b, out, size);
+}
+
+void mul_ops_hybrid(float* a, float* b, float* out, size_t size) {
+  #pragma omp parallel for schedule(static)
+  mul_ops_avx2(a, b, out, size);
+}
+
+void div_ops_hybrid(float* a, float* b, float* out, size_t size) {
+  #pragma omp parallel for schedule(static)
+  div_ops_avx2(a, b, out, size);
+}
+
 
 void add_ops(float* a, float* b, float* out, size_t size) { for (size_t i = 0; i < size; i++) { out[i] = a[i] + b[i]; } }
 void add_scalar_ops(float* a, float b, float* out, size_t size) { for (size_t i = 0; i < size; i++) { out[i] = a[i] + b; } }
