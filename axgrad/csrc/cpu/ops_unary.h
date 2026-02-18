@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+#define SIMD_THRESHOLD 64
+#define OMP_THRESHOLD 8192
+#define CACHE_CHUNK_SIZE 64
+
 extern "C" {
   void exp_tensor_ops(float* a, float* out, size_t size);
   void log_tensor_ops(float* a, float* out, size_t size);
