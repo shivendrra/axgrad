@@ -2,94 +2,140 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <immintrin.h>
 #include "ops_redux.h"
+
+// Helper: compute flat output index from coords, excluding axis
+
+static inline int get_out_idx(int* coords, int* res_shape, int axis, int ndim) {
+  int out_idx = 0, multiplier = 1;
+  for (int d = ndim - 1; d >= 0; d--) {
+    if (d != axis) {
+      out_idx += coords[d] * multiplier;
+      multiplier *= res_shape[ndim - 1 - (d < axis ? d : d - 1)];
+    }
+  }
+  return out_idx;
+}
 
 void max_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides, int* res_shape, int axis, int ndim) {
   if (axis == -1) {
-    // global max - find maximum of all elements
-    float max_val = a[0];  // initialize with first element instead of INFINITY
-    for (int i = 1; i < size; i++) max_val = fmax(max_val, a[i]);
+    float max_val = a[0];
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(max:max_val)
+#endif
+    for (int i = 1; i < (int)size; i++) { if (a[i] > max_val) max_val = a[i]; }
     *out = max_val;
   } else {
-    // axis-specific max
     if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
-    int out_size = 1; // calculate output size (product of all dimensions except the axis dimension)
+    int out_size = 1;
     for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
-    for (int i = 0; i < out_size; i++) out[i] = INFINITY; // initialize output tensor to positive infinity
-    for (int i = 0; i < size; i++) {      // iterate through all elements in the input tensor
-      int coords[ndim], temp_i = i;   // convert linear index to multi-dimensional coordinates
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < out_size; i++) out[i] = -__FLT_MAX__;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)size; i++) {
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
       for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
       }
-      int out_idx = 0, multiplier = 1, res_dim = 0;
-      for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
-      }      
-     out[out_idx] = fmax(out[out_idx], a[i]);
+#ifdef _OPENMP
+      #pragma omp atomic compare
+      if (a[i] > out[out_idx]) out[out_idx] = a[i];
+#else
+      if (a[i] > out[out_idx]) out[out_idx] = a[i];
+#endif
     }
   }
 }
 
 void min_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides, int* res_shape, int axis, int ndim) {
   if (axis == -1) {
-    // global min - find minimum of all elements
-    float min_val = a[0];  // initialize with first element instead of INFINITY
-    for (int i = 1; i < size; i++) min_val = fmin(min_val, a[i]);
+    float min_val = a[0];
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(min:min_val)
+#endif
+    for (int i = 1; i < (int)size; i++) { if (a[i] < min_val) min_val = a[i]; }
     *out = min_val;
   } else {
     if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
     int out_size = 1;
     for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
-    for (int i = 0; i < out_size; i++) out[i] = INFINITY;
-    for (int i = 0; i < size; i++) {
-      int coords[ndim], temp_i = i;
-      for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
-      }
 
-      int out_idx = 0, multiplier = 1, res_dim = 0;
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < out_size; i++) out[i] = __FLT_MAX__;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)size; i++) {
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
       for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
-      }      
-     out[out_idx] = fmin(out[out_idx], a[i]);
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
+      }
+#ifdef _OPENMP
+      #pragma omp atomic compare
+      if (a[i] < out[out_idx]) out[out_idx] = a[i];
+#else
+      if (a[i] < out[out_idx]) out[out_idx] = a[i];
+#endif
     }
   }
 }
 
 void sum_tensor_ops(float* a, float* out, int* shape, int* strides, int size, int* res_shape, int axis, int ndim) {
   if (axis == -1) {
-    // global sum - sum all elements
-    float sum = 0.0;
-    for (int i = 0; i < size; i++) sum += a[i];
+    float sum = 0.0f;
+    // AVX2 parallel accumulation
+    int i = 0;
+    __m256 vacc = _mm256_setzero_ps();
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(+:sum)
+    for (i = 0; i < size; i++) sum += a[i];
+#else
+    for (; i <= size - 8; i += 8) vacc = _mm256_add_ps(vacc, _mm256_loadu_ps(a + i));
+    // horizontal sum of vacc
+    __m128 lo = _mm256_castps256_ps128(vacc), hi = _mm256_extractf128_ps(vacc, 1);
+    __m128 s  = _mm_add_ps(lo, hi); s = _mm_hadd_ps(s, s); s = _mm_hadd_ps(s, s);
+    sum = _mm_cvtss_f32(s);
+    for (; i < size; i++) sum += a[i];
+#endif
     *out = sum;
   } else {
-    // axis-specific sum
     if (axis < 0 || axis >= ndim) { printf("Invalid Axis\n"); return; }
-    // calculate output size (product of all dimensions except the axis dimension)
     int out_size = 1;
     for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
-    for (int i = 0; i < out_size; i++) out[i] = 0.0;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < out_size; i++) out[i] = 0.0f;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
     for (int i = 0; i < size; i++) {
-      int coords[ndim], temp_i = i;
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
       for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
       }
-      int out_idx = 0, multiplier = 1, res_dim = 0;
-      for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
-      }
+#ifdef _OPENMP
+      #pragma omp atomic
+#endif
       out[out_idx] += a[i];
     }
   }
@@ -97,195 +143,222 @@ void sum_tensor_ops(float* a, float* out, int* shape, int* strides, int size, in
 
 void mean_tensor_ops(float* a, float* out, int* shape, int* strides, int size, int* res_shape, int axis, int ndim) {
   if (axis == -1) {
-    float sum = 0.0;
+    float sum = 0.0f;
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(+:sum)
+#endif
     for (int i = 0; i < size; i++) sum += a[i];
     *out = sum / size;
   } else {
     if (axis < 0 || axis >= ndim) { printf("Invalid Axis\n"); return; }
     int out_size = 1;
     for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
-    for (int i = 0; i < out_size; i++) out[i] = 0.0;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < out_size; i++) out[i] = 0.0f;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
     for (int i = 0; i < size; i++) {
-      int coords[ndim], temp_i = i;
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
       for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
       }
-      int out_idx = 0, multiplier = 1, res_dim = 0;
-      for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
-      }
+#ifdef _OPENMP
+      #pragma omp atomic
+#endif
       out[out_idx] += a[i];
     }
+
     int axis_size = shape[axis];
-    for (int i = 0; i < out_size; i++) out[i] /= axis_size;
+    __m256 vd = _mm256_set1_ps(1.0f / axis_size);
+    int i = 0;
+    for (; i <= out_size - 8; i += 8)
+      _mm256_storeu_ps(out + i, _mm256_mul_ps(_mm256_loadu_ps(out + i), vd));
+    for (; i < out_size; i++) out[i] /= axis_size;
   }
 }
 
 void var_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides, int* res_shape, int axis, int ndim, int ddof) {
   if (axis == -1) {
-    // global variance - calculate variance of all elements
-    float mean = 0.0;   // first pass: calculate mean
-    for (int i = 0; i < size; i++) mean += a[i];
+    float mean = 0.0f;
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(+:mean)
+#endif
+    for (int i = 0; i < (int)size; i++) mean += a[i];
     mean /= size;
-    float variance = 0.0;     // second pass: calculate variance
-    for (int i = 0; i < size; i++) {
-      float diff = a[i] - mean;
-      variance += diff * diff;
-    }
 
-    // divide by (N - ddof) for sample variance, or N for population variance
-    int denominator = size - ddof;
-    if (denominator <= 0) { printf("Warning: ddof >= sample size, setting variance to 0\n"); *out = 0.0; }
-    else { *out = variance / denominator; }
+    float variance = 0.0f;
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(+:variance)
+#endif
+    for (int i = 0; i < (int)size; i++) { float d = a[i] - mean; variance += d * d; }
+
+    int denom = (int)size - ddof;
+    if (denom <= 0) { printf("Warning: ddof >= sample size, setting variance to 0\n"); *out = 0.0f; }
+    else *out = variance / denom;
   } else {
     if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
     int out_size = 1;
     for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
     int axis_size = shape[axis];
-    float* means = (float*)calloc(out_size, sizeof(float));
-    for (int i = 0; i < out_size; i++) out[i] = 0.0;
-    for (int i = 0; i < size; i++) {
-      int coords[ndim], temp_i = i;
-      for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
-      }      
-      int out_idx = 0, multiplier = 1, res_dim = 0;
-      for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
-      }
-      means[out_idx] += a[i];       // accumulate sum for mean calculation
-    }
-    for (int i = 0; i < out_size; i++) means[i] /= axis_size;
-    // second pass: calculate variance for each output position
-    for (int i = 0; i < size; i++) {
-      // convert linear index to multi-dimensional coordinates
-      int coords[ndim], temp_i = i;
-      for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
-      }
 
-      int out_idx = 0, multiplier = 1, res_dim = 0;
+    float* means = (float*)calloc(out_size, sizeof(float));
+    if (!means) return;
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < out_size; i++) out[i] = 0.0f;
+
+    // Pass 1: accumulate sums for mean
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)size; i++) {
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
       for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
       }
-      float diff = a[i] - means[out_idx]; // accumulate squared differences
+#ifdef _OPENMP
+      #pragma omp atomic
+#endif
+      means[out_idx] += a[i];
+    }
+
+    // AVX2 divide means
+    __m256 vd = _mm256_set1_ps(1.0f / axis_size);
+    int i = 0;
+    for (; i <= out_size - 8; i += 8)
+      _mm256_storeu_ps(means + i, _mm256_mul_ps(_mm256_loadu_ps(means + i), vd));
+    for (; i < out_size; i++) means[i] /= axis_size;
+
+    // Pass 2: accumulate squared diffs
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)size; i++) {
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
+      for (int d = ndim - 1; d >= 0; d--) {
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
+      }
+      float diff = a[i] - means[out_idx];
+#ifdef _OPENMP
+      #pragma omp atomic
+#endif
       out[out_idx] += diff * diff;
     }
 
-    // divide by (axis_size - ddof) to get final variance
-    int denominator = axis_size - ddof;
-    if (denominator <= 0) {
+    int denom = axis_size - ddof;
+    if (denom <= 0) {
       printf("Warning: ddof >= sample size, setting variance to 0\n");
-      for (int i = 0; i < out_size; i++) out[i] = 0.0;
-    } else { for (int i = 0; i < out_size; i++) out[i] /= denominator; }
+      for (int i = 0; i < out_size; i++) out[i] = 0.0f;
+    } else {
+      __m256 vden = _mm256_set1_ps(1.0f / denom);
+      int i = 0;
+      for (; i <= out_size - 8; i += 8)
+        _mm256_storeu_ps(out + i, _mm256_mul_ps(_mm256_loadu_ps(out + i), vden));
+      for (; i < out_size; i++) out[i] /= denom;
+    }
     free(means);
   }
 }
 
 void std_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides, int* res_shape, int axis, int ndim, int ddof) {
   if (axis == -1) {
-    // global standard deviation - calculate std of all elements
-    float mean = 0.0; // first pass: calculate mean
-    for (int i = 0; i < size; i++) mean += a[i];
+    float mean = 0.0f;
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(+:mean)
+#endif
+    for (int i = 0; i < (int)size; i++) mean += a[i];
     mean /= size;
-    float variance = 0.0; // second pass: calculate variance
-    for (int i = 0; i < size; i++) {
-      float diff = a[i] - mean;
-      variance += diff * diff;
-    }
 
-    // divide by (N - ddof) for sample variance, or N for population variance
-    int denominator = size - ddof;
-    if (denominator <= 0) {
-      printf("Warning: ddof >= sample size, setting std to 0\n");
-      *out = 0.0;
-    } else { *out = sqrtf(variance / denominator); }
+    float variance = 0.0f;
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static) reduction(+:variance)
+#endif
+    for (int i = 0; i < (int)size; i++) { float d = a[i] - mean; variance += d * d; }
+
+    int denom = (int)size - ddof;
+    if (denom <= 0) { printf("Warning: ddof >= sample size, setting std to 0\n"); *out = 0.0f; }
+    else *out = sqrtf(variance / denom);
   } else {
-    // axis-specific standard deviation
     if (axis < 0 || axis >= ndim) { printf("Invalid axis\n"); return; }
-    // calculate output size (product of all dimensions except the axis dimension)
     int out_size = 1;
-    for (int i = 0; i < ndim; i++) {
-      if (i != axis) {
-        out_size *= shape[i];
-      }
-    }
+    for (int i = 0; i < ndim; i++) { if (i != axis) out_size *= shape[i]; }
     int axis_size = shape[axis];
-    // initialize output tensors
+
     float* means = (float*)calloc(out_size, sizeof(float));
-    if (means == NULL) {
-      printf("Memory allocation failed for means\n");
-      return;
-    }
+    if (!means) { printf("Memory allocation failed\n"); return; }
 
-    for (int i = 0; i < out_size; i++) {
-      out[i] = 0.0;
-    }
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < out_size; i++) out[i] = 0.0f;
 
-    // first pass: calculate means for each output position
-    for (int i = 0; i < size; i++) {
-      // convert linear index to multi-dimensional coordinates
-      int coords[ndim];
-      int temp_i = i;
+    // Pass 1: accumulate sums for mean
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)size; i++) {
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
       for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
       }
-      // calculate output index by removing the axis dimension
-      int out_idx = 0, multiplier = 1, res_dim = 0;
-      for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
-      }
-      // accumulate sum for mean calculation
+#ifdef _OPENMP
+      #pragma omp atomic
+#endif
       means[out_idx] += a[i];
     }
 
-    // divide by axis size to get means
-    for (int i = 0; i < out_size; i++) means[i] /= axis_size;
+    // AVX2 divide means
+    __m256 vd = _mm256_set1_ps(1.0f / axis_size);
+    int i = 0;
+    for (; i <= out_size - 8; i += 8)
+      _mm256_storeu_ps(means + i, _mm256_mul_ps(_mm256_loadu_ps(means + i), vd));
+    for (; i < out_size; i++) means[i] /= axis_size;
 
-    // second pass: calculate variance for each output position
-    for (int i = 0; i < size; i++) {
-      int coords[ndim];
-      int temp_i = i;
+    // Pass 2: accumulate squared diffs
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)size; i++) {
+      int coords[ndim], tmp = i;
+      for (int d = ndim - 1; d >= 0; d--) { coords[d] = tmp % shape[d]; tmp /= shape[d]; }
+      int out_idx = 0, multiplier = 1;
       for (int d = ndim - 1; d >= 0; d--) {
-        coords[d] = temp_i % shape[d];
-        temp_i /= shape[d];
+        if (d != axis) { out_idx += coords[d] * multiplier; multiplier *= res_shape[d < axis ? d : d - 1]; }
       }
-      int out_idx = 0, multiplier = 1, res_dim = 0;
-      for (int d = ndim - 1; d >= 0; d--) {
-        if (d != axis) {
-          out_idx += coords[d] * multiplier;
-          multiplier *= res_shape[res_dim];
-        }
-      }
-      // accumulate squared differences
       float diff = a[i] - means[out_idx];
+#ifdef _OPENMP
+      #pragma omp atomic
+#endif
       out[out_idx] += diff * diff;
     }
-    // divide by (axis_size - ddof) and take square root to get final standard deviation
-    int denominator = axis_size - ddof;
-    if (denominator <= 0) {
-      printf("Warning: ddof >= sample size, setting std to 0\n");
-      for (int i = 0; i < out_size; i++) out[i] = 0.0;
-    } else {
-      for (int i = 0; i < out_size; i++) out[i] = sqrtf(out[i] / denominator);
-    }
 
+    int denom = axis_size - ddof;
+    if (denom <= 0) {
+      printf("Warning: ddof >= sample size, setting std to 0\n");
+      for (int i = 0; i < out_size; i++) out[i] = 0.0f;
+    } else {
+      // AVX2 sqrt(x / denom)
+      __m256 vden = _mm256_set1_ps(1.0f / denom);
+      int i = 0;
+      for (; i <= out_size - 8; i += 8)
+        _mm256_storeu_ps(out + i, _mm256_sqrt_ps(_mm256_mul_ps(_mm256_loadu_ps(out + i), vden)));
+      for (; i < out_size; i++) out[i] = sqrtf(out[i] / denom);
+    }
     free(means);
   }
 }
