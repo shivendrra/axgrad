@@ -3,8 +3,11 @@
 
 #include <stddef.h>
 
+#define SIMD_THRESHOLD 64
+#define OMP_THRESHOLD 8192
+#define CACHE_CHUNK_SIZE 64
+
 extern "C" {
-  // forwards
   void sigmoid_ops(float* a, float* out, size_t size);
   void relu_ops(float* a, float* out, size_t size);
   void gelu_ops(float* a, float* out, size_t size);
@@ -14,7 +17,6 @@ extern "C" {
   void swish_ops(float* a, float beta, float* out, size_t size);
   void softplus_ops(float* a, float* out, size_t size);
 
-  // backwards
   void sin_backwards_ops(float* a, float* out, size_t size);
   void cos_backwards_ops(float* a, float* out, size_t size);
   void tan_backwards_ops(float* a, float* out, size_t size);

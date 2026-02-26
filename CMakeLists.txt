@@ -38,7 +38,7 @@ endif()
 add_library(tensor SHARED ${CSRC_FILES} ${BACK_FILES})
 target_include_directories(tensor PRIVATE axgrad/csrc/inc axgrad/autograd/csrc)
 target_link_libraries(tensor PRIVATE Python::Module)
-
+target_compile_options(tensor PRIVATE -mavx2 -mfma -O3)
 if(WIN32)
   set_target_properties(tensor PROPERTIES SUFFIX ".pyd")
 else()

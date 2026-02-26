@@ -20,7 +20,7 @@ Tensor* sin_tensor(Tensor* a) {
     exit(EXIT_FAILURE);
   }
 
-  sin_ops(a_float, out, a->size);
+  sin_tensor_ops(a_float, out, a->size);
   // For trigonometric functions, always return float type
   // If input is integer, promote to float32; if already float, keep same precision
   dtype_t result_dtype;
@@ -52,7 +52,7 @@ Tensor* sinh_tensor(Tensor* a) {
     exit(EXIT_FAILURE);
   }
 
-  sinh_ops(a_float, out, a->size);
+  sinh_tensor_ops(a_float, out, a->size);
   // For trigonometric functions, always return float type
   // If input is integer, promote to float32; if already float, keep same precision
   dtype_t result_dtype;
@@ -84,7 +84,7 @@ Tensor* cos_tensor(Tensor* a) {
     exit(EXIT_FAILURE);
   }
 
-  cos_ops(a_float, out, a->size);
+  cos_tensor_ops(a_float, out, a->size);
   // For trigonometric functions, always return float type
   // If input is integer, promote to float32; if already float, keep same precision
   dtype_t result_dtype;
@@ -116,7 +116,7 @@ Tensor* cosh_tensor(Tensor* a) {
     exit(EXIT_FAILURE);
   }
 
-  cosh_ops(a_float, out, a->size);
+  cosh_tensor_ops(a_float, out, a->size);
   // For trigonometric functions, always return float type
   // If input is integer, promote to float32; if already float, keep same precision
   dtype_t result_dtype;
@@ -148,7 +148,7 @@ Tensor* tan_tensor(Tensor* a) {
     exit(EXIT_FAILURE);
   }
 
-  tan_ops(a_float, out, a->size);
+  tan_tensor_ops(a_float, out, a->size);
   // For trigonometric functions, always return float type
   // If input is integer, promote to float32; if already float, keep same precision
   dtype_t result_dtype;
@@ -180,7 +180,7 @@ Tensor* tanh_tensor(Tensor* a) {
     exit(EXIT_FAILURE);
   }
 
-  tanh_ops(a_float, out, a->size);
+  tanh_tensor_ops(a_float, out, a->size);
   // For trigonometric functions, always return float type
   // If input is integer, promote to float32; if already float, keep same precision
   dtype_t result_dtype;

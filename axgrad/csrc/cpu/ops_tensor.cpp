@@ -1,102 +1,150 @@
 #include <stdio.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
+#include <immintrin.h>
 #include "ops_tensor.h"
 #include "ops_shape.h"
+#include "matmul.h"
 
-// Optimized matrix multiplication using transposed second matrix
-// A: shape_a[0] x shape_a[1], B^T: shape_b[1] x shape_b[0], C: shape_a[0] x shape_b[0]
-// This computes C = A @ B where B is provided in transposed form
+#pragma GCC target("avx2,fma")
+#pragma GCC optimize("O3")
+
+// matmul_tensor_ops
+// Uses hybrid_transposed_matmul: blocked + AVX2 fmadd + OpenMP — fastest path.
+
 void matmul_tensor_ops(float* a, float* b, float* out, int* shape_a, int* shape_b) {
-  int rows_a = shape_a[0];    // rows in 'a'
-  int cols_a = shape_a[1];    // cols in 'a' 
-  int rows_b = shape_b[0];    // rows in 'b' (original 'b' before transpose)
-  int cols_b = shape_b[1];    // cols in 'b' (original 'b' before transpose)
-  float* b_transposed = (float*)malloc(rows_b * cols_b * sizeof(float));
-  if (b_transposed == NULL) {
-    fprintf(stderr, "Memory allocation failed for transpose buffer\n");
-    exit(EXIT_FAILURE);
-  }
-  transpose_2d_tensor_ops(b, b_transposed, shape_b);
-  // for a @ b^T: a(rows_a x cols_a) @ b^T(cols_b x rows_b) = out(rows_a x rows_b)
-  // we need cols_a == cols_b for this to work
-  for (int i = 0; i < rows_a; i++) {
-    for (int j = 0; j < cols_b; j++) {
-      float sum = 0.0f;
-      // dot product between row i of A and row j of B^T (which is column j of original B)
-      for (int k = 0; k < cols_a; k++) {
-        sum += a[i * cols_a + k] * b_transposed[j * cols_a + k];
-      }
-      out[i * cols_b + j] = sum;
-    }
-  }
+  hybrid_transposed_matmul(a, b, out, shape_a, shape_b);
 }
 
-// batch matrix multiplication: batched A @ batched B
-// A: shape1[0] x shape1[1] x shape1[2], B: shape2[0] x shape2[1] x shape2[2]
-// output: shape1[0] x shape1[1] x shape2[2] (assuming shape1[0] == shape2[0])
+// batch_matmul_tensor_ops
+// Uses transposed_matmul per batch slice.
+// A: [batch x M x K],  B: [batch x K x N],  out: [batch x M x N]
+
 void batch_matmul_tensor_ops(float* a, float* b, float* out, int* shape1, int* shape2, int* strides1, int* strides2) {
-  int batch_size = shape1[0];
-  int out_stride = shape1[1] * shape2[2];
-  
-  for (int batch = 0; batch < batch_size; batch++) {
-    for (int i = 0; i < shape1[1]; i++) {
-      for (int j = 0; j < shape2[2]; j++) {
-        float sum = 0.0f;
-        for (int k = 0; k < shape1[2]; k++) {
-          float a_val = a[batch * strides1[0] + i * shape1[2] + k];
-          float b_val = b[batch * strides2[0] + k * shape2[2] + j];
-          sum += a_val * b_val;
-        }
-        out[batch * out_stride + i * shape2[2] + j] = sum;
+  int batch = shape1[0];
+  int M = shape1[1], K = shape1[2], N = shape2[2];
+  int ms_a = M * K, ms_b = K * N, ms_out = M * N;
+
+  int sh_a[2] = {M, K}, sh_b[2] = {K, N};
+
+#ifdef _OPENMP
+  #pragma omp parallel for schedule(static)
+#endif
+  for (int bi = 0; bi < batch; bi++) {
+    float* a_b = a + bi * strides1[0];
+    float* b_b = b + bi * strides2[0];  // intentional: b pointer + offset
+    float* out_b = out + bi * ms_out;
+
+    // Transpose B slice, then do AVX2 dot rows
+    float* bt = aligned_malloc_32(K * N * sizeof(float));
+    for (int i = 0; i < K; i++)
+      for (int j = 0; j < N; j++)
+        bt[j * K + i] = b_b[i * N + j];
+
+    int K8 = K & ~7;
+    for (int i = 0; i < M; i++) {
+      for (int j = 0; j < N; j++) {
+        __m256 acc = _mm256_setzero_ps();
+        int k = 0;
+        for (; k < K8; k += 8)
+          acc = _mm256_fmadd_ps(_mm256_loadu_ps(a_b + i*K + k), _mm256_loadu_ps(bt  + j*K + k), acc);
+        __m128 lo = _mm256_castps256_ps128(acc), hi = _mm256_extractf128_ps(acc, 1);
+        __m128 s = _mm_add_ps(lo, hi); s = _mm_hadd_ps(s, s); s = _mm_hadd_ps(s, s);
+        float sum = _mm_cvtss_f32(s);
+        for (; k < K; k++) sum += a_b[i*K + k] * bt[j*K + k];
+        out_b[i * N + j] = sum;
       }
     }
+    aligned_free(bt);
   }
 }
 
-// broadcasted matrix multiplication: single A * batched B
-// A: shape1[0] x shape1[1], B: shape2[0] x shape2[1] x shape2[2]
-// output: shape2[0] x shape1[0] x shape2[2]
+// broadcasted_matmul_tensor_ops
+// A is 2D [M x K], broadcast across B's batches [batch x K x N] → out [batch x M x N]
+
 void broadcasted_matmul_tensor_ops(float* a, float* b, float* out, int* shape1, int* shape2, int* strides1, int* strides2) {
-  int out_stride = shape1[0] * shape2[2];
-  
-  for (int batch = 0; batch < shape2[0]; batch++) {
-    for (int i = 0; i < shape1[0]; i++) {
-      for (int j = 0; j < shape2[2]; j++) {
-        float sum = 0.0f;
-        for (int k = 0; k < shape1[1]; k++) {
-          // A is broadcasted across batches, B is batched
-          float a_val = a[i * shape1[1] + k];
-          float b_val = b[batch * strides2[0] + k * shape2[2] + j];
-          sum += a_val * b_val;
-        }
-        out[batch * out_stride + i * shape2[2] + j] = sum;
+  int batch = shape2[0];
+  int M = shape1[0], K = shape1[1], N = shape2[2];
+  int ms_out = M * N;
+  int K8 = K & ~7;
+
+  // Precompute A shape for hybrid call — A is shared across all batches
+  int sh_a[2] = {M, K};
+
+#ifdef _OPENMP
+  #pragma omp parallel for schedule(static)
+#endif
+  for (int bi = 0; bi < batch; bi++) {
+    float* b_b = b + bi * strides2[0];
+    float* out_b = out + bi * ms_out;
+
+    // Transpose this batch's B slice
+    float* bt = aligned_malloc_32(K * N * sizeof(float));
+    for (int i = 0; i < K; i++)
+      for (int j = 0; j < N; j++)
+        bt[j * K + i] = b_b[i * N + j];
+
+    // A is broadcasted — same pointer every batch
+    for (int i = 0; i < M; i++) {
+      for (int j = 0; j < N; j++) {
+        __m256 acc = _mm256_setzero_ps();
+        int k = 0;
+        for (; k < K8; k += 8)
+          acc = _mm256_fmadd_ps(_mm256_loadu_ps(a + i*K + k), _mm256_loadu_ps(bt + j*K + k), acc);
+        __m128 lo = _mm256_castps256_ps128(acc), hi = _mm256_extractf128_ps(acc, 1);
+        __m128 s = _mm_add_ps(lo, hi); s = _mm_hadd_ps(s, s); s = _mm_hadd_ps(s, s);
+        float sum = _mm_cvtss_f32(s);
+        for (; k < K; k++) sum += a[i*K + k] * bt[j*K + k];
+        out_b[i * N + j] = sum;
       }
     }
+    aligned_free(bt);
   }
 }
 
-// Dot product of two 1D vectors
-// computes sum(a[i] * b[i]) for i = 0 to size-1
+// dot_tensor_ops
+// AVX2 dot product with OpenMP reduction for large vectors.
+
 void dot_tensor_ops(float* a, float* b, float* out, size_t size) {
   float sum = 0.0f;
-  for (size_t i = 0; i < size; i++) {
-    sum += a[i] * b[i];
-  }
+#ifdef _OPENMP
+  #pragma omp parallel for schedule(static) reduction(+:sum)
+  for (size_t i = 0; i < size; i++) sum += a[i] * b[i];
+#else
+  __m256 vacc = _mm256_setzero_ps();
+  size_t i = 0;
+  for (; i + 8 <= size; i += 8)
+    vacc = _mm256_fmadd_ps(_mm256_loadu_ps(a + i), _mm256_loadu_ps(b + i), vacc);
+  __m128 lo = _mm256_castps256_ps128(vacc), hi = _mm256_extractf128_ps(vacc, 1);
+  __m128 s = _mm_add_ps(lo, hi); s = _mm_hadd_ps(s, s); s = _mm_hadd_ps(s, s);
+  sum = _mm_cvtss_f32(s);
+  for (; i < size; i++) sum += a[i] * b[i];
+#endif
   *out = sum;
 }
 
-// batch dot product of multiple pairs of 1D vectors
-// a: batch_count x vector_size (flattened), b: batch_count x vector_size (flattened)
-// out: batch_count (output tensor of dot products)
+// batch_dot_tensor_ops
+// Each batch slice is an independent dot product — parallel over batches,
+// AVX2 within each slice.
+
 void batch_dot_tensor_ops(float* a, float* b, float* out, size_t batch_count, size_t vector_size) {
+  int vs8 = (int)vector_size & ~7;
+
+#ifdef _OPENMP
+  #pragma omp parallel for schedule(static)
+#endif
   for (size_t batch = 0; batch < batch_count; batch++) {
-    float sum = 0.0f;
-    size_t batch_offset = batch * vector_size;
-    
-    for (size_t i = 0; i < vector_size; i++) {
-      sum += a[batch_offset + i] * b[batch_offset + i];
-    }
+    size_t off = batch * vector_size;
+    __m256 vacc = _mm256_setzero_ps();
+    int k = 0;
+    for (; k < vs8; k += 8)
+      vacc = _mm256_fmadd_ps(_mm256_loadu_ps(a + off + k), _mm256_loadu_ps(b + off + k), vacc);
+    __m128 lo = _mm256_castps256_ps128(vacc), hi = _mm256_extractf128_ps(vacc, 1);
+    __m128 s = _mm_add_ps(lo, hi); s = _mm_hadd_ps(s, s); s = _mm_hadd_ps(s, s);
+    float sum = _mm_cvtss_f32(s);
+    for (size_t i = k; i < vector_size; i++) sum += a[off+i] * b[off+i];
     out[batch] = sum;
   }
 }

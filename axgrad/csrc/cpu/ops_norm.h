@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+#define SIMD_THRESHOLD 64
+#define OMP_THRESHOLD 8192
+#define CACHE_CHUNK_SIZE 64
+
 extern "C" {
   void clip_tensor_ops(float* a, float* out, float max_val, size_t size);
   void clamp_tensor_ops(float* a, float* out, float min_val, float max_val, size_t size);

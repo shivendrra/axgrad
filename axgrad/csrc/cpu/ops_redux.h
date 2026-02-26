@@ -1,8 +1,3 @@
-/**
-  @file red_ops.h
-  @brief contains all the reduction operations helper functions
-*/
-
 #ifndef __OPS_REDUX__H__
 #define __OPS_REDUX__H__
 
@@ -17,4 +12,4 @@ extern "C" {
   void std_tensor_ops(float* a, float* out, size_t size, int* shape, int* strides, int* res_shape, int axis, int ndim, int ddof);
 }
 
-#endif  //!__RED_OPS__H__
+#endif
