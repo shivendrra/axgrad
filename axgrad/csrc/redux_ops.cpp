@@ -436,7 +436,6 @@ Tensor* min_tensor(Tensor* a, int axis, bool keepdims) {
   Tensor* result = create_tensor(out, ndim, shape, out_size, result_dtype);
   free(a_float);
   free(out);
-  free(out);
   if (shape) free(shape);
   return result;
 }
