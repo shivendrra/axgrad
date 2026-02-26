@@ -15,12 +15,12 @@ extern "C" {
   void sqrt_tensor_ops(float* a, float* out, size_t size);
   void sign_tensor_ops(float* a, float* out, size_t size);
 
-  void sin_ops(float* a, float* out, size_t size);
-  void cos_ops(float* a, float* out, size_t size);
-  void tan_ops(float* a, float* out, size_t size);
-  void sinh_ops(float* a, float* out, size_t size);
-  void cosh_ops(float* a, float* out, size_t size);
-  void tanh_ops(float* a, float* out, size_t size);
+  void sin_tensor_ops(float* a, float* out, size_t size);
+  void cos_tensor_ops(float* a, float* out, size_t size);
+  void tan_tensor_ops(float* a, float* out, size_t size);
+  void sinh_tensor_ops(float* a, float* out, size_t size);
+  void cosh_tensor_ops(float* a, float* out, size_t size);
+  void tanh_tensor_ops(float* a, float* out, size_t size);
 }
 
 #endif  //!__OPS_UNARY__H__

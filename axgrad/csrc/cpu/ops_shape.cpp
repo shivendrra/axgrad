@@ -4,6 +4,9 @@
 #include <immintrin.h>
 #include "ops_shape.h"
 
+#pragma GCC target("avx2,fma")
+#pragma GCC optimize("O3")
+
 void reassign_tensor_ops(float* a, float* out, size_t size) {
   int i = 0;
 #ifdef _OPENMP

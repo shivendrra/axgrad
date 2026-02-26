@@ -8,6 +8,9 @@
 #include "ops_shape.h"
 #include "matmul.h"
 
+#pragma GCC target("avx2,fma")
+#pragma GCC optimize("O3")
+
 // matmul_tensor_ops
 // Uses hybrid_transposed_matmul: blocked + AVX2 fmadd + OpenMP — fastest path.
 

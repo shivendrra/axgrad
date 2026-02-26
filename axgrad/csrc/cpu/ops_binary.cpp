@@ -7,6 +7,9 @@
 #include "ops_shape.h"
 #include "ops_binary.h"
 
+#pragma GCC target("avx2,fma")
+#pragma GCC optimize("O3")
+
 void add_ops_avx2(float* a, float* b, float* out, size_t size) {
   for (size_t i = 0; i < size; i += 8) {
     if (i + 8 <= size) {

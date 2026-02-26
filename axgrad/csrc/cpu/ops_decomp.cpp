@@ -8,6 +8,9 @@
 #include "ops_tensor.h"
 #include "ops_shape.h"
 
+#pragma GCC target("avx2,fma")
+#pragma GCC optimize("O3")
+
 // AVX2 Helpers
 
 // Dot product of two float arrays of length n, AVX2 accelerated
