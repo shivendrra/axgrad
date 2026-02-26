@@ -1,11 +1,8 @@
 # axgrad
 ![axon.png](https://github.com/shivendrra/axgrad/blob/main/axon.png)
-My attempt to make something like [TinyGrad](https://github.com/tinygrad/tinygrad) or [PyTorch](https://github.com/pytorch/pytorch)
-A framework like PyTorch & MicroGrad written fully in python(i will add the c & cpp components for faster implementation though).
-It's supposed to be a good and lightweight C and Python based deep learning framework, which it's not, as of now(still building).
 
 ## Overview
-It contains a framework similar to Numpy which allows to do basic matrix operations like element-wise add/mul + matrix multiplication + broadcasting. Also building pytorch like auto-differentiation engine: axgrad (work in progress!)
+It contains a framework similar to Numpy which allows to do basic matrix operations like element-wise add/mul + matrix multiplication + broadcasting. Also building pytorch like auto-differentiation engine: axgrad
 
 ## Features
 It has basic building blocks required to build a neural network:
@@ -18,8 +15,8 @@ i'll be adding more things in future...
 This shows basic usage of `axgrad.engine` & few of the `axon`'s modules to preform tensor operations and build a sample neural network
 
 anyway, prefer documentation for detailed usage guide:
-1. [axon.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axonDoc.md): for using like numpy
-2. [axgrad.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axgradDoc.md): for building neural network from axon library (incomplete for now)
+1. [Usage.md](https://github.com/shivendrra/axgrad/blob/main/docs/User.md): User documentation for AxGrad
+<!-- 2. [axgrad.doc](https://github.com/shivendrra/axgrad/blob/main/docs/axgradDoc.md): for building neural network from axon library (incomplete for now) -->
 
 ## Creating a MLP
 
@@ -54,4 +51,5 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 Please make sure to update tests as appropriate. But it's still a work in progress.
 
 ## License
-None!
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
