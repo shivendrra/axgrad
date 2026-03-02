@@ -42,7 +42,7 @@ class MLP(nn.Module):
 
 refer to this [Example](https://github.com/shivendrra/axgrad/blob/main/examples/mlp.py) for detailed info on making mlp
 
-btw, here's the outputs i got from my simple implementation, that ran till 500 iters:
+btw, here's the outputs i got from my simple implementation, that ran till 5kiters:
 
 ![result](https://github.com/shivendrra/axgrad/blob/main/examples/mlp.png)
 
