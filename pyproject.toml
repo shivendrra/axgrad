@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "axgrad"
-version = "0.0.1"
+version = "0.1.0"
 description = "lightweight tensor library with autograd engine for training deep neural nets"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -12,21 +12,20 @@ authors = [{name = "Shivendra S", email = "shivharsh44@gmail.com"}]
 maintainers = [{name = "Shivendra S", email = "shivharsh44@gmail.com"}]
 requires-python = ">=3.11"
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: C",
+    "Programming Language :: C++",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Mathematics",
+    "Operating System :: OS Independent"
 ]
 keywords = ["neural networks", "automatic differentiation", "deep learning", "machine learning"]
-dependencies = [
-    "numpy>=1.20.0",
-    "matplotlib>=3.5.0",
-]
-
+dependencies = []
 [project.urls]
 Repository = "https://github.com/shivendrra/axgrad"
 Documentation = "https://github.com/shivendrra/axgrad/tree/main/docs/User.md"
