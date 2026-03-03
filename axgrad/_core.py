@@ -1,32 +1,30 @@
-import ctypes, os, sys, platform, sysconfig
+import ctypes, os, sysconfig
 from ctypes import Structure, c_float, c_double, c_int, c_int8, c_int16, c_int32, c_int64, c_uint8, c_uint16, c_uint32, c_uint64, c_size_t, c_void_p, c_char_p, POINTER
 from typing import *
 
 def _get_lib_path():
   pkg_dir = os.path.dirname(__file__)
-  possible_names = ['tensor', 'libtensor']
-  possible_exts = ['.pyd', '.dll', '.so', '.dylib', sysconfig.get_config_var('EXT_SUFFIX') or '']
-  search_dirs = [pkg_dir, os.path.join(pkg_dir, 'lib'), os.path.join(pkg_dir, '..', 'build')]
-
-  for search_dir in search_dirs:
-    if not os.path.exists(search_dir): continue
-    for root, dirs, files in os.walk(search_dir):
-      for file in files:
-        for name in possible_names:
-          if file.startswith(name) and any(file.endswith(ext) for ext in possible_exts if ext): return os.path.join(root, file)
-  raise FileNotFoundError(f"Could not find tensor library in {search_dirs}. Available files: {[f for d in search_dirs if os.path.exists(d) for f in os.listdir(d)]}")
+  names, exts = ['tensor', 'libtensor'], [sysconfig.get_config_var('EXT_SUFFIX') or '', '.pyd', '.dll', '.so', '.dylib']
+  dirs = [pkg_dir, os.path.join(pkg_dir, 'lib'), os.path.join(pkg_dir, '..', 'build')]
+  for d in dirs:
+    if not os.path.exists(d): continue
+    for root, _, files in os.walk(d):
+      for f in files:
+        if any(f.startswith(n) for n in names) and any(f.endswith(e) for e in exts if e):
+          return os.path.join(root, f)
+  raise FileNotFoundError(f"Could not find tensor library. Searched: {dirs}")
 
 lib = ctypes.CDLL(_get_lib_path())
 
 class DType: FLOAT32, FLOAT64, INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, BOOL = range(11)
 class DTypeValue(ctypes.Union): _fields_ = [("f32", c_float), ("f64", c_double), ("i8", c_int8), ("i16", c_int16), ("i32", c_int32), ("i64", c_int64), ("u8", c_uint8), ("u16", c_uint16), ("u32", c_uint32), ("u64", c_uint64), ("boolean", c_uint8)]
-class CTensor(Structure):  _fields_ = [("data", c_void_p), ("strides", POINTER(c_int)), ("shape", POINTER(c_int)), ("size", c_size_t), ("ndim", c_size_t), ("dtype", c_int), ("is_view", c_int)]
+class CTensor(Structure): _fields_ = [("data", c_void_p), ("strides", POINTER(c_int)), ("shape", POINTER(c_int)), ("size", c_size_t), ("ndim", c_size_t), ("dtype", c_int), ("is_view", c_int)]
+
 def _setup_func(name, argtypes, restype):
   func = getattr(lib, name)
   func.argtypes, func.restype = argtypes, restype
-  return func
 
-_forward_funcs = {
+_all_funcs = {
   'create_tensor': ([POINTER(c_float), c_size_t, POINTER(c_int), c_size_t, c_int], POINTER(CTensor)),
   'delete_tensor': ([POINTER(CTensor)], None), 'delete_data': ([POINTER(CTensor)], None),
   'delete_shape': ([POINTER(CTensor)], None), 'delete_strides': ([POINTER(CTensor)], None),
@@ -79,10 +77,7 @@ _forward_funcs = {
   'zeros_tensor': ([POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'ones_tensor': ([POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)),
   'randn_tensor': ([POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'randint_tensor': ([c_int, c_int, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)),
   'uniform_tensor': ([c_int, c_int, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'fill_tensor': ([c_float, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)),
-  'linspace_tensor': ([c_float, c_float, c_float, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'arange_tensor': ([c_float, c_float, c_float, c_int], POINTER(CTensor))
-}
-
-_backward_funcs = {
+  'linspace_tensor': ([c_float, c_float, c_float, POINTER(c_int), c_size_t, c_size_t, c_int], POINTER(CTensor)), 'arange_tensor': ([c_float, c_float, c_float, c_int], POINTER(CTensor)),
   'sin_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'cos_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'tan_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
   'sinh_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'cosh_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'tanh_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
   'relu_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'sigmoid_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
@@ -96,16 +91,10 @@ _backward_funcs = {
   'unit_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'robust_norm_backwards': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'log_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'exp_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
   'abs_backwards': ([POINTER(CTensor)], POINTER(CTensor)), 'sqrt_backwards': ([POINTER(CTensor)], POINTER(CTensor)),
-}
-
-_nn_funcs = {
   'clip_tensor': ([POINTER(CTensor), c_float], POINTER(CTensor)), 'clamp_tensor': ([POINTER(CTensor), c_float, c_float], POINTER(CTensor)),
   'mm_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'std_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'rms_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'unit_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
   'l1_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'l2_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)), 'robust_norm_tensor': ([POINTER(CTensor)], POINTER(CTensor)),
-}
-
-_vector_funcs = {
   'vector_dot': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_matrix_dot': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'vector_inner': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_outer': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)),
   'vector_cross': ([POINTER(CTensor), POINTER(CTensor)], POINTER(CTensor)), 'vector_cross_axis': ([POINTER(CTensor), POINTER(CTensor), c_int], POINTER(CTensor)),
@@ -119,7 +108,4 @@ _vector_funcs = {
   'lu_tensor': ([POINTER(CTensor)], POINTER(POINTER(CTensor))), 'batched_lu_tensor': ([POINTER(CTensor)], POINTER(POINTER(CTensor))),
 }
 
-for name, (argtypes, restype) in _forward_funcs.items(): _setup_func(name, argtypes, restype)
-for name, (argtypes, restype) in _backward_funcs.items(): _setup_func(name, argtypes, restype)
-for name, (argtypes, restype) in _nn_funcs.items(): _setup_func(name, argtypes, restype)
-for name, (argtypes, restype) in _vector_funcs.items(): _setup_func(name, argtypes, restype)
+for name, (argtypes, restype) in _all_funcs.items(): _setup_func(name, argtypes, restype)
